@@ -62,7 +62,7 @@ setup_git_secrets() {
 
     # Add all patterns from git-secrets_patterns.md
     git secrets --add 'PRIVATE_KEY|SECRET_KEY' || log_warning "Failed to add PRIVATE_KEY|SECRET_KEY pattern"
-    git secrets --add '0x[a-fA-F0-9]{64}' || log_warning "Failed to add 0x pattern"
+    git secrets --add '0x[a-fA-F0-9]{64}' || log_warning "Failed to add 0x pattern"failed 
     git secrets --add 'mnemonic.*[a-z]{3,}\s+[a-z]{3,}' || log_warning "Failed to add mnemonic pattern"
     git secrets --add '"mnemonic":\s*"[^"]+"' || log_warning "Failed to add mnemonic JSON pattern"
     git secrets --add "'mnemonic':\s*'[^']+'" || log_warning "Failed to add mnemonic JS pattern"
@@ -71,13 +71,12 @@ setup_git_secrets() {
     git secrets --add 'ETHERSCAN_API_KEY\s*=\s*["'\'']*[a-zA-Z0-9]{32}["'\'']*' || log_warning "Failed to add ETHERSCAN pattern"
     git secrets --add 'PRIVATE_KEY\s*=\s*["'\'']*0x[a-fA-F0-9]{64}["'\'']*' || log_warning "Failed to add PRIVATE_KEY pattern"
     git secrets --add 'PRIVATE_KEY\s*=\s*["'\'']*0x[a-fA-F0-9]{64}["'\'']*\s*$' || log_warning "Failed to add PRIVATE_KEY end pattern"
-    git secrets --add 'SECRET_KEY\s*=\s*["'\'']*[a-zA-Z0-9]{32,}["'\'']*' || log_warning "Failed to add SECRET_KEY pattern"
+    git secrets --add 'SECRET_KEY\s*=\s*["'\'']*0x[a-fA-F0-9]{64}["'\'']*' || log_warning "Failed to add SECRET_KEY pattern"
     git secrets --add 'API_SECRET\s*=\s*["'\'']*[a-zA-Z0-9]{32,}["'\'']*' || log_warning "Failed to add API_SECRET pattern"
     git secrets --add 'https://[^/]*:[^@]*@[^/]*' || log_warning "Failed to add HTTPS URL pattern"
     git secrets --add 'wss://[^/]*:[^@]*@[^/]*' || log_warning "Failed to add WSS URL pattern"
 
     # Add all allowed patterns from git-secrets_patterns.md
-    git secrets --add --allowed '0x0000000000000000000000000000000000000000' || log_warning "Failed to add zero address allowed pattern"
     git secrets --add --allowed 'PRIVATE_KEY\s*=\s*your_private_key_here' || log_warning "Failed to add placeholder allowed pattern"
     git secrets --add --allowed 'process\.env\.PRIVATE_KEY' || log_warning "Failed to add env var allowed pattern"
     git secrets --add --allowed 'PRIVATE_KEY\s*,' || log_warning "Failed to add comma allowed pattern"
@@ -93,14 +92,15 @@ setup_git_secrets() {
     git secrets --add --allowed "git secrets --add 'SECRET_KEY" || log_warning "Failed to add git secrets SECRET_KEY allowed pattern"
     git secrets --add --allowed '/PRIVATE_KEY\\s*= /,' || log_warning "Failed to add regex pattern 2 allowed"
     git secrets --add --allowed '/PRIVATE_KEY\\\\s*= /' || log_warning "Failed to add regex pattern 3 allowed"
-    git secrets --add --allowed '/PRIVATE_KEY\\\\s*= /' || log_warning "Failed to add regex pattern 4 allowed"
     git secrets --add --allowed '/PRIVATE_KEY\\\\s*= /,' || log_warning "Failed to add regex pattern 5 allowed"
     git secrets --add --allowed '/PRIVATE_KEY\\s\\*=/' || log_warning "Failed to add regex pattern 6 allowed"
     git secrets --add --allowed 'const secretPatterns = \[' || log_warning "Failed to add const allowed pattern"
     git secrets --add --allowed 'SECRET_KEYs*' || log_warning "Failed to add SECRET_KEYs allowed pattern"
     git secrets --add --allowed 'scripts/devops/signed-artifacts/' || log_warning "Failed to add signed-artifacts allowed pattern"
     git secrets --add --allowed '.devcontainer/scripts/setup-security.sh' || log_warning "Failed to add .devcontainer allowed pattern"
-
+    git config --add secrets.allowed 'API_KEY|API_SECRET|PRIVATE_KEY|SECRET_KEY' || log_warning "Failed to add combined API_KEY|API_SECRET|PRIVATE_KEY|SECRET_KEY allowed pattern"
+    git config --add secrets.allowed '.yarn/releases/' || log_warning "Failed to add .yarn/releases allowed pattern"
+    
     # Install git-secrets hooks
     if [ -d .git ]; then
         git secrets --install -f || log_warning "Failed to install git-secrets hooks"
@@ -108,6 +108,45 @@ setup_git_secrets() {
         log_success "git-secrets configured and hooks installed"
     else
         log_warning "Not in a git repository. git-secrets hooks not installed."
+    fi
+}
+
+# Function to setup Git credential helper with GitHub CLI
+setup_git_credentials() {
+    log_info "Configuring Git to use GitHub CLI for authentication..."
+
+    if ! command_exists gh; then
+        log_warning "GitHub CLI (gh) not found. Skipping credential helper setup."
+        log_info "Install gh and run 'gh auth login' to enable Git authentication."
+        return 0
+    fi
+
+    # Check if user is authenticated with gh
+    if ! gh auth status >/dev/null 2>&1; then
+        log_warning "Not authenticated with GitHub CLI."
+        log_info "Run 'gh auth login' to authenticate before using Git operations."
+        return 0
+    fi
+
+    # Configure Git to use GitHub CLI as credential helper
+    log_info "Setting up GitHub CLI as Git credential helper..."
+    
+    # Clear any existing generic credential helper to avoid conflicts
+    git config --global credential.helper "" 2>/dev/null || true
+    
+    # Setup gh as credential helper for GitHub
+    if gh auth setup-git 2>/dev/null; then
+        log_success "GitHub CLI credential helper configured successfully"
+        
+        # Verify the configuration
+        if git config --global --get credential.https://github.com.helper | grep -q "gh auth git-credential"; then
+            log_success "Git will now use GitHub CLI for authentication"
+        else
+            log_warning "Credential helper configured but verification failed"
+        fi
+    else
+        log_warning "Failed to setup GitHub CLI as credential helper"
+        log_info "You may need to manually run 'gh auth setup-git'"
     fi
 }
 
@@ -292,6 +331,7 @@ main() {
 
     # Setup each security tool
     setup_git_secrets
+    setup_git_credentials
     setup_semgrep
     setup_snyk
     setup_socket

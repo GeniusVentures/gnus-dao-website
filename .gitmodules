@@ -7,3 +7,6 @@
 [submodule "diamonds/GNUSDAODiamond"]
 	path = diamonds/GNUSDAODiamond
 	url = git@github.com:GeniusVentures/gnus-dao-deployments.git
+[submodule ".devcontainer"]
+	path = .devcontainer
+	url = https://github.com/GeniusVentures/diamonds-devcontainer.git

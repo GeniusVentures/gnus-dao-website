@@ -60,7 +60,7 @@ jobs:
                 vulnerabilities: [{
                   package: {
                     ecosystem: "npm",
-                    name: "gnus-dao"
+                    name: "gnus-dao-website"
                   },
                   vulnerable_version_range: affected_versions,
                   first_patched_version: {
@@ -92,7 +92,7 @@ jobs:
                 '- [ ] Advisory publication\\n\\n' +
                 '### Related Links\\n' +
                 '- [GitHub Advisory](' + advisory.data.html_url + ')\\n' +
-                '- [Security Policy](https://github.com/GeniusVentures/gnus-dao/blob/main/SECURITY.md)\\n\\n' +
+                '- [Security Policy](https://github.com/GeniusVentures/gnus-dao-website/blob/main/SECURITY.md)\\n\\n' +
                 '---\\n' +
                 '*This issue tracks the resolution of security advisory ' + advisory.data.ghsa_id + '*';
               

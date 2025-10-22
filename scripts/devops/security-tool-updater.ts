@@ -202,7 +202,7 @@ class SecurityToolUpdater {
 				.get(
 					url,
 					{
-						headers: { 'User-Agent': 'GNUS-DAO-Security-Updater' },
+						headers: { 'User-Agent': 'GNUS-DAO-Website-Security-Updater' },
 					},
 					(res) => {
 						let data = '';
@@ -240,7 +240,7 @@ class SecurityToolUpdater {
 				.get(
 					url,
 					{
-						headers: { 'User-Agent': 'GNUS-DAO-Security-Updater' },
+						headers: { 'User-Agent': 'GNUS-DAO-Website-Security-Updater' },
 					},
 					(res) => {
 						let data = '';
@@ -344,7 +344,7 @@ class SecurityToolUpdater {
 					requestUrl,
 					{
 						headers: {
-							'User-Agent': 'GNUS-DAO-Security-Tool-Updater',
+							'User-Agent': 'GNUS-DAO-Website-Security-Tool-Updater',
 						},
 					},
 					(response) => {

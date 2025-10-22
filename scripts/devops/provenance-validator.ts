@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * GNUS-DAO Dependency Provenance Validation Script
+ * GNUS-DAO-Website Dependency Provenance Validation Script
  * Validates provenance and integrity of critical dependencies
  * Implements supply chain security checks for key packages
  */
@@ -100,7 +100,7 @@ class ProvenanceValidator {
 	 * Main validation entry point
 	 */
 	public async validateAll(): Promise<ValidationResults> {
-		this.log('🚀 Starting GNUS-DAO dependency provenance validation');
+		this.log('🚀 Starting GNUS-DAO-Website dependency provenance validation');
 
 		try {
 			await this.validatePackageIntegrity();
@@ -475,7 +475,7 @@ class ProvenanceValidator {
 	private async generateProvenanceReport(): Promise<void> {
 		const report: ProvenanceReport = {
 			timestamp: new Date().toISOString(),
-			project: 'GNUS-DAO',
+			project: 'GNUS-DAO-Website',
 			validationResults: this.results,
 			summary: {
 				totalValidated: this.results.validated.length,
@@ -487,11 +487,7 @@ class ProvenanceValidator {
 			recommendations: this.generateRecommendations(),
 		};
 
-		const reportPath = path.join(
-			process.cwd(),
-			'reports',
-			'provenance-report.json',
-		);
+		const reportPath = path.join(process.cwd(), 'reports', 'provenance-report.json');
 		fs.mkdirSync(path.dirname(reportPath), { recursive: true });
 		fs.writeFileSync(reportPath, JSON.stringify(report, null, 2));
 

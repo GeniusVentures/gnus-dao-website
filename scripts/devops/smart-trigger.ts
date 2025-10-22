@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * Smart Trigger Analyzer for GNUS-DAO CI/CD
+ * Smart Trigger Analyzer for GNUS-DAO-Website CI/CD
  * Analyzes code changes to determine optimal CI trigger strategy
  */
 

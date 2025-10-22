@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * GNUS-DAO Security Monitoring Webhook Handler
+ * GNUS-DAO-Website Security Monitoring Webhook Handler
  * Processes GitHub security events and triggers automated responses
  * Integrates with alerting systems and incident response workflows
  */
@@ -796,7 +796,7 @@ class AlertManager {
 					title: alert.title,
 					text: alert.description,
 					fields: this.formatAlertFields(alert),
-					footer: 'GNUS-DAO Security Monitor',
+					footer: 'GNUS-DAO-Website Security Monitor',
 					ts: Date.now() / 1000,
 				},
 			],
@@ -813,7 +813,7 @@ class AlertManager {
 			description: alert.description,
 			color,
 			fields: this.formatAlertFields(alert),
-			footer: { text: 'GNUS-DAO Security Monitor' },
+			footer: { text: 'GNUS-DAO-Website Security Monitor' },
 			timestamp: new Date().toISOString(),
 		};
 
@@ -822,7 +822,7 @@ class AlertManager {
 	}
 
 	private async sendEmailAlert(severity: string, alert: ProcessedAlert): Promise<void> {
-		const subject: string = `[${severity.toUpperCase()}] GNUS-DAO Security Alert: ${alert.title}`;
+		const subject: string = `[${severity.toUpperCase()}] GNUS-DAO-Website Security Alert: ${alert.title}`;
 
 		// In production, send email via service
 		console.log(`📧 Email alert sent: ${subject}`);

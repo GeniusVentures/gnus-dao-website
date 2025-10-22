@@ -1,5 +1,5 @@
 #!/bin/bash
-# GNUS-DAO DevContainer CI/CD Setup Validation
+# GNUS-DAO-Website DevContainer CI/CD Setup Validation
 # Validates the complete DevContainer CI/CD integration
 
 set -euo pipefail
@@ -263,7 +263,7 @@ EOF
 # Function to show usage
 usage() {
     cat << EOF
-GNUS-DAO DevContainer CI/CD Setup Validation
+GNUS-DAO-Website DevContainer CI/CD Setup Validation
 
 Usage: $0 [OPTIONS]
 
@@ -321,7 +321,7 @@ main() {
         esac
     done
 
-    log_info "Starting GNUS-DAO DevContainer CI/CD Setup Validation"
+    log_info "Starting GNUS-DAO-Website DevContainer CI/CD Setup Validation"
 
     setup_reports_dir
 

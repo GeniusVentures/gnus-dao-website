@@ -484,7 +484,7 @@ jobs:
 
       - name: Generate hybrid pipeline summary
         run: |
-          echo "## 🔄 GNUS-DAO Hybrid CI Pipeline Summary" >> $GITHUB_STEP_SUMMARY
+          echo "## 🔄 GNUS-DAO-Website Hybrid CI Pipeline Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Execution Mode: ${{ env.EXECUTION_MODE }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY

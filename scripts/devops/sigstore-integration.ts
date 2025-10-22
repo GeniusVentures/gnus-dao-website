@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * GNUS-DAO Sigstore Integration Script
+ * GNUS-DAO-Website Sigstore Integration Script
  * Implements Sigstore signing and verification for build artifacts
  * Provides cryptographic attestation using Sigstore's transparency log
  */
@@ -169,8 +169,10 @@ class SigstoreIntegration {
 			throw new Error(`Artifact not found: ${validatedArtifactPath}`);
 		}
 
-		const { identity = 'gnus-dao-ci@github.com', otherName = 'GNUS-DAO Build System' } =
-			options;
+		const {
+			identity = 'gnus-dao-website-ci@github.com',
+			otherName = 'GNUS-DAO-Website Build System',
+		} = options;
 
 		// Calculate artifact hash
 		const artifactHash = this.calculateFileHash(validatedArtifactPath);
@@ -574,7 +576,7 @@ class SigstoreIntegration {
 		const manifest = {
 			version: '1.0',
 			created: new Date().toISOString(),
-			signer: 'gnus-dao-sigstore',
+			signer: 'gnus-dao-website-sigstore',
 			signingTool: 'sigstore-integration',
 			signatures: signatures.map((sig) => ({
 				artifact: path.basename(sig.signatureFile.replace('.sigstore', '')),
@@ -659,7 +661,7 @@ async function main(): Promise<void> {
 			break;
 
 		default:
-			console.log('GNUS-DAO Sigstore Integration');
+			console.log('GNUS-DAO-Website Sigstore Integration');
 			console.log('');
 			console.log('Usage:');
 			console.log('  sign <artifact-path>        Sign a specific artifact');

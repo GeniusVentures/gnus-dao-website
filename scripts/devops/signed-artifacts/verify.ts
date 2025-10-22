@@ -1,7 +1,7 @@
 #!/usr/bin/env npx ts-node
 
 /**
- * GNUS-DAO Artifact Verification Script
+ * GNUS-DAO-Website Artifact Verification Script
  * Verifies the cryptographic signature and provenance of signed artifacts
  */
 
@@ -63,7 +63,7 @@ class ArtifactVerifier {
 	}
 
 	async verify(): Promise<void> {
-		this.log('🔍 Starting GNUS-DAO artifact verification');
+		this.log('🔍 Starting GNUS-DAO-Website artifact verification');
 
 		if (!fs.existsSync(this.provenanceFile)) {
 			console.error('❌ Provenance file not found');
@@ -83,7 +83,7 @@ class ArtifactVerifier {
 		const calculatedHash = crypto
 			.createHash('sha256')
 			.update(provenanceString)
-			.update('GNUS-DAO-SIGNATURE-SALT')
+			.update('GNUS-DAO-Website-SIGNATURE-SALT')
 			.digest('hex');
 
 		if (calculatedHash === signedProvenance.signature.signature) {
@@ -212,7 +212,7 @@ if (require.main === module) {
 			});
 			break;
 		default:
-			console.log('GNUS-DAO Artifact Verification Tool');
+			console.log('GNUS-DAO-Website Artifact Verification Tool');
 			console.log('');
 			console.log('Usage:');
 			console.log('  npx ts-node verify.ts verify     # Verify cryptographic signature');

@@ -1,7 +1,7 @@
 #!/usr/bin/env npx ts-node
 
 /**
- * GNUS-DAO Automated Maintenance System
+ * GNUS-DAO-Website Automated Maintenance System
  * Handles scheduled maintenance tasks for CI/CD pipeline health
  */
 

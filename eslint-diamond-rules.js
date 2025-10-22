@@ -1,5 +1,5 @@
 /**
- * Custom ESLint rules for GNUS-DAO Diamond Proxy patterns
+ * Custom ESLint rules for GNUS-DAO-Website Diamond Proxy patterns
  */
 
 module.exports = {

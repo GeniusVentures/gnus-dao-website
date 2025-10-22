@@ -1,7 +1,7 @@
 #!/usr/bin/env npx ts-node
 
 /**
- * GNUS-DAO Automated Incident Response System
+ * GNUS-DAO-Website Automated Incident Response System
  * Handles incident creation, escalation, and automated response workflows
  * Integrates with security monitoring and alerting systems
  */

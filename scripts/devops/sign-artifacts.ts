@@ -1,7 +1,7 @@
 #!/usr/bin/env npx ts-node
 
 /**
- * GNUS-DAO Build Artifact Signing and Provenance Script
+ * GNUS-DAO-Website Build Artifact Signing and Provenance Script
  * Creates cryptographic signatures and provenance attestations for build artifacts
  */
 
@@ -125,7 +125,7 @@ class ArtifactSigner {
 
 	private generateProvenanceData(): ProvenanceData {
 		const provenance: ProvenanceData = {
-			project: 'gnus-dao',
+			project: 'gnus-dao-website',
 			version: this.getGitCommit(),
 			timestamp: new Date().toISOString(),
 			build: {
@@ -196,13 +196,13 @@ class ArtifactSigner {
 		const signature = crypto
 			.createHash('sha256')
 			.update(provenanceString)
-			.update('GNUS-DAO-SIGNATURE-SALT') // Simple salt for demo
+			.update('GNUS-DAO-Website-SIGNATURE-SALT') // Simple salt for demo
 			.digest('hex');
 
 		return {
 			algorithm: 'SHA256',
 			signature: signature,
-			public_key: 'GNUS-DAO-CI-SIGNER', // Placeholder for actual public key
+			public_key: 'GNUS-DAO-Website-CI-SIGNER', // Placeholder for actual public key
 			timestamp: new Date().toISOString(),
 		};
 	}
@@ -227,7 +227,7 @@ class ArtifactSigner {
 	}
 
 	async sign(): Promise<SignedProvenance> {
-		this.log('🔐 Starting GNUS-DAO artifact signing process');
+		this.log('🔐 Starting GNUS-DAO-Website artifact signing process');
 
 		this.ensureSignedDir();
 
@@ -269,7 +269,7 @@ class ArtifactSigner {
 		const verifyScript = `#!/usr/bin/env npx ts-node
 
 /**
- * GNUS-DAO Artifact Verification Script
+ * GNUS-DAO-Website Artifact Verification Script
  * Verifies the cryptographic signature and provenance of signed artifacts
  */
 
@@ -331,7 +331,7 @@ class ArtifactVerifier {
   }
 
   async verify(): Promise<void> {
-    this.log("🔍 Starting GNUS-DAO artifact verification");
+    this.log("🔍 Starting GNUS-DAO-Website artifact verification");
 
     if (!fs.existsSync(this.provenanceFile)) {
       console.error("❌ Provenance file not found");
@@ -351,7 +351,7 @@ class ArtifactVerifier {
     const calculatedHash = crypto
       .createHash("sha256")
       .update(provenanceString)
-      .update("GNUS-DAO-SIGNATURE-SALT")
+      .update("GNUS-DAO-Website-SIGNATURE-SALT")
       .digest("hex");
 
     if (calculatedHash === signedProvenance.signature.signature) {
@@ -484,7 +484,7 @@ if (require.main === module) {
       });
       break;
     default:
-      console.log("GNUS-DAO Artifact Verification Tool");
+      console.log("GNUS-DAO-Website Artifact Verification Tool");
       console.log("");
       console.log("Usage:");
       console.log("  npx ts-node verify.ts verify     # Verify cryptographic signature");

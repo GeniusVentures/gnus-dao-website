@@ -103,7 +103,7 @@ class EmergencyBypassTool {
 
 	private showHelp(): void {
 		console.log(`
-🔒 GNUS-DAO Emergency Security Bypass Tool
+🔒 GNUS-DAO-Website Emergency Security Bypass Tool
 
 Usage:
   yarn emergency-bypass <action> [options]

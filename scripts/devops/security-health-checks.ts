@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * GNUS-DAO Periodic Security Health Checks
+ * GNUS-DAO-Website Periodic Security Health Checks
  * Runs automated security validations and monitoring checks
  * Integrates with CI/CD pipeline and monitoring systems
  */

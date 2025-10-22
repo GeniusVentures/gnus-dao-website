@@ -489,7 +489,7 @@ jobs:
 
       - name: Generate pipeline summary
         run: |
-          echo "## 🏗️ GNUS-DAO CI Pipeline Summary" >> $GITHUB_STEP_SUMMARY
+          echo "## 🏗️ GNUS-DAO-Website CI Pipeline Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Pipeline Results:" >> $GITHUB_STEP_SUMMARY
           echo "- 🔒 Security Check: ${{ needs.security-check.result }}" >> $GITHUB_STEP_SUMMARY

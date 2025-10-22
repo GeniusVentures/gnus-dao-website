@@ -1,4 +1,4 @@
-# GNUS-DAO Build Optimization Configuration
+# GNUS-DAO-Website Build Optimization Configuration
 
 # Node.js memory and performance settings
 NODE_OPTIONS=--max-old-space-size=4096
@@ -76,4 +76,4 @@ NOTIFICATION_GITHUB_ISSUES=true
 CACHE_NODE_MODULES=true
 CACHE_HARDHAT=true
 CACHE_YARN=true
-CACHE_KEY_PREFIX=gnus-dao-v1
+CACHE_KEY_PREFIX=gnus-dao-website-v1

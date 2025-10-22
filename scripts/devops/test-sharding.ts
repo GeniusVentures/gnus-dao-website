@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * Test Sharding Distributor for GNUS-DAO
+ * Test Sharding Distributor for GNUS-DAO-Website
  * Intelligently distributes tests across multiple CI runners for optimal performance
  */
 

@@ -1,8 +1,8 @@
 [submodule "contracts/gnus-dao"]
 	path = contracts/gnus-dao
 	url = git@github.com:GeniusVentures/gnus-dao-contracts.git
-[submodule "diamonds/GNUS-DAO"]
-	path = diamonds/GNUS-DAO
+[submodule "diamonds/GNUS-DAO-Website"]
+	path = diamonds/GNUS-DAO-Website
 	url = git@github.com:GeniusVentures/gnus-dao-deployments.git
 [submodule "diamonds/GNUSDAODiamond"]
 	path = diamonds/GNUSDAODiamond

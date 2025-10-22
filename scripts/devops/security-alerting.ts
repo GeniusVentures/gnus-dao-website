@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * GNUS-DAO Security Alerting Integration
+ * GNUS-DAO-Website Security Alerting Integration
  * Manages security alerts across multiple channels (Slack, Discord, Email)
  * Provides configurable alerting rules and escalation procedures
  */
@@ -178,19 +178,19 @@ class SecurityAlerting {
 					enabled: !!process.env.SLACK_WEBHOOK_URL,
 					webhookUrl: process.env.SLACK_WEBHOOK_URL,
 					channel: process.env.SLACK_CHANNEL || '#security-alerts',
-					username: 'GNUS-DAO Security Monitor',
+					username: 'GNUS-DAO-Website Security Monitor',
 					icon: ':shield:',
 				},
 				discord: {
 					enabled: !!process.env.DISCORD_WEBHOOK_URL,
 					webhookUrl: process.env.DISCORD_WEBHOOK_URL,
-					username: 'GNUS-DAO Security Monitor',
+					username: 'GNUS-DAO-Website Security Monitor',
 					avatarUrl: 'https://example.com/avatar.png',
 				},
 				email: {
 					enabled: !!process.env.SECURITY_EMAIL,
 					to: process.env.SECURITY_EMAIL,
-					from: process.env.EMAIL_FROM || 'security@gnus-dao.local',
+					from: process.env.EMAIL_FROM || 'security@gnus-dao-website.local',
 					smtp: {
 						host: process.env.SMTP_HOST,
 						port: parseInt(process.env.SMTP_PORT || '587'),
@@ -399,7 +399,7 @@ class SecurityAlerting {
 					title: alert.title,
 					text: alert.description,
 					fields: this.formatAlertFields(alert),
-					footer: 'GNUS-DAO Security Monitor',
+					footer: 'GNUS-DAO-Website Security Monitor',
 					ts: Date.now() / 1000,
 					...template,
 				},
@@ -427,7 +427,7 @@ class SecurityAlerting {
 			description: alert.description,
 			color,
 			fields: this.formatAlertFields(alert),
-			footer: { text: 'GNUS-DAO Security Monitor' },
+			footer: { text: 'GNUS-DAO-Website Security Monitor' },
 			timestamp: alert.timestamp,
 			...template,
 		};
@@ -451,7 +451,7 @@ class SecurityAlerting {
 		severity: AlertSeverity,
 		alert: Alert,
 	): Promise<void> {
-		const subject = `[${severity.toUpperCase()}] GNUS-DAO Security Alert: ${alert.title}`;
+		const subject = `[${severity.toUpperCase()}] GNUS-DAO-Website Security Alert: ${alert.title}`;
 		const template = this.loadAlertTemplate(severity);
 
 		const htmlBody = this.generateEmailHtml(severity, alert, template);
@@ -556,7 +556,7 @@ class SecurityAlerting {
 	 */
 	private generateEmailText(severity: AlertSeverity, alert: Alert): string {
 		return `
-[${severity.toUpperCase()}] GNUS-DAO Security Alert
+[${severity.toUpperCase()}] GNUS-DAO-Website Security Alert
 
 ${alert.title}
 ${alert.description}

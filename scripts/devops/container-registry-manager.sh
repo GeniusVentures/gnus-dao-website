@@ -1,5 +1,5 @@
 #!/bin/bash
-# GNUS-DAO Container Registry Configuration
+# GNUS-DAO-Website Container Registry Configuration
 # Manages DevContainer image caching and registry operations
 
 set -euo pipefail
@@ -14,7 +14,7 @@ NC='\033[0m' # No Color
 # Configuration
 REGISTRY="${REGISTRY:-ghcr.io}"
 ORG="${GITHUB_REPOSITORY_OWNER:-Am0rfu5}"
-REPO="${GITHUB_REPOSITORY#*/:-gnus-dao}"
+REPO="${GITHUB_REPOSITORY#*/:-gnus-dao-website}"
 IMAGE_NAME="${REGISTRY}/${ORG}/${REPO}"
 DOCKERFILE_PATH=".devcontainer/Dockerfile"
 
@@ -251,7 +251,7 @@ EOF
 # Function to show usage
 usage() {
     cat << EOF
-GNUS-DAO Container Registry Manager
+GNUS-DAO-Website Container Registry Manager
 
 Usage: $0 [COMMAND] [OPTIONS]
 

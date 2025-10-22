@@ -1,4 +1,4 @@
-# Git Secrets Allowed Patterns for GNUS-DAO
+# Git Secrets Allowed Patterns for GNUS-DAO-Website
 # This file contains patterns for false positives that should be allowed
 # These are primarily test/mock addresses used in unit tests
 

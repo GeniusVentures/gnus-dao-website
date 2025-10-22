@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * GNUS-DAO SLSA Attestation Script
+ * GNUS-DAO-Website SLSA Attestation Script
  * Generates SLSA Level 3 build attestations with DSSE envelope support
  * Provides cryptographically verifiable build provenance
  */
@@ -225,7 +225,7 @@ class SLSAAttestation {
 	): Promise<ProvenancePredicate> {
 		const {
 			buildType = 'https://github.com/Attestations/GitHubActionsWorkflow@v1',
-			builderId = 'https://github.com/gnus-dao/gnus-dao/.github/workflows/security.yml',
+			builderId = 'https://github.com/gnus-dao-website/gnus-dao-website/.github/workflows/security.yml',
 			buildConfigSource = {},
 		} = options;
 
@@ -235,7 +235,8 @@ class SLSAAttestation {
 				externalParameters: {
 					workflow: {
 						ref: process.env.GITHUB_REF || 'refs/heads/main',
-						repository: process.env.GITHUB_REPOSITORY || 'gnus-dao/gnus-dao',
+						repository:
+							process.env.GITHUB_REPOSITORY || 'gnus-dao-website/gnus-dao-website',
 						path: '.github/workflows/security.yml',
 					},
 				},
@@ -330,7 +331,7 @@ class SLSAAttestation {
 			payloadType: 'application/vnd.in-toto+json',
 			signatures: [
 				{
-					keyid: 'gnus-dao-build-key',
+					keyid: 'gnus-dao-website-build-key',
 					sig: signature,
 				},
 			],
@@ -357,7 +358,7 @@ class SLSAAttestation {
 	 * Generate invocation ID
 	 */
 	private generateInvocationId(): string {
-		return `https://github.com/gnus-dao/gnus-dao/actions/runs/${Date.now()}`;
+		return `https://github.com/gnus-dao-website/gnus-dao-website/actions/runs/${Date.now()}`;
 	}
 
 	/**

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * GNUS-DAO Supply Chain Risk Assessment Script
+ * GNUS-DAO-Website Supply Chain Risk Assessment Script
  * Performs comprehensive risk assessment of dependencies and build artifacts
  * Generates security reports and risk mitigation recommendations
  */
@@ -209,7 +209,7 @@ class SupplyChainRiskAssessment {
 		const assessment: SupplyChainAssessment = {
 			timestamp: new Date().toISOString(),
 			assessmentId: this.generateAssessmentId(),
-			scope: 'GNUS-DAO Build System',
+			scope: 'GNUS-DAO-Website Build System',
 			components: [],
 			overallRiskScore: 0,
 			riskLevel: 'acceptable',
@@ -937,7 +937,7 @@ class SupplyChainRiskAssessment {
 		const assessment = await this.performRiskAssessment(options);
 
 		const report: RiskReport = {
-			title: 'GNUS-DAO Supply Chain Risk Assessment Report',
+			title: 'GNUS-DAO-Website Supply Chain Risk Assessment Report',
 			generated: new Date().toISOString(),
 			assessment: assessment,
 		};

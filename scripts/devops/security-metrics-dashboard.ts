@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * GNUS-DAO Security Metrics Dashboard
+ * GNUS-DAO-Website Security Metrics Dashboard
  * Generates security metrics reports and visualizations
  * Tracks security posture over time and provides insights
  */
@@ -247,7 +247,7 @@ class SecurityMetricsDashboard {
 		const report: SecurityReport = {
 			generated: new Date().toISOString(),
 			period,
-			title: `GNUS-DAO Security Metrics Report - ${period}`,
+			title: `GNUS-DAO-Website Security Metrics Report - ${period}`,
 			summary: {} as SummaryMetrics,
 			metrics: {
 				dailyBreakdown: [],
@@ -932,7 +932,7 @@ ${Object.entries(report.trends)
         <!DOCTYPE html>
         <html>
         <head>
-            <title>GNUS-DAO Security Dashboard</title>
+            <title>GNUS-DAO-Website Security Dashboard</title>
             <style>
                 body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
                 .dashboard { max-width: 1200px; margin: 0 auto; }
@@ -956,7 +956,7 @@ ${Object.entries(report.trends)
         <body>
             <div class="dashboard">
                 <div class="header">
-                    <h1>🔒 GNUS-DAO Security Dashboard</h1>
+                    <h1>🔒 GNUS-DAO-Website Security Dashboard</h1>
                     <p>Last updated: ${report.generated}</p>
                     <p>Report period: ${report.period}</p>
                 </div>

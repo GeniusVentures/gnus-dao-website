@@ -1,5 +1,5 @@
 #!/bin/bash
-# GNUS-DAO Environment Parity Validation Script
+# GNUS-DAO-Website Environment Parity Validation Script
 # Validates that DevContainer environment matches local development environment
 
 set -euo pipefail
@@ -269,7 +269,7 @@ EOF
 
 # Main validation function
 main() {
-    log_info "Starting GNUS-DAO DevContainer Environment Parity Validation"
+    log_info "Starting GNUS-DAO-Website DevContainer Environment Parity Validation"
     echo
 
     local errors=0

@@ -1,5 +1,5 @@
 #!/bin/bash
-# GNUS-DAO DevContainer Performance Benchmarking
+# GNUS-DAO-Website DevContainer Performance Benchmarking
 # Compares performance between DevContainer and native execution
 
 set -euo pipefail
@@ -298,7 +298,7 @@ run_all_benchmarks() {
 # Function to show usage
 usage() {
     cat << EOF
-GNUS-DAO DevContainer Performance Benchmarking
+GNUS-DAO-Website DevContainer Performance Benchmarking
 
 Usage: $0 [COMMAND] [OPTIONS]
 

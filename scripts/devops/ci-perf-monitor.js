@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * GNUS-DAO CI Pipeline Performance Monitoring Script
+ * GNUS-DAO-Website CI Pipeline Performance Monitoring Script
  * Measures build and test performance metrics for CI optimization
  */
 
@@ -568,7 +568,7 @@ class CIPerformanceMonitor {
   }
 
   async run() {
-    this.log("🚀 Starting GNUS-DAO CI Performance Monitoring");
+    this.log("🚀 Starting GNUS-DAO-Website CI Performance Monitoring");
 
     await this.runSystemMetrics();
     await this.runBuildMetrics();

@@ -6291,9 +6291,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"gnus-dao@workspace:.":
+"gnus-dao-website@workspace:.":
   version: 0.0.0-use.local
-  resolution: "gnus-dao@workspace:."
+  resolution: "gnus-dao-website@workspace:."
   dependencies:
     "@commitlint/cli": "npm:^19.8.1"
     "@commitlint/config-conventional": "npm:^19.8.1"
@@ -6354,7 +6354,7 @@ __metadata:
     solidity-coverage: "npm:^0.8.0"
     ts-node: "npm:^10.9.2"
     typechain: "npm:^8.3.0"
-    typescript: "npm:^5.9.2"
+    typescript: "npm:^5.9.3"
     uint32: "npm:^0.2.1"
     web3: "npm:^4.16.0"
     winston: "npm:^3.17.0"
@@ -10182,7 +10182,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"typescript@npm:^5.9.2":
+"typescript@npm:^5.9.3":
   version: 5.9.3
   resolution: "typescript@npm:5.9.3"
   bin:
@@ -10192,7 +10192,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"typescript@patch:typescript@npm%3A^5.9.2#optional!builtin<compat/typescript>":
+"typescript@patch:typescript@npm%3A^5.9.3#optional!builtin<compat/typescript>":
   version: 5.9.3
   resolution: "typescript@patch:typescript@npm%3A5.9.3#optional!builtin<compat/typescript>::version=5.9.3&hash=5786d5"
   bin:

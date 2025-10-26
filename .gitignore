@@ -2,6 +2,9 @@
 # GNUS DAO .gitignore  ###
 ##########################
 coverage.json
+typechain-types/
+diamond-abi/
+diamond-typechain-types/
 
 #Hardhat files
 cache

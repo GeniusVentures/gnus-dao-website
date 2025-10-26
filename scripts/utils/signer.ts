@@ -1,7 +1,7 @@
 import hre, { ethers } from 'hardhat';
-import { toWei } from '../common';
-import { GNUSDAOOwnershipFacet } from '../../typechain-types';
 import { debuglog } from 'util';
+import { GNUSDAOOwnershipFacet } from '../../typechain-types';
+import { toWei } from '../common';
 
 /**
  * Impersonates a signer account. This is primarily used in Hardhat's testing environment
@@ -41,7 +41,7 @@ export async function setEtherBalance(address: string, amount: bigint) {
  */
 export const updateOwnerForTest = async (rootAddress: string) => {
 	// Retrieve the current signer in the Hardhat environment
-	const curOwner = (await ethers.getSigners())[0];
+	const curOwner = (await ethers.getSigners())[0]!;
 
 	// Get a reference to the GNUSDAOOwnershipFacet contract at the specified root address
 	const ownership = (await ethers.getContractAt(

@@ -15,11 +15,11 @@ export interface XORWOW_STATE {
 
 export function xorwow(state: XORWOW_STATE): number {
 	/* Algorithm "xorwow" from p. 5 of Marsaglia, "Xorshift RNGs" */
-	let t: number = state.x[4];
-	const s: number = state.x[0];
-	state.x[4] = state.x[3];
-	state.x[3] = state.x[2];
-	state.x[2] = state.x[1];
+	let t: number = state.x[4]!;
+	const s: number = state.x[0]!;
+	state.x[4] = state.x[3]!;
+	state.x[3] = state.x[2]!;
+	state.x[2] = state.x[1]!;
 	state.x[1] = s;
 
 	t = uint32.xor(t, uint32.shiftRight(t, 2));

@@ -5,8 +5,8 @@
  * Validates that security-related commits follow proper patterns
  */
 
-import * as fs from 'fs';
-import * as path from 'path';
+const fs = require('fs');
+const path = require('path');
 
 interface SecurityValidationRule {
 	test: boolean;

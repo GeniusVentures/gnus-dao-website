@@ -1045,7 +1045,7 @@ ${Object.entries(report.trends)
 				if (reportFiles.length > 0) {
 					// Sort by timestamp in filename
 					reportFiles.sort((a, b) => b.localeCompare(a));
-					const latestFile: string = reportFiles[0];
+					const latestFile: string = reportFiles[0]!;
 
 					// Extract timestamp from filename
 					const timestampMatch = latestFile.match(
@@ -1053,7 +1053,7 @@ ${Object.entries(report.trends)
 					);
 					if (timestampMatch) {
 						// Convert filename timestamp back to ISO format
-						const ts = timestampMatch[1];
+						const ts = timestampMatch[1]!;
 						return `${ts.slice(0, 10)}T${ts.slice(11, 13)}:${ts.slice(14, 16)}:${ts.slice(17, 19)}.${ts.slice(20, 23)}Z`;
 					}
 				}
@@ -1099,7 +1099,7 @@ ${Object.entries(report.trends)
 // CLI interface
 async function main(): Promise<void> {
 	const args: string[] = process.argv.slice(2);
-	const command: string = args[0];
+	const command: string = args[0]!;
 
 	const dashboard: SecurityMetricsDashboard = new SecurityMetricsDashboard();
 

@@ -564,7 +564,7 @@ class SLSAAttestation {
 				isolation: true,
 			},
 			attestations: attestations.length,
-			lastAttestation: attestations.length > 0 ? attestations[0] : null,
+			lastAttestation: attestations.length > 0 ? attestations[0]! : null,
 		};
 	}
 

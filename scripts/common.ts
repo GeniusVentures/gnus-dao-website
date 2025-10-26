@@ -93,7 +93,9 @@ export function toWei(value: number | string): bigint {
 
 export function getSighash(funcSig: string): string {
 	const iface = new Interface([funcSig]);
-	const func = iface.getFunction(funcSig.split('(')[0]);
+	const funcName = funcSig.split('(')[0];
+	if (!funcName) throw new Error(`Invalid function signature: ${funcSig}`);
+	const func = iface.getFunction(funcName);
 	if (!func) throw new Error(`Function not found: ${funcSig}`);
 	return func.selector;
 }

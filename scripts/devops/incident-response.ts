@@ -424,17 +424,17 @@ class IncidentResponseSystem {
 	/**
 	 * Get next escalation level
 	 */
-	getNextEscalationLevel(currentLevel: string): 'low' | 'medium' | 'high' | 'critical' {
+	getNextEscalationLevel(
+		currentLevel: 'low' | 'medium' | 'high' | 'critical',
+	): 'low' | 'medium' | 'high' | 'critical' {
 		const levels: ('low' | 'medium' | 'high' | 'critical')[] = [
 			'low',
 			'medium',
 			'high',
 			'critical',
 		];
-		const currentIndex = levels.indexOf(
-			currentLevel as 'low' | 'medium' | 'high' | 'critical',
-		);
-		return levels[Math.min(currentIndex + 1, levels.length - 1)];
+		const currentIndex = levels.indexOf(currentLevel);
+		return levels[Math.min(currentIndex + 1, levels.length - 1)]!;
 	}
 
 	/**
@@ -585,7 +585,7 @@ class IncidentResponseSystem {
 
 		for (const [playbook, condition] of Object.entries(playbookMap)) {
 			if (condition()) {
-				return this.config.playbooks[playbook];
+				return this.config.playbooks[playbook] ?? null;
 			}
 		}
 

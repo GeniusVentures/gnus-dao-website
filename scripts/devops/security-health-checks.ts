@@ -686,7 +686,7 @@ class SecurityHealthChecks {
 
 			if (reportFiles.length > 0) {
 				const latestReport = JSON.parse(
-					fs.readFileSync(path.join(this.reportsDir, reportFiles[0]), 'utf8'),
+					fs.readFileSync(path.join(this.reportsDir, reportFiles[0]!), 'utf8'),
 				);
 				status.lastRun = latestReport.timestamp;
 			}

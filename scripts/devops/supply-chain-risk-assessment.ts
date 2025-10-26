@@ -503,7 +503,7 @@ class SupplyChainRiskAssessment {
 	}> {
 		try {
 			const version = process.version;
-			const majorVersion = parseInt(version.slice(1).split('.')[0]);
+			const majorVersion = parseInt(version.slice(1).split('.')[0]!);
 
 			if (majorVersion >= 18) {
 				return {

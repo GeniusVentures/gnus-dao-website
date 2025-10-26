@@ -112,7 +112,7 @@ class CostAnalyzer {
 		};
 
 		const rate = pricing[runnerType] || pricing['ubuntu-latest'];
-		return runtimeMinutes * rate;
+		return runtimeMinutes * rate!;
 	}
 
 	trackCurrentWorkflow(): CostEntry {
@@ -188,8 +188,10 @@ class CostAnalyzer {
 		// Group by workflow
 		const byWorkflow = filteredData.reduce(
 			(acc, item) => {
-				acc[item.workflow] = acc[item.workflow] || [];
-				acc[item.workflow].push(item);
+				if (!acc[item.workflow]) {
+					acc[item.workflow] = [];
+				}
+				acc[item.workflow]!.push(item);
 				return acc;
 			},
 			{} as Record<string, CostEntry[]>,

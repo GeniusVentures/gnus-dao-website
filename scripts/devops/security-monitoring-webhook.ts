@@ -836,7 +836,7 @@ class AlertManager {
 			low: 0x00ff00, // Green
 			error: 0xff0000, // Red
 		};
-		return colors[severity] || colors.medium;
+		return colors[severity] || colors.medium!;
 	}
 
 	private formatAlertFields(alert: ProcessedAlert): SlackField[] {
@@ -913,7 +913,7 @@ class MetricsCollector {
 
 	async updateMetrics(eventType: string, payload: WebhookPayload): Promise<void> {
 		const metrics: MetricsData = this.loadMetrics();
-		const today: string = new Date().toISOString().split('T')[0];
+		const today: string = new Date().toISOString().split('T')[0]!;
 
 		if (!metrics[today]) {
 			metrics[today] = {
@@ -971,7 +971,7 @@ class MetricsCollector {
 
 	getMetricsSummary(): { today: DailyMetrics; totalEvents: number; totalAlerts: number } {
 		const metrics: MetricsData = this.loadMetrics();
-		const today: string = new Date().toISOString().split('T')[0];
+		const today: string = new Date().toISOString().split('T')[0]!;
 		const todayMetrics: DailyMetrics = metrics[today] || {
 			date: today,
 			events: {},
@@ -996,7 +996,7 @@ class MetricsCollector {
 // CLI interface
 async function main(): Promise<void> {
 	const args: string[] = process.argv.slice(2);
-	const command: string = args[0];
+	const command: string = args[0]!;
 
 	const webhook: SecurityMonitoringWebhook = new SecurityMonitoringWebhook();
 

@@ -176,13 +176,13 @@ class PerformanceMonitor {
 		Object.entries(stats.hooks).forEach(([hookName, hookStats]) => {
 			if (
 				!stats.slowestHook ||
-				hookStats.maxDuration > stats.hooks[stats.slowestHook].maxDuration
+				hookStats.maxDuration > stats.hooks[stats.slowestHook]!.maxDuration
 			) {
 				stats.slowestHook = hookName;
 			}
 			if (
 				!stats.fastestHook ||
-				hookStats.minDuration < stats.hooks[stats.fastestHook!].minDuration
+				hookStats.minDuration < stats.hooks[stats.fastestHook]!.minDuration
 			) {
 				stats.fastestHook = hookName;
 			}
@@ -216,13 +216,13 @@ class PerformanceMonitor {
 
 		if (stats.slowestHook) {
 			console.log(
-				`🐌 Slowest Hook: ${stats.slowestHook} (${Math.round(stats.hooks[stats.slowestHook].maxDuration)}ms)`,
+				`🐌 Slowest Hook: ${stats.slowestHook} (${Math.round(stats.hooks[stats.slowestHook!]!.maxDuration)}ms)`,
 			);
 		}
 
 		if (stats.fastestHook) {
 			console.log(
-				`🚀 Fastest Hook: ${stats.fastestHook} (${Math.round(stats.hooks[stats.fastestHook].minDuration)}ms)`,
+				`🚀 Fastest Hook: ${stats.fastestHook} (${Math.round(stats.hooks[stats.fastestHook!]!.minDuration)}ms)`,
 			);
 		}
 	}

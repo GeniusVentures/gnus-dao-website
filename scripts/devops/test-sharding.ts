@@ -378,7 +378,7 @@ if (require.main === module) {
 		process.exit(1);
 	}
 
-	const distributor = new TestShardDistributor(totalShards, shardIndex);
+	const distributor = new TestShardDistributor(totalShards!, shardIndex!);
 	distributor.run();
 }
 

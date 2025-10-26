@@ -157,8 +157,8 @@ class SecurityToolUpdater {
 			});
 			const match = output.match(/Available versions: (.+)/);
 			if (match) {
-				const versions = match[1].split(',').map((v: string) => v.trim());
-				return versions[0]; // Latest version
+				const versions = match[1]!.split(',').map((v: string) => v.trim());
+				return versions[0]!; // Latest version
 			}
 		} catch (error) {
 			// Fallback to PyPI API
@@ -264,15 +264,15 @@ class SecurityToolUpdater {
 		switch (type) {
 			case 'pip':
 				const pipMatch = output.match(/(\d+\.\d+\.\d+)/);
-				return pipMatch ? pipMatch[1] : 'unknown';
+				return pipMatch ? pipMatch[1]! : 'unknown';
 			case 'npm':
 				return output.trim();
 			case 'go':
 				const goMatch = output.match(/v?(\d+\.\d+\.\d+)/);
-				return goMatch ? goMatch[1] : 'unknown';
+				return goMatch ? goMatch[1]! : 'unknown';
 			case 'binary':
 				const binaryMatch = output.match(/osv-scanner version:\s*(\d+\.\d+\.\d+)/);
-				return binaryMatch ? binaryMatch[1] : 'unknown';
+				return binaryMatch ? binaryMatch[1]! : 'unknown';
 			default:
 				return 'unknown';
 		}
@@ -399,17 +399,17 @@ class SecurityToolUpdater {
 					console.log(`Updating ${update.tool}...`);
 
 					// Handle binary downloads specially
-					if (this.tools[update.tool].type === 'binary') {
+					if (this.tools[update.tool]!.type === 'binary') {
 						await this.updateOsvScannerBinary(update.latest);
 					} else {
-						execSync(this.tools[update.tool].updateCommand, {
+						execSync(this.tools[update.tool]!.updateCommand, {
 							stdio: 'inherit',
 							timeout: 300000, // 5 minutes timeout
 						});
 					}
 
 					// Verify update
-					const newVersion = this.getCurrentVersion(this.tools[update.tool]);
+					const newVersion = this.getCurrentVersion(this.tools[update.tool]!);
 					if (newVersion === update.latest) {
 						update.status = 'success';
 						successCount++;

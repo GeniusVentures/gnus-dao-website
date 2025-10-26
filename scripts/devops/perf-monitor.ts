@@ -152,7 +152,7 @@ class PerformanceMonitor {
 				};
 			}
 
-			const hookStats = stats.hooks[entry.hook];
+			const hookStats = stats.hooks[entry.hook]!;
 			hookStats.runs++;
 			hookStats.totalDuration += entry.duration;
 			hookStats.minDuration = Math.min(hookStats.minDuration, entry.duration);
@@ -176,7 +176,7 @@ class PerformanceMonitor {
 		Object.entries(stats.hooks).forEach(([hookName, hookStats]) => {
 			if (
 				!stats.slowestHook ||
-				hookStats.maxDuration > stats.hooks[stats.slowestHook!].maxDuration
+				hookStats.maxDuration > stats.hooks[stats.slowestHook].maxDuration
 			) {
 				stats.slowestHook = hookName;
 			}
@@ -230,7 +230,7 @@ class PerformanceMonitor {
 
 // CLI interface
 const args: string[] = process.argv.slice(2);
-const command: string = args[0];
+const command: string = args[0] || 'stats';
 
 const monitor = new PerformanceMonitor();
 

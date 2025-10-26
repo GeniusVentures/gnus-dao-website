@@ -1,5 +1,3 @@
-import * as dotenv from 'dotenv';
-
 import '@nomicfoundation/hardhat-toolbox';
 import '@nomicfoundation/hardhat-web3-v4';
 import '@typechain/hardhat';
@@ -10,7 +8,7 @@ import 'hardhat-multichain';
 import { HardhatUserConfig, task } from 'hardhat/config';
 import 'solidity-coverage';
 
-dotenv.config();
+process.loadEnvFile('.env');
 
 /*
  * Destructuring environment variables required for the configuration.
@@ -78,8 +76,9 @@ export const bscTestnetBlock: number = parseInt(BSC_TESTNET_BLOCK || '0'); // BS
 let multichainTestHardhat = '';
 // If this is a test-multichain task then we need to parse the --chains argument to get the chain names
 if (process.argv.includes('test-multichain') && process.argv.includes('--chains')) {
-	const chains = process.argv[process.argv.indexOf('--chains') + 1].split(',');
-	if (chains.includes('hardhat') || chains.includes('localhost') || !chains) {
+	const chainsArg = process.argv[process.argv.indexOf('--chains') + 1];
+	const chains = chainsArg ? chainsArg.split(',') : [];
+	if (chains.includes('hardhat') || chains.includes('localhost') || !chains.length) {
 		multichainTestHardhat = 'http://localhost:8545';
 	}
 }

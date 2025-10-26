@@ -1,9 +1,19 @@
 {
+  "ts-node": {
+    "transpileOnly": true,
+    "compilerOptions": {
+      "module": "commonjs",
+      "esModuleInterop": true
+    }
+  },
   "compilerOptions": {
     "target": "es2020",
-    "module": "commonjs",
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "ES6"
+    ],
     "esModuleInterop": true,
-    "forceConsistentCasingInFileNames": true,
     "strict": true,
     "skipLibCheck": true,
     "rootDirs": [
@@ -20,12 +30,68 @@
       "node_modules/@types",
       "./types"
     ],
+    "noEmit": true,
+    "module": "esnext",
+    "moduleResolution": "node",
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "baseUrl": ".",
+    "paths": {
+      "@/*": [
+        "./src/*"
+      ],
+      "@/components/*": [
+        "./src/components/*"
+      ],
+      "@/lib/*": [
+        "./src/lib/*"
+      ],
+      "@/hooks/*": [
+        "./src/hooks/*"
+      ],
+      "@/store/*": [
+        "./src/store/*"
+      ],
+      "@/types/*": [
+        "./src/types/*"
+      ],
+      "@/utils/*": [
+        "./src/lib/utils/*"
+      ],
+      "@/typechain-types/*": [
+        "./typechain-types/*"
+      ]
+    },
+    "forceConsistentCasingInFileNames": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitAny": true,
+    "noImplicitThis": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "strictBindCallApply": true,
+    "strictPropertyInitialization": true,
+    "noImplicitOverride": true,
+    "exactOptionalPropertyTypes": false
   },
   "include": [
     "./scripts",
     "./test",
     "./test-suites",
-    "./typechain-types"
+    "./typechain-types",
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    "out/types/**/*.ts",
+    "typechain-types/**/*.ts"
   ],
   "files": [
     "./hardhat.config.ts"
@@ -39,6 +105,10 @@
     "./cache",
     "./types",
     "./typechain-types/**/*",
-    "./diamond-typechain-types/**/*"
+    "./diamond-typechain-types/**/*",
+    "node_modules",
+    ".next",
+    "out",
+    "dist"
   ],
 }

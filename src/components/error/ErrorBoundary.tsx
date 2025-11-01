@@ -1,9 +1,9 @@
 'use client'
 
-import React, { Component, ErrorInfo, ReactNode } from 'react'
-import { AlertTriangle, RefreshCw, Home, Bug } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { logger } from '@/lib/utils/logger'
+import { AlertTriangle, Bug, Home, RefreshCw } from 'lucide-react'
+import React, { Component, ErrorInfo, ReactNode } from 'react'
 
 interface Props {
   children: ReactNode
@@ -27,10 +27,15 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   static getDerivedStateFromError(error: Error): State {
+    // Use crypto.randomUUID() for secure random ID generation
+    const errorId = typeof crypto !== 'undefined' && crypto.randomUUID
+      ? `error-${crypto.randomUUID()}`
+      : `error-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
     return {
       hasError: true,
       error,
-      errorId: `error-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      errorId,
     }
   }
 

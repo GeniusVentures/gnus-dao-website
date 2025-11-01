@@ -1,13 +1,12 @@
 "use client";
 
-import React from "react";
 import {
-  PieChart,
-  Pie,
-  Cell,
-  ResponsiveContainer,
-  Legend,
-  Tooltip,
+    Cell,
+    Legend,
+    Pie,
+    PieChart,
+    ResponsiveContainer,
+    Tooltip,
 } from "recharts";
 
 export interface ParticipationData {
@@ -21,6 +20,16 @@ interface ParticipationChartProps {
 }
 
 const RADIAN = Math.PI / 180;
+
+interface PieChartLabelProps {
+  cx: number;
+  cy: number;
+  midAngle: number;
+  innerRadius: number;
+  outerRadius: number;
+  percent: number;
+}
+
 const renderCustomizedLabel = ({
   cx,
   cy,
@@ -28,7 +37,7 @@ const renderCustomizedLabel = ({
   innerRadius,
   outerRadius,
   percent,
-}: any) => {
+}: PieChartLabelProps) => {
   const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
   const x = cx + radius * Math.cos(-midAngle * RADIAN);
   const y = cy + radius * Math.sin(-midAngle * RADIAN);

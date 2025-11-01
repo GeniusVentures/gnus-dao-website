@@ -1,5 +1,5 @@
-import { ethers } from 'ethers';
 import { NetworkConfig } from '@/lib/config/networks';
+import { ethers } from 'ethers';
 
 /**
  * Wallet connection state
@@ -48,7 +48,7 @@ export interface Web3ContextType {
 	estimateGas: (transaction: ethers.TransactionRequest) => Promise<bigint>;
 
 	// Contract interaction
-	getContract: <T = ethers.Contract>(address: string, abi: any) => T;
+	getContract: <T = ethers.Contract>(address: string, abi: ethers.ContractInterface) => T;
 }
 
 /**
@@ -127,7 +127,7 @@ export enum Web3ErrorCode {
  */
 export interface Web3Error extends Error {
 	code: Web3ErrorCode;
-	data?: any;
+	data?: Record<string, unknown>;
 }
 
 /**

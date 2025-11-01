@@ -1,22 +1,22 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import {
-  TrendingUp,
-  Users,
-  Vote,
-  Calendar,
-  Activity,
-  Target,
-  CheckCircle,
-} from "lucide-react";
-import { AuthGuard } from "@/components/auth/AuthButton";
-import { useWeb3Store } from "@/lib/web3/reduxProvider";
-import { gnusDaoService } from "@/lib/contracts/gnusDaoService";
-import { ProposalTimelineChart, TimelineDataPoint } from "@/components/analytics/ProposalTimelineChart";
-import { VotingTrendsChart, VotingTrendData } from "@/components/analytics/VotingTrendsChart";
-import { TreasuryHistoryChart, TreasuryHistoryData } from "@/components/analytics/TreasuryHistoryChart";
 import { ParticipationChart, ParticipationData } from "@/components/analytics/ParticipationChart";
+import { ProposalTimelineChart, TimelineDataPoint } from "@/components/analytics/ProposalTimelineChart";
+import { TreasuryHistoryChart, TreasuryHistoryData } from "@/components/analytics/TreasuryHistoryChart";
+import { VotingTrendData, VotingTrendsChart } from "@/components/analytics/VotingTrendsChart";
+import { AuthGuard } from "@/components/auth/AuthButton";
+import { gnusDaoService } from "@/lib/contracts/gnusDaoService";
+import { useWeb3Store } from "@/lib/web3/reduxProvider";
+import {
+    Activity,
+    Calendar,
+    CheckCircle,
+    Target,
+    TrendingUp,
+    Users,
+    Vote,
+} from "lucide-react";
+import { useEffect, useState } from "react";
 
 interface GovernanceMetrics {
   totalProposals: number;
@@ -71,6 +71,8 @@ export default function AnalyticsPage() {
       data.push({
         date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
         proposals: Math.floor(total * (1 - i / days)),
+        // Math.random() is acceptable here for demo/mock data (non-security context)
+        // nosemgrep: insecure-random
         active: Math.floor(active * Math.random()),
         executed: Math.floor(executed * (1 - i / days)),
       });
@@ -85,11 +87,14 @@ export default function AnalyticsPage() {
     for (let i = days - 1; i >= 0; i--) {
       const date = new Date();
       date.setDate(date.getDate() - i);
+      // Math.random() is acceptable here for demo/mock data (non-security context)
+      // nosemgrep: insecure-random
       const votes = Math.floor(totalVotes / days + Math.random() * 10);
       data.push({
         date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
         votes,
         voters: Math.floor(votes * 0.7),
+        // nosemgrep: insecure-random
         participation: Math.random() * 100,
       });
     }
@@ -104,7 +109,10 @@ export default function AnalyticsPage() {
     for (let i = days - 1; i >= 0; i--) {
       const date = new Date();
       date.setDate(date.getDate() - i);
+      // Math.random() is acceptable here for demo/mock data (non-security context)
+      // nosemgrep: insecure-random
       const deposits = Math.random() * 10;
+      // nosemgrep: insecure-random
       const withdrawals = Math.random() * 5;
       balance += deposits - withdrawals;
 

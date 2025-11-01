@@ -67,16 +67,21 @@ export const coinbaseConnector: WalletConnector = {
 	},
 
 	connect: async () => {
-		if (!(window as any).ethereum) {
+		interface EthereumProvider {
+			request: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
+			providers?: Array<{ isCoinbaseWallet?: boolean; request: (args: { method: string; params?: unknown[] }) => Promise<unknown> }>;
+		}
+		const windowWithEthereum = window as unknown as { ethereum?: EthereumProvider };
+		if (!windowWithEthereum.ethereum) {
 			throw new Error('Coinbase Wallet not found');
 		}
 
 		// For Coinbase Wallet, we might need to select the provider
-		let ethereum = (window as any).ethereum;
-		if ((window as any).ethereum.providers) {
+		let ethereum = windowWithEthereum.ethereum;
+		if (windowWithEthereum.ethereum.providers) {
 			ethereum =
-				(window as any).ethereum.providers.find((p: any) => p.isCoinbaseWallet) ||
-				(window as any).ethereum;
+				windowWithEthereum.ethereum.providers.find((p) => p.isCoinbaseWallet) ||
+				windowWithEthereum.ethereum;
 		}
 
 		const accounts = await ethereum.request({

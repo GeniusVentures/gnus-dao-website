@@ -134,13 +134,25 @@ export class SiweAuthService {
 	/**
 	 * Verify signature with backend
 	 */
+	interface VerifyResponse {
+		success: boolean;
+		session?: {
+			id: string;
+			address: string;
+			chainId: number;
+			issuedAt: string;
+			expiresAt: string;
+		};
+		token?: string;
+	}
+
 	static async verifyWithBackend(
 		message: string,
 		signature: string,
 		nonce: string,
 		address?: string,
 		chainId?: number,
-	): Promise<{ success: boolean; session?: any; token?: string }> {
+	): Promise<VerifyResponse> {
 		try {
 			// Extract address and chainId from message if not provided
 			const siweMessage = new SiweMessage(message);

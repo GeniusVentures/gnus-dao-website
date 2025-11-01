@@ -166,7 +166,7 @@ export async function copyToClipboard(text: string): Promise<boolean> {
 /**
  * Debounce function
  */
-export function debounce<T extends (...args: any[]) => any>(
+export function debounce<T extends (...args: unknown[]) => unknown>(
 	func: T,
 	wait: number,
 ): (...args: Parameters<T>) => void {
@@ -181,7 +181,7 @@ export function debounce<T extends (...args: any[]) => any>(
 /**
  * Throttle function
  */
-export function throttle<T extends (...args: any[]) => any>(
+export function throttle<T extends (...args: unknown[]) => unknown>(
 	func: T,
 	limit: number,
 ): (...args: Parameters<T>) => void {
@@ -197,9 +197,27 @@ export function throttle<T extends (...args: any[]) => any>(
 }
 
 /**
- * Generate a random ID
+ * Generate a random ID using cryptographically secure random values
  */
 export function generateId(length = 8): string {
+	// Use crypto.randomUUID() if available and length allows
+	if (typeof crypto !== 'undefined' && crypto.randomUUID && length >= 8) {
+		return crypto.randomUUID().replace(/-/g, '').substring(0, length);
+	}
+
+	// Use crypto.getRandomValues for secure random generation
+	if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+		const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+		const randomValues = new Uint8Array(length);
+		crypto.getRandomValues(randomValues);
+		let result = '';
+		for (let i = 0; i < length; i++) {
+			result += chars.charAt(randomValues[i] % chars.length);
+		}
+		return result;
+	}
+
+	// Fallback for environments without crypto API
 	const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
 	let result = '';
 	for (let i = 0; i < length; i++) {

@@ -1,26 +1,26 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import {
-  Plus,
-  Search,
-  Filter,
-  Calendar,
-  Users,
-  TrendingUp,
-  Clock,
-  CheckCircle,
-  XCircle,
-} from "lucide-react";
-import { Button } from "@/components/ui/Button";
 import { AuthGuard } from "@/components/auth/AuthButton";
-import { useWeb3Store } from "@/lib/web3/reduxProvider";
-import { gnusDaoService } from "@/lib/contracts/gnusDaoService";
-import { ProposalState, VoteSupport } from "@/lib/contracts/gnusDao";
-import type { Proposal } from "@/lib/contracts/gnusDao";
-import { CreateProposalModal } from "@/components/proposals/CreateProposalModal";
 import { DelegationBanner } from "@/components/governance/DelegationBanner";
+import { CreateProposalModal } from "@/components/proposals/CreateProposalModal";
+import { Button } from "@/components/ui/Button";
+import type { Proposal } from "@/lib/contracts/gnusDao";
+import { ProposalState, VoteSupport } from "@/lib/contracts/gnusDao";
+import { gnusDaoService } from "@/lib/contracts/gnusDaoService";
+import { useWeb3Store } from "@/lib/web3/reduxProvider";
+import {
+    Calendar,
+    CheckCircle,
+    Clock,
+    Filter,
+    Plus,
+    Search,
+    TrendingUp,
+    Users,
+    XCircle,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
 
 interface ProposalWithMetadata extends Proposal {
@@ -189,9 +189,16 @@ export default function ProposalsPage() {
     );
   };
 
+  interface VotingConfig {
+    quorumThreshold?: string | number;
+    votingDelay?: string | number;
+    votingPeriod?: string | number;
+    proposalThreshold?: string | number;
+  }
+
   const loadProposalWithMetadata = async (
     proposalId: bigint,
-    votingConfig: any,
+    votingConfig: VotingConfig,
   ): Promise<ProposalWithMetadata | null> => {
     try {
       const [proposal, state] = await Promise.all([
@@ -498,7 +505,7 @@ export default function ProposalsPage() {
 
 interface ProposalCardProps {
   proposal: ProposalWithMetadata;
-  router: any;
+  router: ReturnType<typeof useRouter>;
 }
 
 function ProposalCard({ proposal, router }: ProposalCardProps) {

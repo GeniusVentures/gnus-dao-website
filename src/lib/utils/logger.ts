@@ -1,4 +1,4 @@
-import { isProduction, isDevelopment } from '@/lib/config/env';
+import { isDevelopment, isProduction } from '@/lib/config/env';
 
 /**
  * Log levels for different types of messages
@@ -58,6 +58,11 @@ class Logger {
 	}
 
 	private generateSessionId(): string {
+		// Use crypto.randomUUID() for secure random ID generation
+		if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+			return crypto.randomUUID();
+		}
+		// Fallback for older environments
 		return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 	}
 

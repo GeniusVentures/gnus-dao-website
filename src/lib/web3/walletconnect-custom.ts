@@ -1,17 +1,17 @@
 'use client';
 
-import { SignClient } from '@walletconnect/sign-client';
-import QRCode from 'qrcode';
 import { getEnv } from '@/lib/config/env';
 import { getRuntimeEnvVar } from '@/lib/config/runtime-env';
+import { SignClient } from '@walletconnect/sign-client';
+import QRCode from 'qrcode';
 
 // Global SignClient instance
-let signClient: any = null;
-let currentSession: any = null;
+let signClient: SignClient | null = null;
+let currentSession: { namespaces: Record<string, { accounts: string[]; chains: string[] }> } | null = null;
 let isInitialized = false;
 
 // Debug logging
-const debug = (message: string, ...args: any[]) => {
+const debug = (message: string, ...args: unknown[]) => {
 	if (process.env.NODE_ENV === 'development' || typeof window !== 'undefined') {
 		console.log(`[WalletConnect] ${message}`, ...args);
 	}
@@ -245,10 +245,14 @@ export function getCurrentSession() {
 	return currentSession;
 }
 
+interface WalletConnectSession {
+	namespaces: Record<string, { accounts: string[]; chains: string[] }>;
+}
+
 /**
  * Set the current session
  */
-export function setCurrentSession(session: any) {
+export function setCurrentSession(session: WalletConnectSession | null) {
 	currentSession = session;
 	debug('Session set:', session);
 }
@@ -256,12 +260,12 @@ export function setCurrentSession(session: any) {
 /**
  * Get accounts from session
  */
-export function getAccountsFromSession(session: any): string[] {
+export function getAccountsFromSession(session: WalletConnectSession | null): string[] {
 	if (!session) return [];
 
 	try {
 		const accounts: string[] = [];
-		Object.values(session.namespaces).forEach((namespace: any) => {
+		Object.values(session.namespaces).forEach((namespace) => {
 			if (namespace.accounts) {
 				namespace.accounts.forEach((account: string) => {
 					// Extract address from CAIP-10 format (eip155:1:0x...)
@@ -282,7 +286,7 @@ export function getAccountsFromSession(session: any): string[] {
 /**
  * Get chain ID from session
  */
-export function getChainIdFromSession(session: any): number | null {
+export function getChainIdFromSession(session: WalletConnectSession | null): number | null {
 	if (!session) return null;
 
 	try {

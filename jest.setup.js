@@ -245,6 +245,8 @@ Object.defineProperty(window, "matchMedia", {
 // Mock crypto.randomUUID
 Object.defineProperty(global, "crypto", {
   value: {
+    // Note: Math.random() is acceptable here for test mocks (non-security context)
+    // nosemgrep: insecure-random
     randomUUID: () => "test-uuid-" + Math.random().toString(36).substr(2, 9),
   },
 });

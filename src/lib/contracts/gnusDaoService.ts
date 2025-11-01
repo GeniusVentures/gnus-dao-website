@@ -1,11 +1,9 @@
-import { ethers } from 'ethers';
-import { getGNUSDAOContract, ProposalState, VoteSupport } from './gnusDao';
 import { logger } from '@/lib/utils/logger';
-import type { Proposal, VoteReceipt, Facet } from './gnusDao';
+import { ethers } from 'ethers';
+import type { GNUSDAOGovernanceFacet, GNUSDAOGovernanceTokenFacet, GNUSDAOVotingMechanismsFacet } from '../../../typechain-types/contracts/gnus-dao';
 import { GNUSDAOGovernanceFacet__factory } from '../../../typechain-types/factories/contracts/gnus-dao';
-import type { GNUSDAOGovernanceFacet } from '../../../typechain-types/contracts/gnus-dao';
-import type { GNUSDAOVotingMechanismsFacet } from '../../../typechain-types/contracts/gnus-dao';
-import type { GNUSDAOGovernanceTokenFacet } from '../../../typechain-types/contracts/gnus-dao';
+import type { Facet, Proposal, VoteReceipt } from './gnusDao';
+import { getGNUSDAOContract, ProposalState, VoteSupport } from './gnusDao';
 
 // Combined interface for the Diamond contract that includes all facets
 type GNUSDAODiamond = GNUSDAOGovernanceFacet &
@@ -94,15 +92,19 @@ export class GNUSDAOService {
 		try {
 			// The facets() function is part of DiamondLoupeFacet
 			// We need to call it through the contract interface
-			const contractWithLoupe = this.contract as any;
+			interface FacetInfo {
+				facetAddress: string;
+				functionSelectors: string[];
+			}
+			const contractWithLoupe = this.contract as { facets?: () => Promise<FacetInfo[]> };
 			const facets = await contractWithLoupe.facets?.();
 			if (!facets) return [];
-			return facets.map((facet: any) => ({
+			return facets.map((facet: FacetInfo) => ({
 				facetAddress: facet.facetAddress,
 				functionSelectors: facet.functionSelectors,
 			}));
 		} catch (error) {
-			logger.error('Error getting facets:', error as any);
+			logger.error('Error getting facets:', error instanceof Error ? error.message : String(error));
 			// Return empty array if facets() is not available
 			return [];
 		}
@@ -1101,7 +1103,7 @@ export class GNUSDAOService {
 	/**
 	 * Listen for proposal created events
 	 */
-	async onProposalCreated(callback: (event: any) => void): Promise<void> {
+	async onProposalCreated(callback: (event: ethers.EventLog) => void): Promise<void> {
 		if (!this.contract) throw new Error('Service not initialized');
 
 		const filter = this.contract.filters.ProposalCreated();
@@ -1111,7 +1113,7 @@ export class GNUSDAOService {
 	/**
 	 * Listen for vote cast events
 	 */
-	async onVoteCast(callback: (event: any) => void): Promise<void> {
+	async onVoteCast(callback: (event: ethers.EventLog) => void): Promise<void> {
 		if (!this.contract) throw new Error('Service not initialized');
 
 		const filter = this.contract.filters.VoteCast();

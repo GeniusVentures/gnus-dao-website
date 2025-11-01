@@ -1,18 +1,18 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { useAppSelector } from "@/lib/store";
 import {
-  Bell,
-  Globe,
-  Shield,
-  Vote,
-  DollarSign,
-  Moon,
-  Sun,
-  Check,
+    Bell,
+    Check,
+    DollarSign,
+    Globe,
+    Moon,
+    Shield,
+    Sun,
+    Vote,
 } from "lucide-react";
 import { useTheme } from "next-themes";
+import { useEffect, useState } from "react";
 
 interface Settings {
   voting: {
@@ -83,7 +83,7 @@ export default function SettingsPage() {
   const updateSetting = (
     category: keyof Settings,
     key: string,
-    value: any
+    value: string | number | boolean
   ) => {
     setSettings((prev) => ({
       ...prev,

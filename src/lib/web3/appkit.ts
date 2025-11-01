@@ -1,8 +1,8 @@
 'use client';
 
-import { EthereumProvider } from '@walletconnect/ethereum-provider';
 import { getEnv } from '@/lib/config/env';
 import { getRuntimeEnvVar } from '@/lib/config/runtime-env';
+import { EthereumProvider } from '@walletconnect/ethereum-provider';
 
 // GNUS DAO WalletConnect configuration
 const getProjectId = async () => {
@@ -48,11 +48,11 @@ const getProjectId = async () => {
 };
 
 // Global WalletConnect provider
-let walletConnectProvider: any = null;
+let walletConnectProvider: ethers.BrowserProvider | null = null;
 let isInitialized = false;
 
 // Debug logging - enabled in development and for debugging production issues
-const debug = (message: string, ...args: any[]) => {
+const debug = (message: string, ...args: unknown[]) => {
 	if (process.env.NODE_ENV === 'development' || typeof window !== 'undefined') {
 		console.log(`[WalletConnect] ${message}`, ...args);
 	}
@@ -274,18 +274,18 @@ export async function disconnectWalletConnect() {
 /**
  * Subscribe to WalletConnect events
  */
-export function subscribeToWalletConnect(callback: (event: string, data: any) => void) {
+export function subscribeToWalletConnect(callback: (event: string, data: unknown) => void) {
 	if (!walletConnectProvider) return () => {};
 
 	const events = ['connect', 'disconnect', 'chainChanged', 'accountsChanged'];
 
 	events.forEach((event) => {
-		walletConnectProvider.on(event, (data: any) => callback(event, data));
+		walletConnectProvider?.on(event, (data: unknown) => callback(event, data));
 	});
 
 	return () => {
 		events.forEach((event) => {
-			walletConnectProvider.removeAllListeners(event);
+			walletConnectProvider?.removeAllListeners(event);
 		});
 	};
 }

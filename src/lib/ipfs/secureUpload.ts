@@ -71,7 +71,7 @@ export class SecureIPFSService {
 	/**
 	 * Upload JSON data to IPFS
 	 */
-	static async uploadJSON(data: any, metadata?: UploadMetadata): Promise<UploadResult> {
+	static async uploadJSON(data: Record<string, unknown>, metadata?: UploadMetadata): Promise<UploadResult> {
 		try {
 			// Convert JSON to Blob
 			const jsonBlob = new Blob([JSON.stringify(data, null, 2)], {
@@ -174,15 +174,17 @@ export class SecureIPFSService {
 		return { valid: true };
 	}
 
+	interface ProposalMetadataInput {
+		title: string;
+		description: string;
+		actions?: Record<string, unknown>[];
+		discussionUrl?: string;
+	}
+
 	/**
 	 * Upload proposal metadata
 	 */
-	static async uploadProposalMetadata(metadata: {
-		title: string;
-		description: string;
-		actions?: any[];
-		discussionUrl?: string;
-	}): Promise<UploadResult> {
+	static async uploadProposalMetadata(metadata: ProposalMetadataInput): Promise<UploadResult> {
 		return await this.uploadJSON(metadata, {
 			name: `proposal-${Date.now()}.json`,
 			keyvalues: {

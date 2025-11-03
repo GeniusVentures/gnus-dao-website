@@ -149,9 +149,10 @@ export function extractIPFSHash(url: string): string | null {
 export function generateUniqueFilename(originalName: string): string {
 	const timestamp = Date.now();
 	// Use crypto.randomUUID() for secure random string generation
-	const random = typeof crypto !== 'undefined' && crypto.randomUUID
-		? crypto.randomUUID().substring(0, 8)
-		: Math.random().toString(36).substring(2, 8);
+	const random =
+		typeof crypto !== 'undefined' && crypto.randomUUID
+			? crypto.randomUUID().substring(0, 8)
+			: Math.random().toString(36).substring(2, 8);
 	const extension = originalName.split('.').pop();
 	const nameWithoutExt = originalName.replace(/\.[^/.]+$/, '');
 

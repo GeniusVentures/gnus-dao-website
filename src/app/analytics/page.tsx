@@ -1,20 +1,32 @@
 "use client";
 
-import { ParticipationChart, ParticipationData } from "@/components/analytics/ParticipationChart";
-import { ProposalTimelineChart, TimelineDataPoint } from "@/components/analytics/ProposalTimelineChart";
-import { TreasuryHistoryChart, TreasuryHistoryData } from "@/components/analytics/TreasuryHistoryChart";
-import { VotingTrendData, VotingTrendsChart } from "@/components/analytics/VotingTrendsChart";
+import {
+  ParticipationChart,
+  ParticipationData,
+} from "@/components/analytics/ParticipationChart";
+import {
+  ProposalTimelineChart,
+  TimelineDataPoint,
+} from "@/components/analytics/ProposalTimelineChart";
+import {
+  TreasuryHistoryChart,
+  TreasuryHistoryData,
+} from "@/components/analytics/TreasuryHistoryChart";
+import {
+  VotingTrendData,
+  VotingTrendsChart,
+} from "@/components/analytics/VotingTrendsChart";
 import { AuthGuard } from "@/components/auth/AuthButton";
 import { gnusDaoService } from "@/lib/contracts/gnusDaoService";
 import { useWeb3Store } from "@/lib/web3/reduxProvider";
 import {
-    Activity,
-    Calendar,
-    CheckCircle,
-    Target,
-    TrendingUp,
-    Users,
-    Vote,
+  Activity,
+  Calendar,
+  CheckCircle,
+  Target,
+  TrendingUp,
+  Users,
+  Vote,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 
@@ -49,9 +61,13 @@ export default function AnalyticsPage() {
   const [trends, setTrends] = useState<VotingTrend[]>([]);
   const [topVoters, setTopVoters] = useState<TopVoter[]>([]);
   const [timelineData, setTimelineData] = useState<TimelineDataPoint[]>([]);
-  const [votingTrendsData, setVotingTrendsData] = useState<VotingTrendData[]>([]);
+  const [votingTrendsData, setVotingTrendsData] = useState<VotingTrendData[]>(
+    [],
+  );
   const [treasuryData, setTreasuryData] = useState<TreasuryHistoryData[]>([]);
-  const [participationData, setParticipationData] = useState<ParticipationData[]>([]);
+  const [participationData, setParticipationData] = useState<
+    ParticipationData[]
+  >([]);
   const [loading, setLoading] = useState(true);
   const [timeRange, setTimeRange] = useState<"7d" | "30d" | "90d" | "all">(
     "30d",
@@ -61,15 +77,29 @@ export default function AnalyticsPage() {
     loadAnalyticsData();
   }, [gnusDaoInitialized, timeRange]);
 
-  const generateTimelineData = (total: number, active: number, executed: number): TimelineDataPoint[] => {
+  const generateTimelineData = (
+    total: number,
+    active: number,
+    executed: number,
+  ): TimelineDataPoint[] => {
     const data: TimelineDataPoint[] = [];
-    const days = timeRange === "7d" ? 7 : timeRange === "30d" ? 30 : timeRange === "90d" ? 90 : 365;
+    const days =
+      timeRange === "7d"
+        ? 7
+        : timeRange === "30d"
+          ? 30
+          : timeRange === "90d"
+            ? 90
+            : 365;
 
     for (let i = days - 1; i >= 0; i--) {
       const date = new Date();
       date.setDate(date.getDate() - i);
       data.push({
-        date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        date: date.toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+        }),
         proposals: Math.floor(total * (1 - i / days)),
         // Math.random() is acceptable here for demo/mock data (non-security context)
         // nosemgrep: insecure-random
@@ -82,7 +112,14 @@ export default function AnalyticsPage() {
 
   const generateVotingTrendsData = (totalVotes: number): VotingTrendData[] => {
     const data: VotingTrendData[] = [];
-    const days = timeRange === "7d" ? 7 : timeRange === "30d" ? 30 : timeRange === "90d" ? 90 : 365;
+    const days =
+      timeRange === "7d"
+        ? 7
+        : timeRange === "30d"
+          ? 30
+          : timeRange === "90d"
+            ? 90
+            : 365;
 
     for (let i = days - 1; i >= 0; i--) {
       const date = new Date();
@@ -91,7 +128,10 @@ export default function AnalyticsPage() {
       // nosemgrep: insecure-random
       const votes = Math.floor(totalVotes / days + Math.random() * 10);
       data.push({
-        date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        date: date.toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+        }),
         votes,
         voters: Math.floor(votes * 0.7),
         // nosemgrep: insecure-random
@@ -103,7 +143,14 @@ export default function AnalyticsPage() {
 
   const generateTreasuryData = (): TreasuryHistoryData[] => {
     const data: TreasuryHistoryData[] = [];
-    const days = timeRange === "7d" ? 7 : timeRange === "30d" ? 30 : timeRange === "90d" ? 90 : 365;
+    const days =
+      timeRange === "7d"
+        ? 7
+        : timeRange === "30d"
+          ? 30
+          : timeRange === "90d"
+            ? 90
+            : 365;
     let balance = 100;
 
     for (let i = days - 1; i >= 0; i--) {
@@ -117,7 +164,10 @@ export default function AnalyticsPage() {
       balance += deposits - withdrawals;
 
       data.push({
-        date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        date: date.toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+        }),
         balance: Math.max(0, balance),
         deposits,
         withdrawals,
@@ -126,11 +176,21 @@ export default function AnalyticsPage() {
     return data;
   };
 
-  const generateParticipationData = (metrics: GovernanceMetrics): ParticipationData[] => {
+  const generateParticipationData = (
+    metrics: GovernanceMetrics,
+  ): ParticipationData[] => {
     return [
       { name: "Active Voters", value: metrics.uniqueVoters, color: "#3b82f6" },
-      { name: "Delegated", value: Math.floor(metrics.uniqueVoters * 0.3), color: "#10b981" },
-      { name: "Inactive", value: Math.floor(metrics.uniqueVoters * 0.5), color: "#6b7280" },
+      {
+        name: "Delegated",
+        value: Math.floor(metrics.uniqueVoters * 0.3),
+        color: "#10b981",
+      },
+      {
+        name: "Inactive",
+        value: Math.floor(metrics.uniqueVoters * 0.5),
+        color: "#6b7280",
+      },
     ];
   };
 
@@ -203,7 +263,11 @@ export default function AnalyticsPage() {
       };
 
       // Generate chart data
-      const timelineData = generateTimelineData(Number(proposalCount), activeProposals, executedProposals);
+      const timelineData = generateTimelineData(
+        Number(proposalCount),
+        activeProposals,
+        executedProposals,
+      );
       const votingTrendsData = generateVotingTrendsData(totalVotes);
       const treasuryData = generateTreasuryData();
       const participationData = generateParticipationData(metrics);

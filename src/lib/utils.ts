@@ -212,7 +212,7 @@ export function generateId(length = 8): string {
 		crypto.getRandomValues(randomValues);
 		let result = '';
 		for (let i = 0; i < length; i++) {
-			result += chars.charAt(randomValues[i] % chars.length);
+			result += chars.charAt(randomValues[i]! % chars.length);
 		}
 		return result;
 	}

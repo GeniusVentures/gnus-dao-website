@@ -1,5 +1,6 @@
 import { gnusDaoService } from '@/lib/contracts/gnusDaoService';
 import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { ethers } from 'ethers';
 
 interface GnusDaoSliceState {
 	initialized: boolean;

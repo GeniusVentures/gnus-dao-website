@@ -139,7 +139,14 @@ const web3Slice = createSlice({
 			// Handle wallet connection from wallet slice
 			.addMatcher(
 				(action) => action.type === 'wallet/connect/fulfilled',
-				(state, action: PayloadAction<{ provider: ethers.BrowserProvider; signer: ethers.JsonRpcSigner; network: { id: number; name: string } }>) => {
+				(
+					state,
+					action: PayloadAction<{
+						provider: ethers.BrowserProvider;
+						signer: ethers.JsonRpcSigner;
+						network: NetworkConfig;
+					}>,
+				) => {
 					state.provider = action.payload.provider;
 					state.signer = action.payload.signer;
 					state.currentNetwork = action.payload.network;
@@ -157,7 +164,7 @@ const web3Slice = createSlice({
 			// Handle network switch from wallet slice
 			.addMatcher(
 				(action) => action.type === 'wallet/switchNetwork/fulfilled',
-				(state, action: PayloadAction<{ network: { id: number; name: string } }>) => {
+				(state, action: PayloadAction<{ network: NetworkConfig }>) => {
 					state.currentNetwork = action.payload.network;
 				},
 			);

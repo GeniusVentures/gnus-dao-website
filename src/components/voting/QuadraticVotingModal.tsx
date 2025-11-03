@@ -39,7 +39,10 @@ export function QuadraticVotingModal({
   const [userCredits, setUserCredits] = useState<bigint>(0n);
   const [tokenBalance, setTokenBalance] = useState<bigint>(0n);
   const [maxVotesPerWallet, setMaxVotesPerWallet] = useState<bigint>(0n);
-  const [validationResult, setValidationResult] = useState<{valid: boolean; cost: bigint} | null>(null);
+  const [validationResult, setValidationResult] = useState<{
+    valid: boolean;
+    cost: bigint;
+  } | null>(null);
   const [isValidating, setIsValidating] = useState(false);
 
   useEffect(() => {
@@ -90,7 +93,7 @@ export function QuadraticVotingModal({
       const result = await gnusDaoService.validateVote(
         BigInt(votingPower),
         maxVotesPerWallet,
-        tokenBalance
+        tokenBalance,
       );
       setValidationResult(result);
     } catch (error) {
@@ -240,11 +243,13 @@ export function QuadraticVotingModal({
 
         {/* Vote Validation Status */}
         {validationResult && (
-          <div className={`p-4 rounded-lg mb-6 ${
-            validationResult.valid
-              ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800'
-              : 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800'
-          }`}>
+          <div
+            className={`p-4 rounded-lg mb-6 ${
+              validationResult.valid
+                ? "bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800"
+                : "bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800"
+            }`}
+          >
             <div className="flex items-start gap-3">
               {validationResult.valid ? (
                 <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
@@ -252,22 +257,25 @@ export function QuadraticVotingModal({
                 <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
               )}
               <div className="flex-1">
-                <p className={`font-medium ${
-                  validationResult.valid
-                    ? 'text-green-800 dark:text-green-200'
-                    : 'text-red-800 dark:text-red-200'
-                }`}>
-                  {validationResult.valid ? 'Vote is valid' : 'Vote is invalid'}
+                <p
+                  className={`font-medium ${
+                    validationResult.valid
+                      ? "text-green-800 dark:text-green-200"
+                      : "text-red-800 dark:text-red-200"
+                  }`}
+                >
+                  {validationResult.valid ? "Vote is valid" : "Vote is invalid"}
                 </p>
-                <p className={`text-sm mt-1 ${
-                  validationResult.valid
-                    ? 'text-green-700 dark:text-green-300'
-                    : 'text-red-700 dark:text-red-300'
-                }`}>
+                <p
+                  className={`text-sm mt-1 ${
+                    validationResult.valid
+                      ? "text-green-700 dark:text-green-300"
+                      : "text-red-700 dark:text-red-300"
+                  }`}
+                >
                   {validationResult.valid
                     ? `Estimated cost: ${validationResult.cost.toString()} tokens`
-                    : 'Voting power exceeds maximum allowed or insufficient balance'
-                  }
+                    : "Voting power exceeds maximum allowed or insufficient balance"}
                 </p>
               </div>
             </div>
@@ -277,7 +285,9 @@ export function QuadraticVotingModal({
         {isValidating && (
           <div className="flex items-center justify-center gap-2 p-4 mb-6 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-            <span className="text-sm text-blue-700 dark:text-blue-300">Validating vote...</span>
+            <span className="text-sm text-blue-700 dark:text-blue-300">
+              Validating vote...
+            </span>
           </div>
         )}
 

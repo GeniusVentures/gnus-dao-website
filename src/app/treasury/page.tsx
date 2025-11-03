@@ -239,7 +239,10 @@ export default function TreasuryPage() {
                     <p className="text-sm font-medium text-muted-foreground">
                       Native Balance
                     </p>
-                    <p className="text-2xl font-bold" data-testid="treasury-balance">
+                    <p
+                      className="text-2xl font-bold"
+                      data-testid="treasury-balance"
+                    >
                       {treasuryStats
                         ? formatBalance(treasuryStats.nativeBalance, 18)
                         : "0"}

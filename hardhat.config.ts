@@ -1,14 +1,24 @@
 import '@nomicfoundation/hardhat-toolbox';
 import '@nomicfoundation/hardhat-web3-v4';
 import '@typechain/hardhat';
+import * as fs from 'fs';
 import 'hardhat-abi-exporter';
 import 'hardhat-diamonds';
 import 'hardhat-gas-reporter';
 import 'hardhat-multichain';
-import { HardhatUserConfig, task } from 'hardhat/config';
+import { HardhatUserConfig } from 'hardhat/config';
 import 'solidity-coverage';
 
-process.loadEnvFile('.env');
+// Load .env file if it exists and is a file (not a directory)
+try {
+	const envPath = '.env';
+	if (fs.existsSync(envPath) && fs.statSync(envPath).isFile()) {
+		process.loadEnvFile(envPath);
+	}
+} catch (error) {
+	// Silently ignore if .env doesn't exist or can't be loaded
+	console.warn('Warning: Could not load .env file');
+}
 
 /*
  * Destructuring environment variables required for the configuration.

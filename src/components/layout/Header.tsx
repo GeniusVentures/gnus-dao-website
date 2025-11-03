@@ -122,7 +122,11 @@ export function Header() {
                 {wallet.isConnected ? (
                   <WalletDropdown className="w-full" />
                 ) : (
-                  <ConnectWalletButton variant="outline" size="sm" className="w-full" />
+                  <ConnectWalletButton
+                    variant="outline"
+                    size="sm"
+                    className="w-full"
+                  />
                 )}
               </div>
             </div>

@@ -1,94 +1,96 @@
-'use client'
+"use client";
 
-import React, { useState } from 'react'
-import { X, Send, AlertCircle } from 'lucide-react'
-import { Button } from '@/components/ui/Button'
-import { gnusDaoService } from '@/lib/contracts/gnusDaoService'
-import { useWeb3Store } from '@/lib/web3/reduxProvider'
-import { toast } from 'react-hot-toast'
-import { ethers } from 'ethers'
+import React, { useState } from "react";
+import { X, Send, AlertCircle } from "lucide-react";
+import { Button } from "@/components/ui/Button";
+import { gnusDaoService } from "@/lib/contracts/gnusDaoService";
+import { useWeb3Store } from "@/lib/web3/reduxProvider";
+import { toast } from "react-hot-toast";
+import { ethers } from "ethers";
 
 interface ProposeTreasuryActionModalProps {
-  onClose: () => void
-  onActionProposed: () => void
+  onClose: () => void;
+  onActionProposed: () => void;
 }
 
 export function ProposeTreasuryActionModal({
   onClose,
   onActionProposed,
 }: ProposeTreasuryActionModalProps) {
-  const { wallet } = useWeb3Store()
-  const [loading, setLoading] = useState(false)
+  const { wallet } = useWeb3Store();
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
-    recipient: '',
-    amount: '',
-    description: '',
-    token: '0x0000000000000000000000000000000000000000', // Native token by default
-  })
+    recipient: "",
+    amount: "",
+    description: "",
+    token: "0x0000000000000000000000000000000000000000", // Native token by default
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
 
     if (!wallet.address) {
-      toast.error('Please connect your wallet')
-      return
+      toast.error("Please connect your wallet");
+      return;
     }
 
     if (!formData.recipient || !formData.amount || !formData.description) {
-      toast.error('Please fill in all fields')
-      return
+      toast.error("Please fill in all fields");
+      return;
     }
 
     // Validate recipient address
     if (!ethers.isAddress(formData.recipient)) {
-      toast.error('Invalid recipient address')
-      return
+      toast.error("Invalid recipient address");
+      return;
     }
 
     // Validate amount
-    const amount = parseFloat(formData.amount)
+    const amount = parseFloat(formData.amount);
     if (isNaN(amount) || amount <= 0) {
-      toast.error('Invalid amount')
-      return
+      toast.error("Invalid amount");
+      return;
     }
 
-    setLoading(true)
+    setLoading(true);
     try {
       // Convert amount to wei
-      const amountWei = ethers.parseEther(formData.amount)
+      const amountWei = ethers.parseEther(formData.amount);
 
       // For native token transfers, we use a simple transfer calldata
       // For ERC20 transfers, we would encode the transfer function call
-      const calldata = '0x' // Empty calldata for native transfers
+      const calldata = "0x"; // Empty calldata for native transfers
 
       const tx = await gnusDaoService.proposeTreasuryAction(
         formData.recipient,
         amountWei,
         calldata,
-        formData.description
-      )
+        formData.description,
+      );
 
-      toast.success('Treasury action proposed! Waiting for confirmation...')
-      await tx.wait()
-      toast.success('Treasury action proposal confirmed!')
+      toast.success("Treasury action proposed! Waiting for confirmation...");
+      await tx.wait();
+      toast.success("Treasury action proposal confirmed!");
 
-      onActionProposed()
-      onClose()
+      onActionProposed();
+      onClose();
     } catch (error) {
-      console.error('Failed to propose treasury action:', error)
+      console.error("Failed to propose treasury action:", error);
       toast.error(
-        error instanceof Error ? error.message : 'Failed to propose treasury action'
-      )
+        error instanceof Error
+          ? error.message
+          : "Failed to propose treasury action",
+      );
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const handleBackdropClick = (e: React.MouseEvent) => {
     if (e.target === e.currentTarget) {
-      onClose()
+      onClose();
     }
-  }
+  };
 
   return (
     <div
@@ -128,8 +130,8 @@ export function ProposeTreasuryActionModal({
               <div className="text-sm text-yellow-800 dark:text-yellow-200">
                 <p className="font-medium mb-1">Important</p>
                 <p>
-                  Treasury actions require DAO approval. Your proposal will need to be voted on
-                  and approved before execution.
+                  Treasury actions require DAO approval. Your proposal will need
+                  to be voted on and approved before execution.
                 </p>
               </div>
             </div>
@@ -143,7 +145,9 @@ export function ProposeTreasuryActionModal({
             <input
               type="text"
               value={formData.recipient}
-              onChange={(e) => setFormData({ ...formData, recipient: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, recipient: e.target.value })
+              }
               placeholder="0x..."
               className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               required
@@ -163,7 +167,9 @@ export function ProposeTreasuryActionModal({
               step="0.000001"
               min="0"
               value={formData.amount}
-              onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, amount: e.target.value })
+              }
               placeholder="0.0"
               className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               required
@@ -180,7 +186,9 @@ export function ProposeTreasuryActionModal({
             </label>
             <textarea
               value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, description: e.target.value })
+              }
               placeholder="Describe the purpose of this treasury action..."
               rows={4}
               className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
@@ -202,11 +210,7 @@ export function ProposeTreasuryActionModal({
             >
               Cancel
             </Button>
-            <Button
-              type="submit"
-              disabled={loading}
-              className="flex-1"
-            >
+            <Button type="submit" disabled={loading} className="flex-1">
               {loading ? (
                 <>
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
@@ -223,6 +227,5 @@ export function ProposeTreasuryActionModal({
         </form>
       </div>
     </div>
-  )
+  );
 }
-

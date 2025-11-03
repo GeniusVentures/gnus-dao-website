@@ -69,7 +69,10 @@ export const coinbaseConnector: WalletConnector = {
 	connect: async () => {
 		interface EthereumProvider {
 			request: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
-			providers?: Array<{ isCoinbaseWallet?: boolean; request: (args: { method: string; params?: unknown[] }) => Promise<unknown> }>;
+			providers?: Array<{
+				isCoinbaseWallet?: boolean;
+				request: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
+			}>;
 		}
 		const windowWithEthereum = window as unknown as { ethereum?: EthereumProvider };
 		if (!windowWithEthereum.ethereum) {
@@ -84,11 +87,11 @@ export const coinbaseConnector: WalletConnector = {
 				windowWithEthereum.ethereum;
 		}
 
-		const accounts = await ethereum.request({
+		const accounts = (await ethereum.request({
 			method: 'eth_requestAccounts',
-		});
+		})) as string[];
 
-		if (!accounts || accounts.length === 0) {
+		if (!accounts || !Array.isArray(accounts) || accounts.length === 0 || !accounts[0]) {
 			throw new Error('No accounts found');
 		}
 
@@ -120,10 +123,10 @@ export const walletConnectConnector: WalletConnector = {
 	connect: async () => {
 		try {
 			// Ensure runtime environment is loaded before initializing WalletConnect
-			const { getRuntimeEnv } = await import('@/lib/config/runtime-env');
+			const { preloadRuntimeEnv } = await import('@/lib/config/runtime-env');
 
 			console.log('[WalletConnect] Ensuring runtime environment is loaded...');
-			await getRuntimeEnv(); // This will load the environment if not already loaded
+			await preloadRuntimeEnv(); // This will load the environment if not already loaded
 
 			// Use Reown AppKit with official WalletConnect modal
 			const { openWalletConnect } = await import('@/lib/web3/appkit');
@@ -133,14 +136,19 @@ export const walletConnectConnector: WalletConnector = {
 			// Connect using the provider (this shows the official WalletConnect modal)
 			const result = await openWalletConnect();
 
-			if (!result || !result.accounts || result.accounts.length === 0) {
+			if (
+				!result ||
+				!result.accounts ||
+				result.accounts.length === 0 ||
+				!result.accounts[0]
+			) {
 				throw new Error('No accounts returned from WalletConnect');
 			}
 
 			console.log('[WalletConnect] Connected successfully:', result.accounts[0]);
 
 			// Create ethers provider from WalletConnect provider
-			const ethersProvider = new ethers.BrowserProvider(result.provider);
+			const ethersProvider = new ethers.BrowserProvider(result.provider as any);
 			const network = await ethersProvider.getNetwork();
 
 			return {

@@ -164,7 +164,7 @@ export function CreateProposalModal({
     } catch (error) {
       console.error("File upload failed:", error);
       toast.error(
-        error instanceof Error ? error.message : "Failed to upload files"
+        error instanceof Error ? error.message : "Failed to upload files",
       );
     } finally {
       setUploading(false);
@@ -210,12 +210,12 @@ export function CreateProposalModal({
         {
           requireAuth: true,
           errorMessage: "You must sign in with Ethereum to create proposals",
-        }
+        },
       );
     } catch (error) {
       console.error("Error in handleSubmit:", error);
       toast.error(
-        error instanceof Error ? error.message : "Failed to submit proposal"
+        error instanceof Error ? error.message : "Failed to submit proposal",
       );
     }
   };

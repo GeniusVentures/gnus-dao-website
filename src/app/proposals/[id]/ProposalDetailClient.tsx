@@ -73,117 +73,115 @@ export default function ProposalDetailClient() {
       return;
     }
 
-      // Initialize service if not already done
-      if (!gnusDaoInitialized && provider && signer) {
-        try {
-          const network = await provider.getNetwork();
-          await gnusDaoService.initialize(
-            provider,
-            signer,
-            Number(network.chainId),
-          );
-        } catch (error) {
-          console.error("Failed to initialize DAO service:", error);
-          setLoading(false);
-          return;
-        }
-      }
-
+    // Initialize service if not already done
+    if (!gnusDaoInitialized && provider && signer) {
       try {
-        const id = BigInt(proposalId);
-        const [proposalData, state, votingConfig] = await Promise.all([
-          gnusDaoService.getProposal(id),
-          gnusDaoService.getProposalState(id),
-          gnusDaoService.getVotingConfig(),
-        ]);
-
-        if (proposalData) {
-          // Calculate metadata
-          const totalVotes =
-            proposalData.forVotes +
-            proposalData.againstVotes +
-            proposalData.abstainVotes;
-
-          // Get actual quorum threshold from voting config
-          const quorumThreshold = votingConfig?.quorumThreshold
-            ? BigInt(votingConfig.quorumThreshold)
-            : 0n;
-
-          // Only mark quorum as reached if:
-          // 1. There are actual votes (totalVotes > 0)
-          // 2. The votes meet or exceed the threshold
-          // 3. The proposal is not in Pending state (voting has started)
-          const quorumReached =
-            totalVotes > 0n &&
-            totalVotes >= quorumThreshold &&
-            state !== ProposalState.Pending;
-
-          const timeRemaining = calculateTimeRemaining(proposalData.endBlock);
-
-          // Create meaningful title and description based on proposal data
-          // Try to get real data from the proposal, fallback to generated content
-          let title = proposalData.title || `Proposal #${id}`;
-          let description = proposalData.ipfsHash
-            ? `Proposal with IPFS metadata: ${proposalData.ipfsHash}`
-            : `Governance proposal submitted by ${proposalData.proposer.slice(0, 6)}...${proposalData.proposer.slice(-4)}`;
-
-          // If we have sample data, use it
-          const sampleProposals = [
-            {
-              id: 1,
-              title: "Increase GPU Provider Rewards",
-              description:
-                "Proposal to increase rewards for GPU providers to incentivize more participation in the network.",
-            },
-            {
-              id: 2,
-              title: "Mobile GPU Integration Program",
-              description:
-                "Initiative to integrate mobile GPU resources into the GNUS network for distributed computing.",
-            },
-            {
-              id: 3,
-              title: "IPFS Storage Optimization",
-              description:
-                "Optimize IPFS storage mechanisms to improve data retrieval speeds and reduce costs.",
-            },
-          ];
-
-          const sampleProposal = sampleProposals.find(
-            (p) => p.id === Number(id),
-          );
-          if (sampleProposal) {
-            title = sampleProposal.title;
-            description = sampleProposal.description;
-          }
-
-          const proposalWithMetadata: ProposalWithMetadata = {
-            ...proposalData,
-            title,
-            description,
-            state,
-            totalVotes,
-            quorumReached,
-            timeRemaining,
-          };
-
-          setProposal(proposalWithMetadata);
-
-          // Load user's vote if connected
-          if (wallet.address) {
-            const voteReceipt = await gnusDaoService.getVoteReceipt(
-              id,
-              wallet.address,
-            );
-            setUserVote(voteReceipt);
-          }
-        }
+        const network = await provider.getNetwork();
+        await gnusDaoService.initialize(
+          provider,
+          signer,
+          Number(network.chainId),
+        );
       } catch (error) {
-        console.error("Failed to load proposal:", error);
-        toast.error("Failed to load proposal");
-      } finally {
+        console.error("Failed to initialize DAO service:", error);
         setLoading(false);
+        return;
       }
+    }
+
+    try {
+      const id = BigInt(proposalId);
+      const [proposalData, state, votingConfig] = await Promise.all([
+        gnusDaoService.getProposal(id),
+        gnusDaoService.getProposalState(id),
+        gnusDaoService.getVotingConfig(),
+      ]);
+
+      if (proposalData) {
+        // Calculate metadata
+        const totalVotes =
+          proposalData.forVotes +
+          proposalData.againstVotes +
+          proposalData.abstainVotes;
+
+        // Get actual quorum threshold from voting config
+        const quorumThreshold = votingConfig?.quorumThreshold
+          ? BigInt(votingConfig.quorumThreshold)
+          : 0n;
+
+        // Only mark quorum as reached if:
+        // 1. There are actual votes (totalVotes > 0)
+        // 2. The votes meet or exceed the threshold
+        // 3. The proposal is not in Pending state (voting has started)
+        const quorumReached =
+          totalVotes > 0n &&
+          totalVotes >= quorumThreshold &&
+          state !== ProposalState.Pending;
+
+        const timeRemaining = calculateTimeRemaining(proposalData.endBlock);
+
+        // Create meaningful title and description based on proposal data
+        // Try to get real data from the proposal, fallback to generated content
+        let title = proposalData.title || `Proposal #${id}`;
+        let description = proposalData.ipfsHash
+          ? `Proposal with IPFS metadata: ${proposalData.ipfsHash}`
+          : `Governance proposal submitted by ${proposalData.proposer.slice(0, 6)}...${proposalData.proposer.slice(-4)}`;
+
+        // If we have sample data, use it
+        const sampleProposals = [
+          {
+            id: 1,
+            title: "Increase GPU Provider Rewards",
+            description:
+              "Proposal to increase rewards for GPU providers to incentivize more participation in the network.",
+          },
+          {
+            id: 2,
+            title: "Mobile GPU Integration Program",
+            description:
+              "Initiative to integrate mobile GPU resources into the GNUS network for distributed computing.",
+          },
+          {
+            id: 3,
+            title: "IPFS Storage Optimization",
+            description:
+              "Optimize IPFS storage mechanisms to improve data retrieval speeds and reduce costs.",
+          },
+        ];
+
+        const sampleProposal = sampleProposals.find((p) => p.id === Number(id));
+        if (sampleProposal) {
+          title = sampleProposal.title;
+          description = sampleProposal.description;
+        }
+
+        const proposalWithMetadata: ProposalWithMetadata = {
+          ...proposalData,
+          title,
+          description,
+          state,
+          totalVotes,
+          quorumReached,
+          timeRemaining,
+        };
+
+        setProposal(proposalWithMetadata);
+
+        // Load user's vote if connected
+        if (wallet.address) {
+          const voteReceipt = await gnusDaoService.getVoteReceipt(
+            id,
+            wallet.address,
+          );
+          setUserVote(voteReceipt);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to load proposal:", error);
+      toast.error("Failed to load proposal");
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Load proposal data on mount and when dependencies change
@@ -202,10 +200,14 @@ export default function ProposalDetailClient() {
 
         // Can cancel if user is proposer or owner
         const owner = await gnusDaoService.getOwner();
-        const isProposer = proposal.proposer.toLowerCase() === wallet.address.toLowerCase();
+        const isProposer =
+          proposal.proposer.toLowerCase() === wallet.address.toLowerCase();
         const isOwner = owner.toLowerCase() === wallet.address.toLowerCase();
-        setCanCancel((isProposer || isOwner) &&
-          (proposal.state === ProposalState.Pending || proposal.state === ProposalState.Active));
+        setCanCancel(
+          (isProposer || isOwner) &&
+            (proposal.state === ProposalState.Pending ||
+              proposal.state === ProposalState.Active),
+        );
       } catch (error) {
         console.error("Error checking permissions:", error);
       }

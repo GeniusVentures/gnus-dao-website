@@ -97,9 +97,7 @@ export function AuthButton({
         {error && (
           <div className="flex items-center gap-2 px-3 py-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
             <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
-            <span className="text-sm text-red-700 dark:text-red-300">
-              ⚠️
-            </span>
+            <span className="text-sm text-red-700 dark:text-red-300">⚠️</span>
           </div>
         )}
         <Button
@@ -161,9 +159,7 @@ export function AuthStatus({ compact = false, className }: AuthStatusProps) {
     return (
       <div className={`flex items-center gap-2 ${className}`}>
         <div className="h-2 w-2 bg-yellow-500 rounded-full animate-pulse" />
-        <span className="text-sm text-yellow-700 dark:text-yellow-300">
-          ⚠️
-        </span>
+        <span className="text-sm text-yellow-700 dark:text-yellow-300">⚠️</span>
       </div>
     );
   }

@@ -48,7 +48,7 @@ const getProjectId = async () => {
 };
 
 // Global WalletConnect provider
-let walletConnectProvider: ethers.BrowserProvider | null = null;
+let walletConnectProvider: InstanceType<typeof EthereumProvider> | null = null;
 let isInitialized = false;
 
 // Debug logging - enabled in development and for debugging production issues
@@ -75,8 +75,8 @@ export async function initializeWalletConnect() {
 
 	// Ensure runtime environment is loaded first
 	debug('Ensuring runtime environment is loaded...');
-	const { getRuntimeEnv } = await import('@/lib/config/runtime-env');
-	await getRuntimeEnv();
+	const { preloadRuntimeEnv } = await import('@/lib/config/runtime-env');
+	await preloadRuntimeEnv();
 	debug('Runtime environment loaded successfully');
 
 	// Get validated project ID - this will throw if not configured
@@ -280,12 +280,12 @@ export function subscribeToWalletConnect(callback: (event: string, data: unknown
 	const events = ['connect', 'disconnect', 'chainChanged', 'accountsChanged'];
 
 	events.forEach((event) => {
-		walletConnectProvider?.on(event, (data: unknown) => callback(event, data));
+		walletConnectProvider?.on(event as any, (data: unknown) => callback(event, data));
 	});
 
 	return () => {
 		events.forEach((event) => {
-			walletConnectProvider?.removeAllListeners(event);
+			walletConnectProvider?.removeListener(event as any, () => {});
 		});
 	};
 }

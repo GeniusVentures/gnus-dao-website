@@ -1,7 +1,7 @@
 'use client';
 
-import { SiweMessage } from 'siwe';
 import { ethers } from 'ethers';
+import { SiweMessage } from 'siwe';
 
 export interface SiweSession {
 	address: string;
@@ -18,6 +18,18 @@ export interface SiweAuthState {
 	session: SiweSession | null;
 	isAuthenticating: boolean;
 	error: string | null;
+}
+
+export interface VerifyResponse {
+	success: boolean;
+	session?: {
+		id: string;
+		address: string;
+		chainId: number;
+		issuedAt: string;
+		expiresAt: string;
+	};
+	token?: string;
 }
 
 export class SiweAuthService {
@@ -103,7 +115,7 @@ export class SiweAuthService {
 				nonce,
 			);
 
-			if (!verificationResult.success) {
+			if (!verificationResult.success || !verificationResult.session) {
 				throw new Error('Backend verification failed');
 			}
 
@@ -134,18 +146,6 @@ export class SiweAuthService {
 	/**
 	 * Verify signature with backend
 	 */
-	interface VerifyResponse {
-		success: boolean;
-		session?: {
-			id: string;
-			address: string;
-			chainId: number;
-			issuedAt: string;
-			expiresAt: string;
-		};
-		token?: string;
-	}
-
 	static async verifyWithBackend(
 		message: string,
 		signature: string,

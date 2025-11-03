@@ -16,6 +16,7 @@
     "esModuleInterop": true,
     "strict": true,
     "skipLibCheck": true,
+    "ignoreDeprecations": "5.0",
     "rootDirs": [
       "./scripts",
       "./test",
@@ -32,7 +33,7 @@
     ],
     "noEmit": true,
     "module": "esnext",
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "isolatedModules": true,
     "jsx": "preserve",
     "incremental": true,
@@ -110,5 +111,5 @@
     ".next",
     "out",
     "dist"
-  ],
+  ]
 }

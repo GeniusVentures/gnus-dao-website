@@ -6,8 +6,11 @@ import { SignClient } from '@walletconnect/sign-client';
 import QRCode from 'qrcode';
 
 // Global SignClient instance
-let signClient: SignClient | null = null;
-let currentSession: { namespaces: Record<string, { accounts: string[]; chains: string[] }> } | null = null;
+let signClient: InstanceType<typeof SignClient> | null = null;
+let currentSession: {
+	namespaces: Record<string, { accounts: string[]; chains: string[] }>;
+	topic?: string;
+} | null = null;
 let isInitialized = false;
 
 // Debug logging
@@ -76,8 +79,8 @@ export async function initializeWalletConnect() {
 
 	// Ensure runtime environment is loaded first
 	debug('Ensuring runtime environment is loaded...');
-	const { getRuntimeEnv } = await import('@/lib/config/runtime-env');
-	await getRuntimeEnv();
+	const { preloadRuntimeEnv } = await import('@/lib/config/runtime-env');
+	await preloadRuntimeEnv();
 	debug('Runtime environment loaded successfully');
 
 	// Get validated project ID
@@ -293,7 +296,9 @@ export function getChainIdFromSession(session: WalletConnectSession | null): num
 		const namespace = session.namespaces.eip155;
 		if (namespace && namespace.chains && namespace.chains.length > 0) {
 			// Extract chain ID from CAIP-2 format (eip155:1)
-			const chainId = parseInt(namespace.chains[0].split(':')[1]);
+			const chainPart = namespace.chains[0]?.split(':')[1];
+			if (!chainPart) return null;
+			const chainId = parseInt(chainPart);
 			return chainId;
 		}
 		return null;
@@ -315,13 +320,15 @@ export async function disconnectWalletConnect() {
 	try {
 		debug('Disconnecting WalletConnect session...');
 
-		await signClient.disconnect({
-			topic: currentSession.topic,
-			reason: {
-				code: 6000,
-				message: 'User disconnected',
-			},
-		});
+		if (currentSession.topic) {
+			await signClient.disconnect({
+				topic: currentSession.topic,
+				reason: {
+					code: 6000,
+					message: 'User disconnected',
+				},
+			});
+		}
 
 		currentSession = null;
 		debug('Disconnected successfully');

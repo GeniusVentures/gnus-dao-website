@@ -1,19 +1,19 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
-import { useWeb3Store } from "@/lib/web3/reduxProvider";
 import { Button } from "@/components/ui/Button";
+import { useSiwe } from "@/lib/auth/useSiwe";
+import { useWeb3Store } from "@/lib/web3/reduxProvider";
 import {
-  Wallet,
+  AlertCircle,
+  CheckCircle2,
   ChevronDown,
   Copy,
   ExternalLink,
   LogOut,
-  CheckCircle2,
-  AlertCircle,
+  Wallet,
 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "react-hot-toast";
-import { useSiwe } from "@/lib/auth/useSiwe";
 
 interface WalletDropdownProps {
   className?: string;
@@ -78,8 +78,8 @@ export function WalletDropdown({ className }: WalletDropdownProps) {
   const handleViewOnExplorer = () => {
     if (!wallet.address || !currentNetwork) return;
 
-    const explorerUrl = currentNetwork.blockExplorers?.default?.url
-      ? `${currentNetwork.blockExplorers.default.url}/address/${wallet.address}`
+    const explorerUrl = currentNetwork.blockExplorers?.[0]?.url
+      ? `${currentNetwork.blockExplorers[0].url}/address/${wallet.address}`
       : `https://etherscan.io/address/${wallet.address}`;
 
     window.open(explorerUrl, "_blank", "noopener,noreferrer");
@@ -127,9 +127,7 @@ export function WalletDropdown({ className }: WalletDropdownProps) {
           {/* Status Indicator */}
           <div
             className={`h-2 w-2 rounded-full ${
-              isAuthenticated
-                ? "bg-green-500 animate-pulse"
-                : "bg-yellow-500"
+              isAuthenticated ? "bg-green-500 animate-pulse" : "bg-yellow-500"
             }`}
           />
 
@@ -179,7 +177,8 @@ export function WalletDropdown({ className }: WalletDropdownProps) {
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">Balance:</span>
                 <span className="font-semibold">
-                  {formatBalance(wallet.balance)} {currentNetwork?.nativeCurrency?.symbol || "ETH"}
+                  {formatBalance(wallet.balance)}{" "}
+                  {currentNetwork?.nativeCurrency?.symbol || "ETH"}
                 </span>
               </div>
             )}
@@ -254,4 +253,3 @@ export function WalletDropdown({ className }: WalletDropdownProps) {
     </div>
   );
 }
-

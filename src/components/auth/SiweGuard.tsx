@@ -86,7 +86,7 @@ export function SiweGuard({
         toast.error(
           error instanceof Error
             ? error.message
-            : "Failed to authenticate. Please try again."
+            : "Failed to authenticate. Please try again.",
         );
       }
     };
@@ -138,7 +138,7 @@ export function useSiweProtectedAction() {
       requireAuth?: boolean;
       onAuthRequired?: () => void;
       errorMessage?: string;
-    }
+    },
   ): Promise<T | null> => {
     const {
       requireAuth = true,
@@ -171,9 +171,7 @@ export function useSiweProtectedAction() {
         return await action();
       } catch (error) {
         console.error("SIWE authentication failed:", error);
-        toast.error(
-          error instanceof Error ? error.message : errorMessage
-        );
+        toast.error(error instanceof Error ? error.message : errorMessage);
         return null;
       }
     }
@@ -189,4 +187,3 @@ export function useSiweProtectedAction() {
     canAuthenticate: canAuthenticate(),
   };
 }
-

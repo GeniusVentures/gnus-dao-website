@@ -23,7 +23,7 @@ interface UserPermissions {
 export default function GovernanceClient() {
   const { wallet } = useWeb3Store();
   const { address, isConnected } = wallet;
-  
+
   const [config, setConfig] = useState<GovernanceConfig | null>(null);
   const [permissions, setPermissions] = useState<UserPermissions>({
     isOwner: false,
@@ -46,12 +46,13 @@ export default function GovernanceClient() {
       }
 
       if (address) {
-        const [owner, isTreasuryManager, isMinter, isPaused] = await Promise.all([
-          gnusDaoService.getOwner(),
-          gnusDaoService.isTreasuryManager(address),
-          gnusDaoService.isMinter(address),
-          gnusDaoService.isPaused(),
-        ]);
+        const [owner, isTreasuryManager, isMinter, isPaused] =
+          await Promise.all([
+            gnusDaoService.getOwner(),
+            gnusDaoService.isTreasuryManager(address),
+            gnusDaoService.isMinter(address),
+            gnusDaoService.isPaused(),
+          ]);
 
         setPermissions({
           isOwner: owner.toLowerCase() === address.toLowerCase(),
@@ -74,7 +75,8 @@ export default function GovernanceClient() {
           Governance
         </h1>
         <p className="text-gray-600 dark:text-gray-400">
-          Manage your voting power, view governance settings, and check your permissions
+          Manage your voting power, view governance settings, and check your
+          permissions
         </p>
       </div>
 
@@ -100,20 +102,36 @@ export default function GovernanceClient() {
             ) : config ? (
               <div className="space-y-3">
                 <div className="flex justify-between items-center py-2 border-b border-gray-200 dark:border-gray-700">
-                  <span className="text-sm text-gray-600 dark:text-gray-400">Voting Delay</span>
-                  <span className="font-semibold">{config.votingDelay.toString()} blocks</span>
+                  <span className="text-sm text-gray-600 dark:text-gray-400">
+                    Voting Delay
+                  </span>
+                  <span className="font-semibold">
+                    {config.votingDelay.toString()} blocks
+                  </span>
                 </div>
                 <div className="flex justify-between items-center py-2 border-b border-gray-200 dark:border-gray-700">
-                  <span className="text-sm text-gray-600 dark:text-gray-400">Voting Period</span>
-                  <span className="font-semibold">{config.votingPeriod.toString()} blocks</span>
+                  <span className="text-sm text-gray-600 dark:text-gray-400">
+                    Voting Period
+                  </span>
+                  <span className="font-semibold">
+                    {config.votingPeriod.toString()} blocks
+                  </span>
                 </div>
                 <div className="flex justify-between items-center py-2 border-b border-gray-200 dark:border-gray-700">
-                  <span className="text-sm text-gray-600 dark:text-gray-400">Proposal Threshold</span>
-                  <span className="font-semibold">{config.proposalThreshold.toString()}</span>
+                  <span className="text-sm text-gray-600 dark:text-gray-400">
+                    Proposal Threshold
+                  </span>
+                  <span className="font-semibold">
+                    {config.proposalThreshold.toString()}
+                  </span>
                 </div>
                 <div className="flex justify-between items-center py-2">
-                  <span className="text-sm text-gray-600 dark:text-gray-400">Quorum</span>
-                  <span className="font-semibold">{config.quorumVotes.toString()}</span>
+                  <span className="text-sm text-gray-600 dark:text-gray-400">
+                    Quorum
+                  </span>
+                  <span className="font-semibold">
+                    {config.quorumVotes.toString()}
+                  </span>
                 </div>
               </div>
             ) : (
@@ -157,11 +175,13 @@ export default function GovernanceClient() {
                   icon={<Settings className="w-4 h-4" />}
                 />
 
-                {!permissions.isOwner && !permissions.isTreasuryManager && !permissions.isMinter && (
-                  <p className="text-sm text-gray-500 text-center py-4">
-                    No special permissions
-                  </p>
-                )}
+                {!permissions.isOwner &&
+                  !permissions.isTreasuryManager &&
+                  !permissions.isMinter && (
+                    <p className="text-sm text-gray-500 text-center py-4">
+                      No special permissions
+                    </p>
+                  )}
               </div>
             </div>
           )}
@@ -171,28 +191,46 @@ export default function GovernanceClient() {
   );
 }
 
-function PermissionBadge({ label, active, icon }: { label: string; active: boolean; icon: React.ReactNode }) {
+function PermissionBadge({
+  label,
+  active,
+  icon,
+}: {
+  label: string;
+  active: boolean;
+  icon: React.ReactNode;
+}) {
   return (
-    <div className={`
+    <div
+      className={`
       flex items-center justify-between p-3 rounded-lg border
-      ${active
-        ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
-        : 'bg-gray-50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700'
+      ${
+        active
+          ? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800"
+          : "bg-gray-50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700"
       }
-    `}>
+    `}
+    >
       <div className="flex items-center gap-2">
-        <div className={active ? 'text-green-600 dark:text-green-400' : 'text-gray-400'}>
+        <div
+          className={
+            active ? "text-green-600 dark:text-green-400" : "text-gray-400"
+          }
+        >
           {icon}
         </div>
-        <span className={`text-sm font-medium ${active ? 'text-green-800 dark:text-green-200' : 'text-gray-600 dark:text-gray-400'}`}>
+        <span
+          className={`text-sm font-medium ${active ? "text-green-800 dark:text-green-200" : "text-gray-600 dark:text-gray-400"}`}
+        >
           {label}
         </span>
       </div>
-      <div className={`
+      <div
+        className={`
         w-2 h-2 rounded-full
-        ${active ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'}
-      `} />
+        ${active ? "bg-green-500" : "bg-gray-300 dark:bg-gray-600"}
+      `}
+      />
     </div>
   );
 }
-

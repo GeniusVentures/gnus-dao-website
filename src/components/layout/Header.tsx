@@ -1,15 +1,14 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
-import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/Button";
 import { ConnectWalletButton } from "@/components/wallet/ConnectWalletButton";
-import { WalletDropdown } from "@/components/wallet/WalletDropdown";
 import { NetworkSelector } from "@/components/wallet/NetworkSelector";
-import { cn } from "@/lib/utils";
-import { Menu, X, Sun, Moon, Zap } from "lucide-react";
+import { WalletDropdown } from "@/components/wallet/WalletDropdown";
 import { useWeb3Store } from "@/lib/web3/reduxProvider";
+import { Menu, Moon, Sun, X, Zap } from "lucide-react";
+import { useTheme } from "next-themes";
+import Link from "next/link";
+import { useState } from "react";
 
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);

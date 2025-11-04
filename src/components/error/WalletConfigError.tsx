@@ -29,7 +29,6 @@ export function WalletConfigError({ error, onRetry }: WalletConfigErrorProps) {
                   <a
                     href="https://cloud.walletconnect.com"
                     target="_blank"
-                    rel="noopener noreferrer"
                     className="underline hover:no-underline"
                   >
                     WalletConnect Cloud ↗

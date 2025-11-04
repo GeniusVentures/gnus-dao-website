@@ -1,30 +1,28 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { AuthGuard } from "@/components/auth/AuthButton";
+import { Button } from "@/components/ui/Button";
+import { QuadraticVotingModal } from "@/components/voting/QuadraticVotingModal";
+import type { Proposal, VoteReceipt } from "@/lib/contracts/gnusDao";
+import { ProposalState, VoteSupport } from "@/lib/contracts/gnusDao";
+import { gnusDaoService } from "@/lib/contracts/gnusDaoService";
+import { formatAddress } from "@/lib/utils";
+import { useWeb3Store } from "@/lib/web3/reduxProvider";
 import {
   ArrowLeft,
-  Calendar,
-  User,
-  Clock,
-  CheckCircle,
-  XCircle,
-  MinusCircle,
-  ExternalLink,
-  Copy,
-  Vote,
-  Play,
   Ban,
+  Calendar,
+  CheckCircle,
+  Clock,
+  MinusCircle,
+  Play,
+  User,
+  Vote,
+  XCircle,
 } from "lucide-react";
-import { Button } from "@/components/ui/Button";
-import { AuthGuard } from "@/components/auth/AuthButton";
-import { useWeb3Store } from "@/lib/web3/reduxProvider";
-import { gnusDaoService } from "@/lib/contracts/gnusDaoService";
-import { ProposalState, VoteSupport } from "@/lib/contracts/gnusDao";
-import type { Proposal, VoteReceipt } from "@/lib/contracts/gnusDao";
-import { formatAddress } from "@/lib/utils";
+import { useParams, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
-import { QuadraticVotingModal } from "@/components/voting/QuadraticVotingModal";
 
 interface ProposalWithMetadata extends Proposal {
   title: string;
@@ -263,7 +261,7 @@ export default function ProposalDetailClient() {
 
     setVoting(true);
     try {
-      const tx = await gnusDaoService.castVote(BigInt(proposalId), support);
+      await gnusDaoService.castVote(BigInt(proposalId), support);
       toast.success("Vote submitted successfully!");
 
       // Refresh vote receipt
@@ -280,10 +278,7 @@ export default function ProposalDetailClient() {
     }
   };
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    toast.success("Copied to clipboard");
-  };
+  // Removed unused copyToClipboard function
 
   const getStateColor = (state: ProposalState) => {
     switch (state) {

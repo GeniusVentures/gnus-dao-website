@@ -36,7 +36,6 @@ interface ProposalWithMetadata extends Proposal {
 }
 
 export default function ProposalsPage() {
-  const { provider, signer } = useWeb3Store();
   const router = useRouter();
   const [proposals, setProposals] = useState<ProposalWithMetadata[]>([]);
   const [loading, setLoading] = useState(true);

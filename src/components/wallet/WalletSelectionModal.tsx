@@ -1,23 +1,22 @@
 "use client";
 
-import React, { useState } from "react";
+import { Button } from "@/components/ui/Button";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/Button";
-import {
-  X,
-  Wallet,
-  Smartphone,
-  Monitor,
-  Download,
-  Sparkles,
-  Shield,
-} from "lucide-react";
 import { WalletConnector } from "@/lib/web3/types";
+import {
+  Download,
+  Shield,
+  Smartphone,
+  Sparkles,
+  Wallet,
+  X,
+} from "lucide-react";
+import { useState } from "react";
 
 interface WalletSelectionModalProps {
   isOpen: boolean;

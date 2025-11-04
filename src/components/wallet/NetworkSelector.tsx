@@ -1,11 +1,10 @@
 "use client";
 
-import React, { useState } from "react";
 import { Button } from "@/components/ui/Button";
-import { ChevronDown, Check, AlertCircle, Zap } from "lucide-react";
+import { getAllNetworks, NetworkConfig } from "@/lib/config/networks";
 import { useWeb3Store } from "@/lib/web3/reduxProvider";
-import { getAllNetworks, getNetworkConfig } from "@/lib/config/networks";
-import { NetworkConfig } from "@/lib/config/networks";
+import { AlertCircle, Check, ChevronDown, Zap } from "lucide-react";
+import { useState } from "react";
 
 interface NetworkSelectorProps {
   variant?: "default" | "outline" | "ghost";

@@ -32,7 +32,7 @@ const getProjectId = async () => {
 				debug('Using build-time WalletConnect Project ID');
 				return projectId;
 			}
-		} catch (buildTimeError) {
+		} catch {
 			debug('Build-time environment not available, trying runtime environment');
 		}
 
@@ -294,7 +294,7 @@ export function getChainIdFromSession(session: WalletConnectSession | null): num
 
 	try {
 		const namespace = session.namespaces.eip155;
-		if (namespace && namespace.chains && namespace.chains.length > 0) {
+		if (namespace?.chains && namespace.chains.length > 0) {
 			// Extract chain ID from CAIP-2 format (eip155:1)
 			const chainPart = namespace.chains[0]?.split(':')[1];
 			if (!chainPart) return null;

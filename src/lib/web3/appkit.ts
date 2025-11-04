@@ -17,7 +17,7 @@ const getProjectId = async () => {
 				debug('Using build-time WalletConnect Project ID');
 				return projectId;
 			}
-		} catch (buildTimeError) {
+		} catch {
 			debug('Build-time environment not available, trying runtime environment');
 		}
 

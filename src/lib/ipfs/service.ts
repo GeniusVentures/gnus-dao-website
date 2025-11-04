@@ -284,10 +284,7 @@ class IPFSService {
 	/**
 	 * Upload with Pinata (placeholder - use client service for actual uploads)
 	 */
-	private async uploadWithPinata(
-		file: File,
-		options: IPFSUploadOptions,
-	): Promise<IPFSUploadResult> {
+	private async uploadWithPinata(): Promise<IPFSUploadResult> {
 		// For server-side, we'll throw an error directing to use client service
 		throw createIPFSError(
 			'Server-side Pinata upload not available. Use client-side IPFS service.',

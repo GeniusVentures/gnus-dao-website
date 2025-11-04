@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useEffect } from "react";
 import { logger } from "@/lib/utils/logger";
+import { useEffect } from "react";
 
 /**
  * Global error handler component that sets up error tracking
@@ -35,14 +35,14 @@ export function GlobalErrorHandler() {
 
       try {
         observer.observe({ entryTypes: ["navigation"] });
-      } catch (error) {
+      } catch {
         // PerformanceObserver not supported
       }
 
       return () => {
         try {
           observer.disconnect();
-        } catch (error) {
+        } catch {
           // Observer already disconnected
         }
       };

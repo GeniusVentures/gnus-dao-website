@@ -1,22 +1,22 @@
 "use client";
 
-import React, { useState, useRef } from "react";
-import {
-  Upload,
-  X,
-  File,
-  Image,
-  FileText,
-  AlertCircle,
-  CheckCircle,
-} from "lucide-react";
 import { Button } from "@/components/ui/Button";
-import { SecureIPFSService } from "@/lib/ipfs/secureUpload";
 import {
-  validateFile,
   formatFileSize,
+  validateFile,
   type IPFSUploadResult,
 } from "@/lib/ipfs";
+import { SecureIPFSService } from "@/lib/ipfs/secureUpload";
+import {
+  AlertCircle,
+  CheckCircle,
+  File,
+  FileText,
+  Image,
+  Upload,
+  X,
+} from "lucide-react";
+import React, { useRef, useState } from "react";
 import { toast } from "react-hot-toast";
 
 interface FileUploadProps {
@@ -41,7 +41,6 @@ interface UploadingFile {
 export function FileUpload({
   onUploadComplete,
   onUploadStart,
-  onUploadProgress,
   multiple = true,
   accept,
   maxFiles = 5,
@@ -153,7 +152,7 @@ export function FileUpload({
         onUploadComplete(results);
         toast.success(`${results.length} file(s) uploaded successfully`);
       }
-    } catch (error) {
+    } catch {
       toast.error("Upload process failed");
     }
   };

@@ -1,15 +1,14 @@
 "use client";
 
 import {
-  Cpu,
-  Smartphone,
-  Monitor,
-  Gamepad2,
-  Wifi,
-  DollarSign,
-  Users,
-  Code,
   ArrowRight,
+  Code,
+  Cpu,
+  DollarSign,
+  Gamepad2,
+  Smartphone,
+  Users,
+  Wifi,
   Zap,
 } from "lucide-react";
 

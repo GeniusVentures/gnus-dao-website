@@ -1,16 +1,15 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { useWeb3Store } from "@/lib/web3/reduxProvider";
-import { gnusDaoService } from "@/lib/contracts/gnusDaoService";
 import { Button } from "@/components/ui/Button";
-import { AlertCircle, Zap, X, Loader2 } from "lucide-react";
+import { gnusDaoService } from "@/lib/contracts/gnusDaoService";
+import { useWeb3Store } from "@/lib/web3/reduxProvider";
+import { AlertCircle, X, Zap } from "lucide-react";
+import { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
 
 export function DelegationBanner() {
   const { wallet, provider, signer } = useWeb3Store();
   const [isDelegated, setIsDelegated] = useState<boolean | null>(null);
-  const [isActivating, setIsActivating] = useState(false);
   const [isDismissed, setIsDismissed] = useState(false);
   const [votingPower, setVotingPower] = useState<bigint>(0n);
 

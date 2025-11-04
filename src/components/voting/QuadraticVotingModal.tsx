@@ -1,19 +1,19 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import {
-  Calculator,
-  Info,
-  CheckCircle,
-  XCircle,
-  MinusCircle,
-  Zap,
-  AlertTriangle,
-} from "lucide-react";
 import { Button } from "@/components/ui/Button";
-import { useWeb3Store } from "@/lib/web3/reduxProvider";
-import { gnusDaoService } from "@/lib/contracts/gnusDaoService";
 import { VoteSupport } from "@/lib/contracts/gnusDao";
+import { gnusDaoService } from "@/lib/contracts/gnusDaoService";
+import { useWeb3Store } from "@/lib/web3/reduxProvider";
+import {
+  AlertTriangle,
+  Calculator,
+  CheckCircle,
+  Info,
+  MinusCircle,
+  XCircle,
+  Zap,
+} from "lucide-react";
+import { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
 
 interface QuadraticVotingModalProps {
@@ -29,7 +29,7 @@ export function QuadraticVotingModal({
   onClose,
   onVoteSubmitted,
 }: QuadraticVotingModalProps) {
-  const { wallet, voteCredits } = useWeb3Store();
+  const { wallet } = useWeb3Store();
   const [selectedSupport, setSelectedSupport] = useState<VoteSupport | null>(
     null,
   );

@@ -231,7 +231,7 @@ export class GNUSDAOService {
 	 * NOTE: This contract does NOT support self-delegation
 	 * This method is kept for API compatibility but will throw an error
 	 */
-	async delegateToSelf(address: string): Promise<ethers.ContractTransactionResponse> {
+	async delegateToSelf(): Promise<ethers.ContractTransactionResponse> {
 		throw new Error(
 			'This contract does not support self-delegation. Voting power comes directly from your token balance. ' +
 				'You already have voting power if you hold GNUS tokens.',
@@ -323,7 +323,7 @@ export class GNUSDAOService {
 			if (!basicData) return null;
 
 			// Handle tuple response correctly
-			const [id, proposer, title, ipfsHash] = basicData;
+			const [, proposer, title, ipfsHash] = basicData;
 
 			// Try to get status data, but don't fail if it's not available
 			let statusData = null;
@@ -494,14 +494,14 @@ export class GNUSDAOService {
 		const title = lines[0] || 'Untitled Proposal';
 
 		// Create IPFS metadata with the full proposal data
-		const metadata = {
-			title,
-			description,
-			targets,
-			values: values.map((v) => v.toString()),
-			calldatas,
-			created: Date.now(),
-		};
+		// const metadata = {
+		// 	title,
+		// 	description,
+		// 	targets,
+		// 	values: values.map((v) => v.toString()),
+		// 	calldatas,
+		// 	created: Date.now(),
+		// };
 
 		// For now, use a placeholder IPFS hash
 		// In production, this should upload to IPFS first

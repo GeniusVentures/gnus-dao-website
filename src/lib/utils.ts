@@ -77,7 +77,7 @@ export function formatTokenAmount(
 		}
 
 		return formatNumber(value, displayDecimals);
-	} catch (error) {
+	} catch {
 		return '0';
 	}
 }
@@ -143,7 +143,7 @@ export async function copyToClipboard(text: string): Promise<boolean> {
 	try {
 		await navigator.clipboard.writeText(text);
 		return true;
-	} catch (error) {
+	} catch {
 		// Fallback for older browsers
 		try {
 			const textArea = document.createElement('textarea');
@@ -157,7 +157,7 @@ export async function copyToClipboard(text: string): Promise<boolean> {
 			const result = document.execCommand('copy');
 			document.body.removeChild(textArea);
 			return result;
-		} catch (fallbackError) {
+		} catch {
 			return false;
 		}
 	}

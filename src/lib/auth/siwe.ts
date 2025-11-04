@@ -405,7 +405,7 @@ export class SiweAuthService {
 			} else {
 				return { isValid: false, error: 'Invalid signature' };
 			}
-		} catch (error) {
+		} catch {
 			return { isValid: false, error: 'Invalid challenge format' };
 		}
 	}

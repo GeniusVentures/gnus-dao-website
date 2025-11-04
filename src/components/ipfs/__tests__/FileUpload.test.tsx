@@ -3,12 +3,11 @@
  * Unit tests for the FileUpload component
  */
 
-import React from "react";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
-import { FileUpload } from "../FileUpload";
 import { ipfsService } from "@/lib/ipfs";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { toast } from "react-hot-toast";
+import { FileUpload } from "../FileUpload";
 
 // Mock dependencies
 jest.mock("@/lib/ipfs", () => ({
@@ -28,10 +27,9 @@ jest.mock("react-hot-toast", () => ({
 }));
 
 // Mock the validateFile and formatFileSize functions
-const mockValidateFile = require("@/lib/ipfs")
-  .validateFile as jest.MockedFunction<any>;
-const mockFormatFileSize = require("@/lib/ipfs")
-  .formatFileSize as jest.MockedFunction<any>;
+import * as ipfsUtils from "@/lib/ipfs";
+const mockValidateFile = ipfsUtils.validateFile as jest.MockedFunction<any>;
+const mockFormatFileSize = ipfsUtils.formatFileSize as jest.MockedFunction<any>;
 
 describe("FileUpload Component", () => {
   const mockOnUploadComplete = jest.fn();

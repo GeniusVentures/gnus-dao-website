@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
 import { useWeb3Store } from '@/lib/web3/reduxProvider';
-import { SiweAuthService, type SiweSession, type SiweAuthState } from './siwe';
+import { useCallback, useEffect, useState } from 'react';
+import { SiweAuthService, type SiweAuthState } from './siwe';
 
 export function useSiwe() {
 	const { wallet, signer, currentNetwork } = useWeb3Store();

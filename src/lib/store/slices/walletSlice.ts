@@ -45,7 +45,7 @@ export const connectWallet = createAsyncThunk(
 			if (chainId === 1) {
 				try {
 					ensName = (await provider.lookupAddress(address)) || undefined;
-				} catch (error) {
+				} catch {
 					// ENS lookup failed, ignore
 				}
 			}

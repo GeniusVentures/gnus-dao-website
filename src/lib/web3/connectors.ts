@@ -136,12 +136,7 @@ export const walletConnectConnector: WalletConnector = {
 			// Connect using the provider (this shows the official WalletConnect modal)
 			const result = await openWalletConnect();
 
-			if (
-				!result ||
-				!result.accounts ||
-				result.accounts.length === 0 ||
-				!result.accounts[0]
-			) {
+			if (!result?.accounts || result.accounts.length === 0 || !result.accounts[0]) {
 				throw new Error('No accounts returned from WalletConnect');
 			}
 
@@ -179,9 +174,8 @@ export const walletConnectConnector: WalletConnector = {
 		try {
 			const { disconnectWalletConnect } = await import('@/lib/web3/appkit');
 			await disconnectWalletConnect();
-		} catch (error) {
-			if (process.env.NODE_ENV === 'development') {
-			}
+		} catch {
+			// Disconnect failed
 		}
 	},
 };

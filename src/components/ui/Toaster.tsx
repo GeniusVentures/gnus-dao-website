@@ -1,10 +1,10 @@
 "use client";
 
-import * as React from "react";
+import { cn } from "@/lib/utils";
 import * as ToastPrimitives from "@radix-ui/react-toast";
 import { cva, type VariantProps } from "class-variance-authority";
 import { X } from "lucide-react";
-import { cn } from "@/lib/utils";
+import * as React from "react";
 
 const ToastProvider = ToastPrimitives.Provider;
 
@@ -120,15 +120,15 @@ type ToastProps = React.ComponentPropsWithoutRef<typeof Toast>;
 type ToastActionElement = React.ReactElement<typeof ToastAction>;
 
 export {
-  type ToastProps,
-  type ToastActionElement,
-  ToastProvider,
-  ToastViewport,
   Toast,
-  ToastTitle,
-  ToastDescription,
-  ToastClose,
   ToastAction,
+  ToastClose,
+  ToastDescription,
+  ToastProvider,
+  ToastTitle,
+  ToastViewport,
+  type ToastActionElement,
+  type ToastProps,
 };
 
 // Toast hook and context
@@ -142,12 +142,13 @@ type ToasterToast = ToastProps & {
   action?: ToastActionElement;
 };
 
-const actionTypes = {
-  ADD_TOAST: "ADD_TOAST",
-  UPDATE_TOAST: "UPDATE_TOAST",
-  DISMISS_TOAST: "DISMISS_TOAST",
-  REMOVE_TOAST: "REMOVE_TOAST",
-} as const;
+// ActionTypes type definition - currently not used but kept for future reference
+// type ActionTypes = {
+//   ADD_TOAST: "ADD_TOAST";
+//   UPDATE_TOAST: "UPDATE_TOAST";
+//   DISMISS_TOAST: "DISMISS_TOAST";
+//   REMOVE_TOAST: "REMOVE_TOAST";
+// };
 
 let count = 0;
 
@@ -338,4 +339,4 @@ function Toaster() {
   );
 }
 
-export { useToast, toast, Toaster };
+export { toast, Toaster, useToast };

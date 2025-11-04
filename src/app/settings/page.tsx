@@ -66,7 +66,7 @@ const defaultSettings: Settings = {
 
 export default function SettingsPage() {
   const { address } = useAppSelector((state) => state.wallet);
-  const { theme, setTheme } = useTheme();
+  const { setTheme } = useTheme();
   const [settings, setSettings] = useState<Settings>(defaultSettings);
   const [saved, setSaved] = useState(false);
 

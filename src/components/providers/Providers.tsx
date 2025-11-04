@@ -1,10 +1,10 @@
 "use client";
 
-import { ReactNode, useEffect } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ThemeProvider } from "./ThemeProvider";
-import { ReduxProvider } from "./ReduxProvider";
+import { ReactNode } from "react";
 import { LazyWeb3Provider } from "./LazyWeb3Provider";
+import { ReduxProvider } from "./ReduxProvider";
+import { ThemeProvider } from "./ThemeProvider";
 
 // Create a client
 const queryClient = new QueryClient({

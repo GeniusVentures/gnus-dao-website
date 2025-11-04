@@ -168,7 +168,7 @@ export class TransactionHistoryService {
 					if (proposal) {
 						proposalTitle = proposal.title;
 					}
-				} catch (e) {
+				} catch {
 					// Ignore errors fetching proposal details
 				}
 

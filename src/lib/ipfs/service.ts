@@ -4,8 +4,8 @@
  */
 
 import { PinataSDK } from 'pinata-web3';
-import type { IPFSHTTPClient } from 'ipfs-http-client';
-import { create as createIPFSClient } from 'ipfs-http-client';
+import type { Helia } from 'helia';
+import type { UnixFS } from '@helia/unixfs';
 import { getIPFSConfig, getIPFSUrl, validateIPFSConfig } from './config';
 import {
 	IPFSError,
@@ -28,7 +28,8 @@ import {
 class IPFSService {
 	private config = getIPFSConfig();
 	private pinata?: PinataSDK;
-	private ipfsClient?: IPFSHTTPClient;
+	private helia?: Helia;
+	private fs?: UnixFS;
 	private initialized = false;
 
 	constructor() {
@@ -54,17 +55,20 @@ class IPFSService {
 			// Note: pinata-web3 only supports JWT authentication,
 			// API key + secret authentication is no longer supported
 
-			// Initialize IPFS HTTP client if URL is available
+			// Initialize Helia IPFS client if URL is available
 			if (this.config.ipfsApiUrl) {
-				const auth =
-					this.config.ipfsApiKey && this.config.ipfsApiSecret
-						? `${this.config.ipfsApiKey}:${this.config.ipfsApiSecret}`
-						: undefined;
-
-				this.ipfsClient = createIPFSClient({
-					url: this.config.ipfsApiUrl,
-					headers: auth ? { authorization: `Basic ${btoa(auth)}` } : undefined,
-				});
+				// Note: Helia doesn't support remote HTTP API connections like ipfs-http-client
+				// For now, we'll create a local Helia node instead
+				// In a production environment, you might want to use @helia/http for HTTP-only operations
+				try {
+					const { createHelia } = await import('helia');
+					const { unixfs } = await import('@helia/unixfs');
+					this.helia = await createHelia();
+					this.fs = unixfs(this.helia);
+				} catch (error) {
+					console.error('Failed to initialize Helia:', error);
+					// Continue without Helia - will fall back to Pinata
+				}
 			}
 
 			this.initialized = true;
@@ -103,8 +107,8 @@ class IPFSService {
 				return await this.uploadWithPinata();
 			}
 
-			// Fallback to IPFS HTTP client
-			if (this.ipfsClient) {
+			// Fallback to Helia IPFS client
+			if (this.helia && this.fs) {
 				return await this.uploadWithIPFSClient(file, { pin, metadata, onProgress });
 			}
 
@@ -291,14 +295,14 @@ class IPFSService {
 	}
 
 	/**
-	 * Upload with IPFS HTTP client
+	 * Upload file using Helia IPFS client
 	 */
 	private async uploadWithIPFSClient(
 		file: File,
 		options: IPFSUploadOptions,
 	): Promise<IPFSUploadResult> {
-		if (!this.ipfsClient) {
-			throw createIPFSError('IPFS client not initialized', 'UPLOAD_ERROR', 'NO_CLIENT');
+		if (!this.helia || !this.fs) {
+			throw createIPFSError('Helia client not initialized', 'UPLOAD_ERROR', 'NO_CLIENT');
 		}
 
 		const { pin = true, onProgress } = options;
@@ -311,25 +315,31 @@ class IPFSService {
 
 			onProgress?.(60); // Uploading to IPFS
 
-			const result = await this.ipfsClient.add(
-				{
-					path: sanitizedName,
-					content,
-				},
-				{ pin },
-			);
+			// Use Helia's UnixFS API to add the file
+			const cid = await this.fs.addFile({
+				path: sanitizedName,
+				content: new Uint8Array(content),
+			}, {
+				onProgress: (evt) => {
+					// Map Helia progress events to our progress callback
+					// For now, we'll use a simple progress indication
+					if (evt.type === 'unixfs:importer:progress:file:write') {
+						onProgress?.(80);
+					}
+				}
+			});
 
 			onProgress?.(100); // Upload complete
 
 			return {
-				hash: result.cid.toString(),
+				hash: cid.toString(),
 				name: sanitizedName,
 				size: file.size,
-				url: getIPFSUrl(result.cid.toString()),
+				url: getIPFSUrl(cid.toString()),
 			};
 		} catch (error) {
 			throw createIPFSError(
-				`IPFS client upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+				`Helia upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
 				'UPLOAD_ERROR',
 				'CLIENT_FAILED',
 				error as Record<string, unknown>,
@@ -341,7 +351,7 @@ class IPFSService {
 	 * Check if service is properly configured
 	 */
 	isConfigured(): boolean {
-		return !!(this.pinata || this.ipfsClient);
+		return !!(this.pinata || this.helia);
 	}
 
 	/**
@@ -351,7 +361,7 @@ class IPFSService {
 		return {
 			initialized: this.initialized,
 			hasPinata: !!this.pinata,
-			hasIPFSClient: !!this.ipfsClient,
+			hasIPFSClient: !!this.helia,
 			configured: this.isConfigured(),
 		};
 	}

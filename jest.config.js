@@ -43,7 +43,7 @@ const customJestConfig = {
     "^.+\\.(js|jsx|ts|tsx)$": ["babel-jest", { presets: ["next/babel"] }],
   },
   transformIgnorePatterns: [
-    "/node_modules/(?!(@pinata|ipfs-http-client|multiformats)/)",
+    "/node_modules/(?!(@pinata|@helia|helia|multiformats)/)",
     "^.+\\.module\\.(css|sass|scss)$",
   ],
   moduleFileExtensions: ["ts", "tsx", "js", "jsx", "json", "node"],

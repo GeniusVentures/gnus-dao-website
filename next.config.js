@@ -339,8 +339,7 @@ const nextConfig = {
         "node:events": false,
         "node:querystring": false,
 
-        // Web3 and IPFS specific
-        "ipfs-http-client": false,
+        // Web3 and IPFS specific (Helia-compatible)
         multiformats: false,
         uint8arrays: false,
         "it-all": false,

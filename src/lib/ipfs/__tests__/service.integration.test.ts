@@ -16,13 +16,13 @@ jest.mock(
 	{ virtual: true },
 );
 
-jest.mock('@pinata/sdk', () => ({
+jest.mock('pinata-web3', () => ({
 	PinataSDK: jest.fn(() => ({
 		upload: {
 			file: jest.fn(),
 		},
-		pinning: {
-			pinByHash: jest.fn(),
+		files: {
+			delete: jest.fn(),
 		},
 	})),
 }));

@@ -1,9 +1,15 @@
 /** @type {import('next').NextConfig} */
-const { setupDevPlatform } = require("@cloudflare/next-on-pages/next-dev");
 
-// Setup Cloudflare development platform
+// Initialize OpenNext Cloudflare for development
+// This enables bindings during local development
 if (process.env.NODE_ENV === "development") {
-  setupDevPlatform();
+  try {
+    const { initOpenNextCloudflareForDev } = require("@opennextjs/cloudflare");
+    initOpenNextCloudflareForDev();
+  } catch (error) {
+    // @opennextjs/cloudflare not installed yet - skip initialization
+    console.log("Note: @opennextjs/cloudflare not installed. Running in standard Next.js mode.");
+  }
 }
 
 // Environment detection
@@ -25,7 +31,7 @@ const nextConfig = {
   // Cloudflare Pages configuration with adapter support
   ...(isCloudflarePages &&
     useAdapter && {
-      // Configuration for @cloudflare/next-on-pages adapter
+      // Configuration for @opennextjs/cloudflare adapter
       experimental: {
         runtime: "edge",
       },

@@ -3,7 +3,7 @@
  * Main service for IPFS operations including upload, retrieval, and pinning
  */
 
-import PinataSDK from '@pinata/sdk';
+import { PinataSDK } from 'pinata-web3';
 import type { IPFSHTTPClient } from 'ipfs-http-client';
 import { create as createIPFSClient } from 'ipfs-http-client';
 import { getIPFSConfig, getIPFSUrl, validateIPFSConfig } from './config';
@@ -48,14 +48,11 @@ class IPFSService {
 			// Initialize Pinata if credentials are available
 			if (this.config.pinataJWT) {
 				this.pinata = new PinataSDK({
-					pinataJWTKey: this.config.pinataJWT,
-				});
-			} else if (this.config.pinataApiKey && this.config.pinataSecretKey) {
-				this.pinata = new PinataSDK({
-					pinataApiKey: this.config.pinataApiKey,
-					pinataSecretApiKey: this.config.pinataSecretKey,
+					pinataJwt: this.config.pinataJWT,
 				});
 			}
+			// Note: pinata-web3 only supports JWT authentication,
+			// API key + secret authentication is no longer supported
 
 			// Initialize IPFS HTTP client if URL is available
 			if (this.config.ipfsApiUrl) {
@@ -103,7 +100,7 @@ class IPFSService {
 
 			// Try Pinata first if available
 			if (this.pinata) {
-				return await this.uploadWithPinata(file, { pin, metadata, onProgress });
+				return await this.uploadWithPinata();
 			}
 
 			// Fallback to IPFS HTTP client

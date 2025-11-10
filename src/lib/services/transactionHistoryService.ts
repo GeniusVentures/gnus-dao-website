@@ -112,12 +112,14 @@ export class TransactionHistoryService {
 		if (!this.contract || !this.provider) return [];
 
 		try {
-			const filter = this.contract.filters.ProposalCreated(null, address);
+			const filter = this.contract.filters.ProposalCreated?.(null, address);
+			if (!filter) return [];
 			const events = await this.contract.queryFilter(filter, fromBlock, toBlock);
 
 			const transactions: Transaction[] = [];
 			for (const event of events) {
 				const block = await event.getBlock();
+				if (!('args' in event)) continue;
 				const args = event.args as any;
 
 				transactions.push({
@@ -149,12 +151,14 @@ export class TransactionHistoryService {
 		if (!this.contract || !this.provider) return [];
 
 		try {
-			const filter = this.contract.filters.VoteCast(null, address);
+			const filter = this.contract.filters.VoteCast?.(null, address);
+			if (!filter) return [];
 			const events = await this.contract.queryFilter(filter, fromBlock, toBlock);
 
 			const transactions: Transaction[] = [];
 			for (const event of events) {
 				const block = await event.getBlock();
+				if (!('args' in event)) continue;
 				const args = event.args as any;
 
 				// Try to get proposal title
@@ -164,7 +168,7 @@ export class TransactionHistoryService {
 					if (proposal) {
 						proposalTitle = proposal.title;
 					}
-				} catch (e) {
+				} catch {
 					// Ignore errors fetching proposal details
 				}
 
@@ -199,12 +203,14 @@ export class TransactionHistoryService {
 		if (!this.contract || !this.provider) return [];
 
 		try {
-			const filter = this.contract.filters.DelegateChanged(address);
+			const filter = this.contract.filters.DelegateChanged?.(address);
+			if (!filter) return [];
 			const events = await this.contract.queryFilter(filter, fromBlock, toBlock);
 
 			const transactions: Transaction[] = [];
 			for (const event of events) {
 				const block = await event.getBlock();
+				if (!('args' in event)) continue;
 				const args = event.args as any;
 
 				const isRevocation = args.toDelegate === ethers.ZeroAddress;
@@ -240,11 +246,13 @@ export class TransactionHistoryService {
 
 		try {
 			// Get all executed events, then filter by proposer
-			const filter = this.contract.filters.ProposalExecuted();
+			const filter = this.contract.filters.ProposalExecuted?.();
+			if (!filter) return [];
 			const events = await this.contract.queryFilter(filter, fromBlock, toBlock);
 
 			const transactions: Transaction[] = [];
 			for (const event of events) {
+				if (!('args' in event)) continue;
 				const args = event.args as any;
 
 				// Check if this user created the proposal
@@ -282,11 +290,13 @@ export class TransactionHistoryService {
 		if (!this.contract || !this.provider) return [];
 
 		try {
-			const filter = this.contract.filters.ProposalCancelled();
+			const filter = this.contract.filters.ProposalCancelled?.();
+			if (!filter) return [];
 			const events = await this.contract.queryFilter(filter, fromBlock, toBlock);
 
 			const transactions: Transaction[] = [];
 			for (const event of events) {
+				if (!('args' in event)) continue;
 				const args = event.args as any;
 
 				const proposal = await gnusDaoService.getProposal(args.proposalId);
@@ -324,10 +334,10 @@ export class TransactionHistoryService {
 
 		try {
 			// Get both sent and received transfers
-			const [sentFilter, receivedFilter] = [
-				this.contract.filters.Transfer(address, null),
-				this.contract.filters.Transfer(null, address),
-			];
+			const sentFilter = this.contract.filters.Transfer?.(address, null);
+			const receivedFilter = this.contract.filters.Transfer?.(null, address);
+
+			if (!sentFilter || !receivedFilter) return [];
 
 			const [sentEvents, receivedEvents] = await Promise.all([
 				this.contract.queryFilter(sentFilter, fromBlock, toBlock),
@@ -338,6 +348,7 @@ export class TransactionHistoryService {
 
 			for (const event of [...sentEvents, ...receivedEvents]) {
 				const block = await event.getBlock();
+				if (!('args' in event)) continue;
 				const args = event.args as any;
 
 				transactions.push({

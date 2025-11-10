@@ -1,30 +1,42 @@
-'use client'
+"use client";
 
-import React, { useState, useEffect } from 'react'
-import Image from 'next/image'
-import { ExternalLink, Download, Eye, AlertCircle, Loader2, Copy } from 'lucide-react'
-import { Button } from '@/components/ui/Button'
-import { ipfsService, getIPFSUrl, isValidIPFSHash, formatFileSize } from '@/lib/ipfs'
-import { toast } from 'react-hot-toast'
+import React, { useState, useEffect } from "react";
+import Image from "next/image";
+import {
+  ExternalLink,
+  Download,
+  Eye,
+  AlertCircle,
+  Loader2,
+  Copy,
+} from "lucide-react";
+import { Button } from "@/components/ui/Button";
+import {
+  ipfsService,
+  getIPFSUrl,
+  isValidIPFSHash,
+  formatFileSize,
+} from "@/lib/ipfs";
+import { toast } from "react-hot-toast";
 
 interface IPFSContentProps {
-  hash: string
-  name?: string
-  size?: number
-  type?: string
-  showPreview?: boolean
-  showDownload?: boolean
-  showExternalLink?: boolean
-  className?: string
+  hash: string;
+  name?: string;
+  size?: number;
+  type?: string;
+  showPreview?: boolean;
+  showDownload?: boolean;
+  showExternalLink?: boolean;
+  className?: string;
 }
 
 interface ContentState {
-  loading: boolean
-  content: string | null
-  error: string | null
-  isImage: boolean
-  isText: boolean
-  isJSON: boolean
+  loading: boolean;
+  content: string | null;
+  error: string | null;
+  isImage: boolean;
+  isText: boolean;
+  isJSON: boolean;
 }
 
 export function IPFSContent({
@@ -35,7 +47,7 @@ export function IPFSContent({
   showPreview = true,
   showDownload = true,
   showExternalLink = true,
-  className = ''
+  className = "",
 }: IPFSContentProps) {
   const [contentState, setContentState] = useState<ContentState>({
     loading: false,
@@ -43,34 +55,35 @@ export function IPFSContent({
     error: null,
     isImage: false,
     isText: false,
-    isJSON: false
-  })
+    isJSON: false,
+  });
 
-  const [previewOpen, setPreviewOpen] = useState(false)
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   useEffect(() => {
     if (!isValidIPFSHash(hash)) {
-      setContentState(prev => ({
+      setContentState((prev) => ({
         ...prev,
-        error: 'Invalid IPFS hash'
-      }))
+        error: "Invalid IPFS hash",
+      }));
     }
-  }, [hash])
+  }, [hash]);
 
   const loadContent = async () => {
-    if (!isValidIPFSHash(hash)) return
+    if (!isValidIPFSHash(hash)) return;
 
-    setContentState(prev => ({ ...prev, loading: true, error: null }))
+    setContentState((prev) => ({ ...prev, loading: true, error: null }));
 
     try {
       const content = await ipfsService.retrieveContent(hash, {
         timeout: 15000,
-        fallbackToOtherGateways: true
-      })
+        fallbackToOtherGateways: true,
+      });
 
-      const isImage = type?.startsWith('image/') || false
-      const isText = type?.startsWith('text/') || type === 'application/json' || false
-      const isJSON = type === 'application/json' || false
+      const isImage = type?.startsWith("image/") || false;
+      const isText =
+        type?.startsWith("text/") || type === "application/json" || false;
+      const isJSON = type === "application/json" || false;
 
       setContentState({
         loading: false,
@@ -78,50 +91,51 @@ export function IPFSContent({
         error: null,
         isImage,
         isText,
-        isJSON
-      })
+        isJSON,
+      });
     } catch (error) {
-      setContentState(prev => ({
+      setContentState((prev) => ({
         ...prev,
         loading: false,
-        error: error instanceof Error ? error.message : 'Failed to load content'
-      }))
+        error:
+          error instanceof Error ? error.message : "Failed to load content",
+      }));
     }
-  }
+  };
 
   const handlePreview = () => {
     if (!contentState.content) {
-      loadContent()
+      loadContent();
     }
-    setPreviewOpen(true)
-  }
+    setPreviewOpen(true);
+  };
 
   const handleDownload = () => {
-    const url = getIPFSUrl(hash)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = name || `ipfs-${hash.slice(0, 8)}`
-    link.target = '_blank'
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-  }
+    const url = getIPFSUrl(hash);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = name || `ipfs-${hash.slice(0, 8)}`;
+    link.target = "_blank";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   const handleExternalLink = () => {
-    const url = getIPFSUrl(hash)
-    window.open(url, '_blank', 'noopener,noreferrer')
-  }
+    const url = getIPFSUrl(hash);
+    window.open(url, "_blank", "noopener,noreferrer");
+  };
 
   const copyHash = () => {
-    navigator.clipboard.writeText(hash)
-    toast.success('IPFS hash copied to clipboard')
-  }
+    navigator.clipboard.writeText(hash);
+    toast.success("IPFS hash copied to clipboard");
+  };
 
   const copyUrl = () => {
-    const url = getIPFSUrl(hash)
-    navigator.clipboard.writeText(url)
-    toast.success('IPFS URL copied to clipboard')
-  }
+    const url = getIPFSUrl(hash);
+    navigator.clipboard.writeText(url);
+    toast.success("IPFS URL copied to clipboard");
+  };
 
   const renderPreview = () => {
     if (contentState.loading) {
@@ -130,7 +144,7 @@ export function IPFSContent({
           <Loader2 className="w-6 h-6 animate-spin" />
           <span className="ml-2">Loading content...</span>
         </div>
-      )
+      );
     }
 
     if (contentState.error) {
@@ -139,7 +153,7 @@ export function IPFSContent({
           <AlertCircle className="w-6 h-6 mr-2" />
           <span>{contentState.error}</span>
         </div>
-      )
+      );
     }
 
     if (!contentState.content) {
@@ -147,7 +161,7 @@ export function IPFSContent({
         <div className="flex items-center justify-center p-8 text-gray-500">
           <span>No content loaded</span>
         </div>
-      )
+      );
     }
 
     if (contentState.isImage) {
@@ -156,31 +170,31 @@ export function IPFSContent({
           <div className="relative max-w-full">
             <Image
               src={getIPFSUrl(hash)}
-              alt={name || 'IPFS content'}
+              alt={name || "IPFS content"}
               width={800}
               height={600}
               className="max-w-full h-auto rounded-lg"
-              style={{ objectFit: 'contain' }}
+              style={{ objectFit: "contain" }}
               onError={(e) => {
-                const target = e.target as HTMLImageElement
-                target.style.display = 'none'
+                const target = e.target as HTMLImageElement;
+                target.style.display = "none";
               }}
             />
           </div>
         </div>
-      )
+      );
     }
 
     if (contentState.isJSON) {
       try {
-        const jsonContent = JSON.parse(contentState.content)
+        const jsonContent = JSON.parse(contentState.content);
         return (
           <div className="p-4">
             <pre className="bg-gray-100 p-4 rounded-lg overflow-auto text-sm">
               {JSON.stringify(jsonContent, null, 2)}
             </pre>
           </div>
-        )
+        );
       } catch {
         // Fall back to text display
       }
@@ -193,15 +207,15 @@ export function IPFSContent({
             {contentState.content}
           </pre>
         </div>
-      )
+      );
     }
 
     return (
       <div className="flex items-center justify-center p-8 text-gray-500">
         <span>Preview not available for this file type</span>
       </div>
-    )
-  }
+    );
+  };
 
   return (
     <div className={`border rounded-lg bg-white ${className}`}>
@@ -213,12 +227,14 @@ export function IPFSContent({
               {name || `IPFS Content`}
             </h3>
             <div className="flex items-center space-x-4 mt-1 text-xs text-gray-500">
-              <span className="font-mono">{hash.slice(0, 12)}...{hash.slice(-8)}</span>
+              <span className="font-mono">
+                {hash.slice(0, 12)}...{hash.slice(-8)}
+              </span>
               {size && <span>{formatFileSize(size)}</span>}
               {type && <span>{type}</span>}
             </div>
           </div>
-          
+
           <div className="flex items-center space-x-2">
             <Button
               variant="ghost"
@@ -228,7 +244,7 @@ export function IPFSContent({
             >
               <Copy className="w-4 h-4" />
             </Button>
-            
+
             {showPreview && (
               <Button
                 variant="ghost"
@@ -239,7 +255,7 @@ export function IPFSContent({
                 <Eye className="w-4 h-4" />
               </Button>
             )}
-            
+
             {showDownload && (
               <Button
                 variant="ghost"
@@ -250,7 +266,7 @@ export function IPFSContent({
                 <Download className="w-4 h-4" />
               </Button>
             )}
-            
+
             {showExternalLink && (
               <Button
                 variant="ghost"
@@ -266,11 +282,7 @@ export function IPFSContent({
       </div>
 
       {/* Preview */}
-      {previewOpen && (
-        <div className="border-t">
-          {renderPreview()}
-        </div>
-      )}
+      {previewOpen && <div className="border-t">{renderPreview()}</div>}
 
       {/* Quick Actions */}
       <div className="p-3 border-t bg-gray-50 flex items-center justify-between text-xs">
@@ -290,11 +302,9 @@ export function IPFSContent({
             View on IPFS
           </a>
         </div>
-        
-        <div className="text-gray-500">
-          IPFS Content
-        </div>
+
+        <div className="text-gray-500">IPFS Content</div>
       </div>
     </div>
-  )
+  );
 }

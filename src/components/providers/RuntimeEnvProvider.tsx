@@ -1,14 +1,18 @@
-'use client'
+"use client";
 
-import React, { createContext, useContext, useEffect, useState } from 'react'
-import { preloadRuntimeEnv, isRuntimeEnvLoaded, getCachedRuntimeEnv } from '@/lib/config/runtime-env'
+import {
+  getCachedRuntimeEnv,
+  isRuntimeEnvLoaded,
+  preloadRuntimeEnv,
+} from "@/lib/config/runtime-env";
+import React, { createContext, useContext, useEffect, useState } from "react";
 
 interface RuntimeEnvContextType {
-  isLoaded: boolean
-  isLoading: boolean
-  error: string | null
-  walletConnectProjectId: string | null
-  contractAddress: string | null
+  isLoaded: boolean;
+  isLoading: boolean;
+  error: string | null;
+  walletConnectProjectId: string | null;
+  contractAddress: string | null;
 }
 
 const RuntimeEnvContext = createContext<RuntimeEnvContextType>({
@@ -17,79 +21,95 @@ const RuntimeEnvContext = createContext<RuntimeEnvContextType>({
   error: null,
   walletConnectProjectId: null,
   contractAddress: null,
-})
+});
 
 export function useRuntimeEnv() {
-  return useContext(RuntimeEnvContext)
+  return useContext(RuntimeEnvContext);
 }
 
 interface RuntimeEnvProviderProps {
-  children: React.ReactNode
+  children: React.ReactNode;
 }
 
 export function RuntimeEnvProvider({ children }: RuntimeEnvProviderProps) {
-  const [isLoaded, setIsLoaded] = useState(false)
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [walletConnectProjectId, setWalletConnectProjectId] = useState<string | null>(null)
-  const [contractAddress, setContractAddress] = useState<string | null>(null)
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [walletConnectProjectId, setWalletConnectProjectId] = useState<
+    string | null
+  >(null);
+  const [contractAddress, setContractAddress] = useState<string | null>(null);
 
   useEffect(() => {
     // Check if already loaded
     if (isRuntimeEnvLoaded()) {
-      const env = getCachedRuntimeEnv()
+      const env = getCachedRuntimeEnv();
       if (env) {
-        setWalletConnectProjectId(env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID)
-        setContractAddress(env.NEXT_PUBLIC_SEPOLIA_GNUS_DAO_ADDRESS)
-        setIsLoaded(true)
-        setIsLoading(false)
-        return
+        setWalletConnectProjectId(
+          env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || null,
+        );
+        setContractAddress(env.NEXT_PUBLIC_SEPOLIA_GNUS_DAO_ADDRESS || null);
+        setIsLoaded(true);
+        setIsLoading(false);
+        return;
       }
     }
 
     // Load runtime environment
     const loadEnv = async () => {
       try {
-        setIsLoading(true)
-        setError(null)
-        
-        const env = await preloadRuntimeEnv()
-        
-        setWalletConnectProjectId(env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID)
-        setContractAddress(env.NEXT_PUBLIC_SEPOLIA_GNUS_DAO_ADDRESS)
-        setIsLoaded(true)
+        setIsLoading(true);
+        setError(null);
+
+        const env = await preloadRuntimeEnv();
+
+        setWalletConnectProjectId(
+          env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || null,
+        );
+        setContractAddress(env.NEXT_PUBLIC_SEPOLIA_GNUS_DAO_ADDRESS || null);
+        setIsLoaded(true);
 
         // Set global indicators for debugging
-        if (typeof window !== 'undefined') {
-          window.__RUNTIME_ENV_LOADED__ = true
-          window.__WALLETCONNECT_PROJECT_ID__ = env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID
-          window.__RUNTIME_ENV__ = env
+        if (typeof window !== "undefined") {
+          window.__RUNTIME_ENV_LOADED__ = true;
+          window.__WALLETCONNECT_PROJECT_ID__ =
+            env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID;
+          window.__RUNTIME_ENV__ = env;
         }
 
-        console.log('[RuntimeEnvProvider] Runtime environment loaded successfully')
+        console.log(
+          "[RuntimeEnvProvider] Runtime environment loaded successfully",
+        );
       } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'Failed to load runtime environment'
-        setError(errorMessage)
-        console.error('[RuntimeEnvProvider] Failed to load runtime environment:', err)
-        
+        const errorMessage =
+          err instanceof Error
+            ? err.message
+            : "Failed to load runtime environment";
+        setError(errorMessage);
+        console.error(
+          "[RuntimeEnvProvider] Failed to load runtime environment:",
+          err,
+        );
+
         // Set fallback values
-        setWalletConnectProjectId('805f6520f2f2934352c65fe6bd70d15d')
-        setContractAddress('0x57AE78C65F7Dd6d158DE9F4cA9CCeaA98C988199')
-        setIsLoaded(true)
+        setWalletConnectProjectId("805f6520f2f2934352c65fe6bd70d15d");
+        setContractAddress("0x57AE78C65F7Dd6d158DE9F4cA9CCeaA98C988199");
+        setIsLoaded(true);
 
         // Set global indicators for debugging (fallback)
-        if (typeof window !== 'undefined') {
-          window.__RUNTIME_ENV_LOADED__ = true
-          window.__WALLETCONNECT_PROJECT_ID__ = '805f6520f2f2934352c65fe6bd70d15d'
-          window.__RUNTIME_ENV_ERROR__ = errorMessage
+        if (typeof window !== "undefined") {
+          window.__RUNTIME_ENV_LOADED__ = true;
+          window.__WALLETCONNECT_PROJECT_ID__ =
+            "805f6520f2f2934352c65fe6bd70d15d";
+          window.__RUNTIME_ENV_ERROR__ = errorMessage;
         }
       } finally {
-        setIsLoading(false)
+        setIsLoading(false);
       }
-    }
+    };
 
-    loadEnv()
-  }, [])
+    loadEnv();
+  }, []);
 
   const contextValue: RuntimeEnvContextType = {
     isLoaded,
@@ -97,7 +117,7 @@ export function RuntimeEnvProvider({ children }: RuntimeEnvProviderProps) {
     error,
     walletConnectProjectId,
     contractAddress,
-  }
+  };
 
   return (
     <div data-runtime-env-provider="true">
@@ -105,24 +125,26 @@ export function RuntimeEnvProvider({ children }: RuntimeEnvProviderProps) {
         {children}
       </RuntimeEnvContext.Provider>
     </div>
-  )
+  );
 }
 
 /**
  * Loading component for runtime environment
  */
 export function RuntimeEnvLoader({ children }: { children: React.ReactNode }) {
-  const { isLoading, error } = useRuntimeEnv()
+  const { isLoading, error } = useRuntimeEnv();
 
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="flex flex-col items-center gap-4">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-          <p className="text-sm text-muted-foreground">Loading configuration...</p>
+          <p className="text-sm text-muted-foreground">
+            Loading configuration...
+          </p>
         </div>
       </div>
-    )
+    );
   }
 
   if (error) {
@@ -132,16 +154,16 @@ export function RuntimeEnvLoader({ children }: { children: React.ReactNode }) {
           <div className="text-red-500 text-lg">⚠️</div>
           <h3 className="text-lg font-semibold">Configuration Error</h3>
           <p className="text-sm text-muted-foreground">{error}</p>
-          <button 
-            onClick={() => window.location.reload()} 
+          <button
+            onClick={() => window.location.reload()}
             className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
           >
             Retry
           </button>
         </div>
       </div>
-    )
+    );
   }
 
-  return <>{children}</>
+  return <>{children}</>;
 }

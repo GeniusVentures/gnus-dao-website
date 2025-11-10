@@ -35,7 +35,10 @@ export function VotingTrendsChart({ data }: VotingTrendsChartProps) {
   return (
     <ResponsiveContainer width="100%" height={300}>
       <BarChart data={data} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-        <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200 dark:stroke-gray-700" />
+        <CartesianGrid
+          strokeDasharray="3 3"
+          className="stroke-gray-200 dark:stroke-gray-700"
+        />
         <XAxis
           dataKey="date"
           className="text-xs"
@@ -56,4 +59,3 @@ export function VotingTrendsChart({ data }: VotingTrendsChartProps) {
     </ResponsiveContainer>
   );
 }
-

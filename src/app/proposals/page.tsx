@@ -1,26 +1,26 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import { AuthGuard } from "@/components/auth/AuthButton";
+import { DelegationBanner } from "@/components/governance/DelegationBanner";
+import { CreateProposalModal } from "@/components/proposals/CreateProposalModal";
+import { Button } from "@/components/ui/Button";
+import type { Proposal } from "@/lib/contracts/gnusDao";
+import { ProposalState, VoteSupport } from "@/lib/contracts/gnusDao";
+import { gnusDaoService } from "@/lib/contracts/gnusDaoService";
+import { useWeb3Store } from "@/lib/web3/reduxProvider";
 import {
+  Calendar,
+  CheckCircle,
+  Clock,
+  Filter,
   Plus,
   Search,
-  Filter,
-  Calendar,
-  Users,
   TrendingUp,
-  Clock,
-  CheckCircle,
+  Users,
   XCircle,
 } from "lucide-react";
-import { Button } from "@/components/ui/Button";
-import { AuthGuard } from "@/components/auth/AuthButton";
-import { useWeb3Store } from "@/lib/web3/reduxProvider";
-import { gnusDaoService } from "@/lib/contracts/gnusDaoService";
-import { ProposalState, VoteSupport } from "@/lib/contracts/gnusDao";
-import type { Proposal } from "@/lib/contracts/gnusDao";
-import { CreateProposalModal } from "@/components/proposals/CreateProposalModal";
-import { DelegationBanner } from "@/components/governance/DelegationBanner";
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
 
 interface ProposalWithMetadata extends Proposal {
@@ -36,7 +36,6 @@ interface ProposalWithMetadata extends Proposal {
 }
 
 export default function ProposalsPage() {
-  const { provider, signer } = useWeb3Store();
   const router = useRouter();
   const [proposals, setProposals] = useState<ProposalWithMetadata[]>([]);
   const [loading, setLoading] = useState(true);
@@ -85,7 +84,8 @@ export default function ProposalsPage() {
               againstVotes: 30000n,
               abstainVotes: 0n,
               canceled: false,
-              description: "Proposal to allocate additional funds from treasury for development initiatives",
+              description:
+                "Proposal to allocate additional funds from treasury for development initiatives",
               quorumReached: true,
               timeRemaining: "6 days remaining",
               state: ProposalState.Active,
@@ -111,7 +111,8 @@ export default function ProposalsPage() {
               againstVotes: 20000n,
               abstainVotes: 0n,
               canceled: false,
-              description: "Proposal to update voting period and quorum requirements",
+              description:
+                "Proposal to update voting period and quorum requirements",
               quorumReached: false,
               timeRemaining: "5 days remaining",
               state: ProposalState.Active,
@@ -137,7 +138,8 @@ export default function ProposalsPage() {
               againstVotes: 20000n,
               abstainVotes: 0n,
               canceled: false,
-              description: "Proposal to establish a community grant program for ecosystem development",
+              description:
+                "Proposal to establish a community grant program for ecosystem development",
               quorumReached: true,
               timeRemaining: "Succeeded",
               state: ProposalState.Succeeded,
@@ -155,8 +157,10 @@ export default function ProposalsPage() {
 
         // Load last 20 proposals or all if less than 20
         const startId = proposalCount > 20n ? proposalCount - 20n : 1n;
-        for (let i = startId; i <= proposalCount; i++) {
-          proposalPromises.push(loadProposalWithMetadata(i, votingConfig));
+        if (votingConfig) {
+          for (let i = startId; i <= proposalCount; i++) {
+            proposalPromises.push(loadProposalWithMetadata(i, votingConfig));
+          }
         }
 
         const loadedProposals = await Promise.all(proposalPromises);
@@ -189,9 +193,18 @@ export default function ProposalsPage() {
     );
   };
 
+  interface VotingConfig {
+    quorumThreshold?: string | number | bigint;
+    votingDelay?: string | number | bigint;
+    votingPeriod?: string | number | bigint;
+    proposalThreshold?: string | number | bigint;
+    maxVotesPerWallet?: string | number | bigint;
+    proposalCooldown?: string | number | bigint;
+  }
+
   const loadProposalWithMetadata = async (
     proposalId: bigint,
-    votingConfig: any,
+    votingConfig: VotingConfig,
   ): Promise<ProposalWithMetadata | null> => {
     try {
       const [proposal, state] = await Promise.all([
@@ -264,7 +277,10 @@ export default function ProposalsPage() {
     }
   };
 
-  const calculateTimeRemaining = (endTime: bigint | number, state?: ProposalState): string => {
+  const calculateTimeRemaining = (
+    endTime: bigint | number,
+    state?: ProposalState,
+  ): string => {
     if (!endTime || endTime === 0n) return "Active (no deadline)";
 
     const endTimestamp =
@@ -313,8 +329,6 @@ export default function ProposalsPage() {
       return `${daysRemaining} days remaining`;
     }
   };
-
-
 
   const filteredProposals = proposals.filter((proposal) => {
     const matchesSearch =
@@ -498,7 +512,7 @@ export default function ProposalsPage() {
 
 interface ProposalCardProps {
   proposal: ProposalWithMetadata;
-  router: any;
+  router: ReturnType<typeof useRouter>;
 }
 
 function ProposalCard({ proposal, router }: ProposalCardProps) {

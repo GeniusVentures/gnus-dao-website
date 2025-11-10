@@ -1,18 +1,18 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { useAppSelector } from "@/lib/store";
 import {
   Bell,
-  Globe,
-  Shield,
-  Vote,
-  DollarSign,
-  Moon,
-  Sun,
   Check,
+  DollarSign,
+  Globe,
+  Moon,
+  Shield,
+  Sun,
+  Vote,
 } from "lucide-react";
 import { useTheme } from "next-themes";
+import { useEffect, useState } from "react";
 
 interface Settings {
   voting: {
@@ -66,7 +66,7 @@ const defaultSettings: Settings = {
 
 export default function SettingsPage() {
   const { address } = useAppSelector((state) => state.wallet);
-  const { theme, setTheme } = useTheme();
+  const { setTheme } = useTheme();
   const [settings, setSettings] = useState<Settings>(defaultSettings);
   const [saved, setSaved] = useState(false);
 
@@ -83,7 +83,7 @@ export default function SettingsPage() {
   const updateSetting = (
     category: keyof Settings,
     key: string,
-    value: any
+    value: string | number | boolean,
   ) => {
     setSettings((prev) => ({
       ...prev,
@@ -218,7 +218,11 @@ export default function SettingsPage() {
                   type="checkbox"
                   checked={settings.notifications.proposalCreated}
                   onChange={(e) =>
-                    updateSetting("notifications", "proposalCreated", e.target.checked)
+                    updateSetting(
+                      "notifications",
+                      "proposalCreated",
+                      e.target.checked,
+                    )
                   }
                   className="sr-only peer"
                 />
@@ -238,7 +242,11 @@ export default function SettingsPage() {
                   type="checkbox"
                   checked={settings.notifications.votingStarted}
                   onChange={(e) =>
-                    updateSetting("notifications", "votingStarted", e.target.checked)
+                    updateSetting(
+                      "notifications",
+                      "votingStarted",
+                      e.target.checked,
+                    )
                   }
                   className="sr-only peer"
                 />
@@ -258,7 +266,11 @@ export default function SettingsPage() {
                   type="checkbox"
                   checked={settings.notifications.votingEnded}
                   onChange={(e) =>
-                    updateSetting("notifications", "votingEnded", e.target.checked)
+                    updateSetting(
+                      "notifications",
+                      "votingEnded",
+                      e.target.checked,
+                    )
                   }
                   className="sr-only peer"
                 />
@@ -278,7 +290,11 @@ export default function SettingsPage() {
                   type="checkbox"
                   checked={settings.notifications.proposalExecuted}
                   onChange={(e) =>
-                    updateSetting("notifications", "proposalExecuted", e.target.checked)
+                    updateSetting(
+                      "notifications",
+                      "proposalExecuted",
+                      e.target.checked,
+                    )
                   }
                   className="sr-only peer"
                 />
@@ -417,7 +433,11 @@ export default function SettingsPage() {
                   type="checkbox"
                   checked={settings.privacy.showVotingHistory}
                   onChange={(e) =>
-                    updateSetting("privacy", "showVotingHistory", e.target.checked)
+                    updateSetting(
+                      "privacy",
+                      "showVotingHistory",
+                      e.target.checked,
+                    )
                   }
                   className="sr-only peer"
                 />
@@ -437,7 +457,11 @@ export default function SettingsPage() {
                   type="checkbox"
                   checked={settings.privacy.analyticsTracking}
                   onChange={(e) =>
-                    updateSetting("privacy", "analyticsTracking", e.target.checked)
+                    updateSetting(
+                      "privacy",
+                      "analyticsTracking",
+                      e.target.checked,
+                    )
                   }
                   className="sr-only peer"
                 />
@@ -467,4 +491,3 @@ export default function SettingsPage() {
     </div>
   );
 }
-

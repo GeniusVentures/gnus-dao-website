@@ -94,7 +94,7 @@ describe('IPFS Service Integration', () => {
 
 			// Verify the hash format
 			expect(result.hash).toMatch(/^(Qm[1-9A-HJ-NP-Za-km-z]{44}|[a-zA-Z0-9]+)$/);
-		}, 30000); // 30 second timeout
+		});
 
 		it('should upload multiple files successfully', async () => {
 			if (skipIfNoCredentials()) return;
@@ -118,7 +118,7 @@ describe('IPFS Service Integration', () => {
 			expect(results[0]?.hash).toBeDefined();
 			expect(results[1]?.hash).toBeDefined();
 			expect(results[0]?.hash).not.toBe(results[1]?.hash);
-		}, 60000); // 60 second timeout
+		});
 
 		it('should handle upload progress callbacks', async () => {
 			if (skipIfNoCredentials()) return;
@@ -137,7 +137,7 @@ describe('IPFS Service Integration', () => {
 
 			expect(progressUpdates.length).toBeGreaterThan(0);
 			expect(progressUpdates[progressUpdates.length - 1]).toBe(100);
-		}, 30000);
+		});
 	});
 
 	describe('Proposal Metadata', () => {
@@ -177,7 +177,7 @@ describe('IPFS Service Integration', () => {
 			expect(retrievedMetadata.author).toBe(metadata.author);
 			expect(retrievedMetadata.version).toBe(metadata.version);
 			expect(retrievedMetadata.tags).toEqual(metadata.tags);
-		}, 45000); // 45 second timeout
+		});
 	});
 
 	describe('Content Retrieval', () => {
@@ -201,7 +201,7 @@ describe('IPFS Service Integration', () => {
 
 			const content = await ipfsService.retrieveContent(testHash);
 			expect(content).toBe('Content for retrieval test');
-		}, 30000);
+		});
 
 		it('should handle retrieval with timeout', async () => {
 			if (skipIfNoCredentials() || !testHash) return;
@@ -212,7 +212,7 @@ describe('IPFS Service Integration', () => {
 			});
 
 			expect(content).toBe('Content for retrieval test');
-		}, 30000);
+		});
 
 		it('should throw error for invalid hash', async () => {
 			if (skipIfNoCredentials()) return;
@@ -247,7 +247,7 @@ describe('IPFS Service Integration', () => {
 			expect(pinResult.hash).toBe(testHash);
 			expect(pinResult.pinned).toBe(true);
 			expect(pinResult.pinDate).toBeDefined();
-		}, 30000);
+		});
 
 		it('should throw error for invalid hash when pinning', async () => {
 			if (skipIfNoCredentials()) return;

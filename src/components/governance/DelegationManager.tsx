@@ -54,7 +54,9 @@ export function DelegationManager() {
         delegatedTo,
         delegatedVotes,
         votingPower,
-        isDelegating: delegatedTo !== ethers.ZeroAddress && delegatedTo.toLowerCase() !== address.toLowerCase(),
+        isDelegating:
+          delegatedTo !== ethers.ZeroAddress &&
+          delegatedTo.toLowerCase() !== address.toLowerCase(),
       });
     } catch (error) {
       console.error("Error loading delegation info:", error);
@@ -83,14 +85,14 @@ export function DelegationManager() {
     setIsDelegating(true);
     try {
       const tx = await gnusDaoService.delegate(delegateAddress);
-      
+
       toast.info("Transaction Submitted", "Delegating voting power...");
-      
+
       await tx.wait();
-      
+
       toast.success(
         "Delegation Successful!",
-        `You have delegated your voting power to ${delegateAddress.slice(0, 6)}...${delegateAddress.slice(-4)}`
+        `You have delegated your voting power to ${delegateAddress.slice(0, 6)}...${delegateAddress.slice(-4)}`,
       );
 
       // Reload delegation info
@@ -100,7 +102,7 @@ export function DelegationManager() {
       console.error("Error delegating:", error);
       toast.error(
         "Delegation Failed",
-        error.message || "Failed to delegate voting power"
+        error.message || "Failed to delegate voting power",
       );
     } finally {
       setIsDelegating(false);
@@ -111,14 +113,14 @@ export function DelegationManager() {
     setIsRevoking(true);
     try {
       const tx = await gnusDaoService.revokeDelegation();
-      
+
       toast.info("Transaction Submitted", "Revoking delegation...");
-      
+
       await tx.wait();
-      
+
       toast.success(
         "Delegation Revoked!",
-        "Your voting power has been returned to you"
+        "Your voting power has been returned to you",
       );
 
       // Reload delegation info
@@ -127,7 +129,7 @@ export function DelegationManager() {
       console.error("Error revoking delegation:", error);
       toast.error(
         "Revocation Failed",
-        error.message || "Failed to revoke delegation"
+        error.message || "Failed to revoke delegation",
       );
     } finally {
       setIsRevoking(false);
@@ -157,14 +159,18 @@ export function DelegationManager() {
         {isLoading ? (
           <div className="text-center py-8">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="mt-4 text-sm text-gray-500">Loading delegation info...</p>
+            <p className="mt-4 text-sm text-gray-500">
+              Loading delegation info...
+            </p>
           </div>
         ) : (
           <div className="space-y-4">
             {/* Voting Power */}
             <div className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-lg">
               <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Your Voting Power</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Your Voting Power
+                </p>
                 <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
                   {delegationInfo.votingPower.toString()}
                 </p>
@@ -176,7 +182,9 @@ export function DelegationManager() {
             {delegationInfo.delegatedVotes > 0n && (
               <div className="flex items-center justify-between p-4 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg">
                 <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Votes Delegated to You</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Votes Delegated to You
+                  </p>
                   <p className="text-2xl font-bold text-green-600 dark:text-green-400">
                     {delegationInfo.delegatedVotes.toString()}
                   </p>
@@ -234,8 +242,9 @@ export function DelegationManager() {
           <div className="flex items-start gap-2 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
             <Info className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
             <p className="text-sm text-gray-700 dark:text-gray-300">
-              Delegate your voting power to another address. They will be able to vote on your behalf,
-              but you can revoke this delegation at any time.
+              Delegate your voting power to another address. They will be able
+              to vote on your behalf, but you can revoke this delegation at any
+              time.
             </p>
           </div>
 
@@ -272,4 +281,3 @@ export function DelegationManager() {
     </div>
   );
 }
-

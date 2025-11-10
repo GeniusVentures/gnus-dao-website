@@ -1,16 +1,9 @@
-import { ethers } from 'ethers';
-import { getGNUSDAOContract, ProposalState, VoteSupport } from './gnusDao';
 import { logger } from '@/lib/utils/logger';
-import type { Proposal, VoteReceipt, Facet } from './gnusDao';
-import { GNUSDAOGovernanceFacet__factory } from '../../../typechain-types/factories/contracts/gnus-dao';
-import type { GNUSDAOGovernanceFacet } from '../../../typechain-types/contracts/gnus-dao';
-import type { GNUSDAOVotingMechanismsFacet } from '../../../typechain-types/contracts/gnus-dao';
-import type { GNUSDAOGovernanceTokenFacet } from '../../../typechain-types/contracts/gnus-dao';
-
-// Combined interface for the Diamond contract that includes all facets
-type GNUSDAODiamond = GNUSDAOGovernanceFacet &
-	GNUSDAOVotingMechanismsFacet &
-	GNUSDAOGovernanceTokenFacet;
+import { ethers } from 'ethers';
+import type { GNUSDAODiamond } from '../../../diamond-typechain-types';
+import { GNUSDAODiamond__factory } from '../../../diamond-typechain-types';
+import type { Facet, Proposal, VoteReceipt } from './gnusDao';
+import { getGNUSDAOContract, ProposalState, VoteSupport } from './gnusDao';
 
 export class GNUSDAOService {
 	private contract: GNUSDAODiamond | null = null;
@@ -47,17 +40,16 @@ export class GNUSDAOService {
 				return false;
 			}
 
-			// Create contract instance using TypeChain factory
-			// We use GovernanceFacet factory to connect to the Diamond contract
+			// Create contract instance using Diamond TypeChain factory
 			// The Diamond pattern allows us to call all facet functions through the same address
-			this.contract = GNUSDAOGovernanceFacet__factory.connect(
+			this.contract = GNUSDAODiamond__factory.connect(
 				contractConfig.address,
 				signer || provider,
-			) as unknown as GNUSDAODiamond;
+			);
 
 			return true;
 		} catch (error) {
-			logger.error('Failed to initialize GNUS DAO service:', error as any);
+			logger.error('Failed to initialize GNUS DAO service:', { error: error as Error });
 			return false;
 		}
 	}
@@ -94,15 +86,21 @@ export class GNUSDAOService {
 		try {
 			// The facets() function is part of DiamondLoupeFacet
 			// We need to call it through the contract interface
-			const contractWithLoupe = this.contract as any;
+			interface FacetInfo {
+				facetAddress: string;
+				functionSelectors: string[];
+			}
+			const contractWithLoupe = this.contract as { facets?: () => Promise<FacetInfo[]> };
 			const facets = await contractWithLoupe.facets?.();
 			if (!facets) return [];
-			return facets.map((facet: any) => ({
+			return facets.map((facet: FacetInfo) => ({
 				facetAddress: facet.facetAddress,
 				functionSelectors: facet.functionSelectors,
 			}));
 		} catch (error) {
-			logger.error('Error getting facets:', error as any);
+			logger.error('Error getting facets', {
+				error: error instanceof Error ? error.message : String(error),
+			});
 			// Return empty array if facets() is not available
 			return [];
 		}
@@ -115,7 +113,10 @@ export class GNUSDAOService {
 		if (!this.contract) throw new Error('Service not initialized');
 
 		try {
-			return (await this.contract.supportsInterface?.(interfaceId)) || false;
+			// Use getFunction to call supportsInterface dynamically
+			const contract = this.contract as unknown as ethers.Contract;
+			const result = await contract.getFunction('supportsInterface')(interfaceId);
+			return result || false;
 		} catch (error) {
 			console.error('Error checking interface support:', error);
 			return false;
@@ -135,11 +136,20 @@ export class GNUSDAOService {
 		if (!this.contract) throw new Error('Service not initialized');
 
 		try {
+			// Use getFunction to call methods dynamically since they may not be in the TypeChain types
+			const contract = this.contract as unknown as ethers.Contract;
+
 			const [name, symbol, decimalsResult, totalSupply] = await Promise.all([
-				this.contract.name() || 'GNUS Token',
-				this.contract.symbol() || 'GNUS',
-				this.contract.decimals() || 18n,
-				this.contract.totalSupply() || 0n,
+				contract
+					.getFunction('name')()
+					.catch(() => 'GNUS Token'),
+				contract
+					.getFunction('symbol')()
+					.catch(() => 'GNUS'),
+				contract
+					.getFunction('decimals')()
+					.catch(() => 18n),
+				this.contract.totalSupply?.() || Promise.resolve(0n),
 			]);
 
 			const decimals = Number(decimalsResult);
@@ -171,7 +181,7 @@ export class GNUSDAOService {
 		if (!this.contract) throw new Error('Service not initialized');
 
 		try {
-			return (await this.contract.getVotingPower(address)) || 0n;
+			return await this.contract.getVotingPower(address);
 		} catch (error) {
 			console.error('Error getting voting power:', error);
 			return 0n;
@@ -221,7 +231,7 @@ export class GNUSDAOService {
 	 * NOTE: This contract does NOT support self-delegation
 	 * This method is kept for API compatibility but will throw an error
 	 */
-	async delegateToSelf(address: string): Promise<ethers.ContractTransactionResponse> {
+	async delegateToSelf(): Promise<ethers.ContractTransactionResponse> {
 		throw new Error(
 			'This contract does not support self-delegation. Voting power comes directly from your token balance. ' +
 				'You already have voting power if you hold GNUS tokens.',
@@ -313,7 +323,7 @@ export class GNUSDAOService {
 			if (!basicData) return null;
 
 			// Handle tuple response correctly
-			const [id, proposer, title, ipfsHash] = basicData;
+			const [, proposer, title, ipfsHash] = basicData;
 
 			// Try to get status data, but don't fail if it's not available
 			let statusData = null;
@@ -484,14 +494,14 @@ export class GNUSDAOService {
 		const title = lines[0] || 'Untitled Proposal';
 
 		// Create IPFS metadata with the full proposal data
-		const metadata = {
-			title,
-			description,
-			targets,
-			values: values.map((v) => v.toString()),
-			calldatas,
-			created: Date.now(),
-		};
+		// const metadata = {
+		// 	title,
+		// 	description,
+		// 	targets,
+		// 	values: values.map((v) => v.toString()),
+		// 	calldatas,
+		// 	created: Date.now(),
+		// };
 
 		// For now, use a placeholder IPFS hash
 		// In production, this should upload to IPFS first
@@ -595,7 +605,7 @@ export class GNUSDAOService {
 
 		try {
 			// Use hasVoted function and getVote function from the deployed contract
-			const hasVoted = await this.contract.hasVoted(proposalId, voter);
+			const hasVoted = await this.contract?.hasVoted?.(proposalId, voter);
 
 			if (!hasVoted) {
 				return {
@@ -606,7 +616,7 @@ export class GNUSDAOService {
 			}
 
 			// Try to get vote details
-			const voteData = await this.contract.getVote(proposalId, voter);
+			const voteData = await this.contract.getVote(proposalId, voter).catch(() => 0n);
 			const votes = voteData || 0n;
 
 			return {
@@ -631,7 +641,7 @@ export class GNUSDAOService {
 		try {
 			return await this.contract.executeProposal(proposalId);
 		} catch (error) {
-			logger.error('Error executing proposal:', error as any);
+			logger.error('Error executing proposal', { error: error as Error });
 			throw error;
 		}
 	}
@@ -903,7 +913,7 @@ export class GNUSDAOService {
 		try {
 			return await this.contract.transfer(to, amount);
 		} catch (error) {
-			logger.error('Error transferring tokens:', error as any);
+			logger.error('Error transferring tokens', { error: error as Error });
 			throw error;
 		}
 	}
@@ -1101,7 +1111,16 @@ export class GNUSDAOService {
 	/**
 	 * Listen for proposal created events
 	 */
-	async onProposalCreated(callback: (event: any) => void): Promise<void> {
+	async onProposalCreated(
+		callback: (
+			proposalId: bigint,
+			proposer: string,
+			title: string,
+			ipfsHash: string,
+			startTime: bigint,
+			endTime: bigint,
+		) => void,
+	): Promise<void> {
 		if (!this.contract) throw new Error('Service not initialized');
 
 		const filter = this.contract.filters.ProposalCreated();
@@ -1111,7 +1130,14 @@ export class GNUSDAOService {
 	/**
 	 * Listen for vote cast events
 	 */
-	async onVoteCast(callback: (event: any) => void): Promise<void> {
+	async onVoteCast(
+		callback: (
+			proposalId: bigint,
+			voter: string,
+			votes: bigint,
+			tokensCost: bigint,
+		) => void,
+	): Promise<void> {
 		if (!this.contract) throw new Error('Service not initialized');
 
 		const filter = this.contract.filters.VoteCast();

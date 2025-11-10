@@ -19,7 +19,7 @@ export interface IPFSUploadResult {
 export interface IPFSUploadOptions {
 	pin?: boolean;
 	wrapWithDirectory?: boolean;
-	metadata?: Record<string, any>;
+	metadata?: Record<string, unknown>;
 	onProgress?: (progress: number) => void;
 }
 
@@ -74,7 +74,7 @@ export interface IPFSError extends Error {
 		| 'PIN_ERROR'
 		| 'VALIDATION_ERROR'
 		| 'NETWORK_ERROR';
-	details?: any;
+	details?: Record<string, unknown>;
 }
 
 export interface IPFSRetrievalOptions {

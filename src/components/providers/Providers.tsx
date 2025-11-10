@@ -1,10 +1,10 @@
-'use client'
+"use client";
 
-import { ReactNode, useEffect } from 'react'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { ThemeProvider } from './ThemeProvider'
-import { ReduxProvider } from './ReduxProvider'
-import { LazyWeb3Provider } from './LazyWeb3Provider'
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ReactNode } from "react";
+import { LazyWeb3Provider } from "./LazyWeb3Provider";
+import { ReduxProvider } from "./ReduxProvider";
+import { ThemeProvider } from "./ThemeProvider";
 
 // Create a client
 const queryClient = new QueryClient({
@@ -14,24 +14,24 @@ const queryClient = new QueryClient({
       gcTime: 1000 * 60 * 10, // 10 minutes
       retry: (failureCount, error) => {
         // Don't retry on 4xx errors
-        if (error instanceof Error && error.message.includes('4')) {
-          return false
+        if (error instanceof Error && error.message.includes("4")) {
+          return false;
         }
-        return failureCount < 3
+        return failureCount < 3;
       },
     },
   },
-})
+});
 
 interface ProvidersProps {
-  children: ReactNode
+  children: ReactNode;
 }
 
 function WalletConnectInitializer() {
   // WalletConnect will be initialized on-demand when user clicks Connect Wallet
   // No need for automatic initialization to avoid conflicts and improve performance
 
-  return null
+  return null;
 }
 
 export function Providers({ children }: ProvidersProps) {
@@ -51,5 +51,5 @@ export function Providers({ children }: ProvidersProps) {
         </ThemeProvider>
       </QueryClientProvider>
     </ReduxProvider>
-  )
+  );
 }

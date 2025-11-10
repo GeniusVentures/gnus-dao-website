@@ -4,27 +4,25 @@
  */
 
 import PinataSDK from '@pinata/sdk';
-import { create as createIPFSClient } from 'ipfs-http-client';
 import type { IPFSHTTPClient } from 'ipfs-http-client';
+import { create as createIPFSClient } from 'ipfs-http-client';
+import { getIPFSConfig, getIPFSUrl, validateIPFSConfig } from './config';
 import {
-	IPFSUploadResult,
-	IPFSUploadOptions,
-	IPFSRetrievalOptions,
-	IPFSPinStatus,
 	IPFSError,
+	IPFSPinStatus,
+	IPFSRetrievalOptions,
+	IPFSUploadOptions,
+	IPFSUploadResult,
 	ProposalMetadata,
-	UploadProgress,
 } from './types';
-import { getIPFSConfig, validateIPFSConfig, getIPFSUrl } from './config';
 import {
-	validateFile,
-	fileToUint8Array,
 	createIPFSError,
+	fileToUint8Array,
 	isValidIPFSHash,
 	retryWithBackoff,
-	withTimeout,
 	sanitizeFilename,
-	generateUniqueFilename,
+	validateFile,
+	withTimeout,
 } from './utils';
 
 class IPFSService {
@@ -79,7 +77,7 @@ class IPFSService {
 				'Failed to initialize IPFS service',
 				'NETWORK_ERROR',
 				'INIT_FAILED',
-				error,
+				error as Record<string, unknown>,
 			);
 		}
 	}
@@ -126,7 +124,7 @@ class IPFSService {
 				`Upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
 				'UPLOAD_ERROR',
 				'UPLOAD_FAILED',
-				error,
+				error as Record<string, unknown>,
 			);
 		}
 	}
@@ -187,7 +185,7 @@ class IPFSService {
 				`Failed to upload proposal metadata: ${error instanceof Error ? error.message : 'Unknown error'}`,
 				'UPLOAD_ERROR',
 				'METADATA_UPLOAD_FAILED',
-				error,
+				error as Record<string, unknown>,
 			);
 		}
 	}
@@ -237,7 +235,7 @@ class IPFSService {
 				`Failed to retrieve content from IPFS: ${error instanceof Error ? error.message : 'Unknown error'}`,
 				'RETRIEVAL_ERROR',
 				'RETRIEVAL_FAILED',
-				error,
+				error as Record<string, unknown>,
 			);
 		}
 	}
@@ -261,7 +259,7 @@ class IPFSService {
 				`Failed to retrieve proposal metadata: ${error instanceof Error ? error.message : 'Unknown error'}`,
 				'RETRIEVAL_ERROR',
 				'METADATA_RETRIEVAL_FAILED',
-				error,
+				error as Record<string, unknown>,
 			);
 		}
 	}
@@ -286,10 +284,7 @@ class IPFSService {
 	/**
 	 * Upload with Pinata (placeholder - use client service for actual uploads)
 	 */
-	private async uploadWithPinata(
-		file: File,
-		options: IPFSUploadOptions,
-	): Promise<IPFSUploadResult> {
+	private async uploadWithPinata(): Promise<IPFSUploadResult> {
 		// For server-side, we'll throw an error directing to use client service
 		throw createIPFSError(
 			'Server-side Pinata upload not available. Use client-side IPFS service.',
@@ -340,7 +335,7 @@ class IPFSService {
 				`IPFS client upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
 				'UPLOAD_ERROR',
 				'CLIENT_FAILED',
-				error,
+				error as Record<string, unknown>,
 			);
 		}
 	}

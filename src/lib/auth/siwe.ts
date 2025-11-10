@@ -1,7 +1,7 @@
 'use client';
 
-import { SiweMessage } from 'siwe';
 import { ethers } from 'ethers';
+import { SiweMessage } from 'siwe';
 
 export interface SiweSession {
 	address: string;
@@ -18,6 +18,18 @@ export interface SiweAuthState {
 	session: SiweSession | null;
 	isAuthenticating: boolean;
 	error: string | null;
+}
+
+export interface VerifyResponse {
+	success: boolean;
+	session?: {
+		id: string;
+		address: string;
+		chainId: number;
+		issuedAt: string;
+		expiresAt: string;
+	};
+	token?: string;
 }
 
 export class SiweAuthService {
@@ -103,7 +115,7 @@ export class SiweAuthService {
 				nonce,
 			);
 
-			if (!verificationResult.success) {
+			if (!verificationResult.success || !verificationResult.session) {
 				throw new Error('Backend verification failed');
 			}
 
@@ -140,7 +152,7 @@ export class SiweAuthService {
 		nonce: string,
 		address?: string,
 		chainId?: number,
-	): Promise<{ success: boolean; session?: any; token?: string }> {
+	): Promise<VerifyResponse> {
 		try {
 			// Extract address and chainId from message if not provided
 			const siweMessage = new SiweMessage(message);
@@ -393,7 +405,7 @@ export class SiweAuthService {
 			} else {
 				return { isValid: false, error: 'Invalid signature' };
 			}
-		} catch (error) {
+		} catch {
 			return { isValid: false, error: 'Invalid challenge format' };
 		}
 	}

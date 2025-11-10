@@ -1,26 +1,25 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import {
-  DollarSign,
-  TrendingUp,
-  TrendingDown,
-  Wallet,
-  PieChart,
-  BarChart3,
-  ExternalLink,
-  RefreshCw,
-  Download,
-  Send,
-  Plus,
-} from "lucide-react";
-import { Button } from "@/components/ui/Button";
 import { AuthGuard } from "@/components/auth/AuthButton";
-import { useWeb3Store } from "@/lib/web3/reduxProvider";
-import { gnusDaoService } from "@/lib/contracts/gnusDaoService";
-import { formatAddress } from "@/lib/utils";
-import { toast } from "react-hot-toast";
 import { ProposeTreasuryActionModal } from "@/components/treasury/ProposeTreasuryActionModal";
+import { Button } from "@/components/ui/Button";
+import { gnusDaoService } from "@/lib/contracts/gnusDaoService";
+import { useWeb3Store } from "@/lib/web3/reduxProvider";
+import {
+  BarChart3,
+  DollarSign,
+  Download,
+  ExternalLink,
+  PieChart,
+  Plus,
+  RefreshCw,
+  Send,
+  TrendingDown,
+  TrendingUp,
+  Wallet,
+} from "lucide-react";
+import { useEffect, useState } from "react";
+import { toast } from "react-hot-toast";
 
 interface TreasuryAsset {
   address: string;
@@ -41,7 +40,7 @@ interface TreasuryStats {
 }
 
 export default function TreasuryPage() {
-  const { wallet, currentNetwork, gnusDaoInitialized } = useWeb3Store();
+  const { currentNetwork, gnusDaoInitialized } = useWeb3Store();
   const [treasuryStats, setTreasuryStats] = useState<TreasuryStats | null>(
     null,
   );
@@ -239,7 +238,10 @@ export default function TreasuryPage() {
                     <p className="text-sm font-medium text-muted-foreground">
                       Native Balance
                     </p>
-                    <p className="text-2xl font-bold" data-testid="treasury-balance">
+                    <p
+                      className="text-2xl font-bold"
+                      data-testid="treasury-balance"
+                    >
                       {treasuryStats
                         ? formatBalance(treasuryStats.nativeBalance, 18)
                         : "0"}

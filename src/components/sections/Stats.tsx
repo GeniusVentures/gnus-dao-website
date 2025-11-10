@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { formatCompactNumber } from "@/lib/utils";
 
 const stats = [
   {

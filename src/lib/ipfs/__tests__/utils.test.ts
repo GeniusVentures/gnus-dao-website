@@ -4,15 +4,14 @@
  */
 
 import {
-	validateFile,
-	formatFileSize,
-	isValidIPFSHash,
-	extractIPFSHash,
-	generateUniqueFilename,
-	sanitizeFilename,
 	createIPFSError,
+	extractIPFSHash,
+	formatFileSize,
+	generateUniqueFilename,
+	isValidIPFSHash,
+	sanitizeFilename,
+	validateFile,
 } from '../utils';
-import { getIPFSConfig } from '../config';
 
 // Mock the config
 jest.mock('../config', () => ({

@@ -1,15 +1,22 @@
 "use client";
 
-import React, { useState } from "react";
+import { Button } from "@/components/ui/Button";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/Button";
-import { X, Wallet, Smartphone, Monitor, Download, Sparkles, Shield } from "lucide-react";
 import { WalletConnector } from "@/lib/web3/types";
+import {
+  Download,
+  Shield,
+  Smartphone,
+  Sparkles,
+  Wallet,
+  X,
+} from "lucide-react";
+import { useState } from "react";
 
 interface WalletSelectionModalProps {
   isOpen: boolean;
@@ -40,7 +47,9 @@ function WalletIcon({ connector }: { connector: WalletConnector }) {
           alt={connector.name}
           className="w-12 h-12 object-contain"
           onError={() => {
-            console.warn(`Failed to load icon for ${connector.name}: ${connector.icon}`);
+            console.warn(
+              `Failed to load icon for ${connector.name}: ${connector.icon}`,
+            );
             setImageError(true);
           }}
         />
@@ -50,9 +59,7 @@ function WalletIcon({ connector }: { connector: WalletConnector }) {
 
   // Fallback to emoji if image fails or not available
   return (
-    <span className="text-3xl">
-      {fallbackEmojis[connector.id] || "👛"}
-    </span>
+    <span className="text-3xl">{fallbackEmojis[connector.id] || "👛"}</span>
   );
 }
 
@@ -68,16 +75,16 @@ export function WalletSelectionModal({
     // If wallet is not available, redirect to installation page
     if (!connector.isAvailable()) {
       const installUrls: Record<string, string> = {
-        metamask: 'https://metamask.io/download/',
-        coinbase: 'https://www.coinbase.com/wallet',
-        walletconnect: 'https://walletconnect.com/explorer',
-      }
+        metamask: "https://metamask.io/download/",
+        coinbase: "https://www.coinbase.com/wallet",
+        walletconnect: "https://walletconnect.com/explorer",
+      };
 
-      const url = installUrls[connector.id]
+      const url = installUrls[connector.id];
       if (url) {
-        window.open(url, '_blank')
+        window.open(url, "_blank");
       }
-      return
+      return;
     }
 
     try {
@@ -90,23 +97,23 @@ export function WalletSelectionModal({
   };
 
   const getWalletBadge = (connector: WalletConnector) => {
-    if (connector.id === 'walletconnect') {
+    if (connector.id === "walletconnect") {
       return (
         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300">
           <Smartphone className="w-3 h-3" />
           Mobile
         </span>
-      )
+      );
     }
-    if (connector.id === 'metamask' || connector.id === 'coinbase') {
+    if (connector.id === "metamask" || connector.id === "coinbase") {
       return (
         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300">
           <Sparkles className="w-3 h-3" />
           Popular
         </span>
-      )
+      );
     }
-    return null
+    return null;
   };
 
   const getWalletDescription = (connector: WalletConnector) => {
@@ -164,13 +171,15 @@ export function WalletSelectionModal({
                   key={connector.id}
                   className={`
                     w-full p-4 rounded-xl border-2 transition-all duration-300
-                    ${isAvailable
-                      ? 'border-gray-200 dark:border-gray-700 hover:border-blue-500 dark:hover:border-blue-500 hover:shadow-lg hover:shadow-blue-500/20'
-                      : 'border-gray-100 dark:border-gray-800 opacity-60'
+                    ${
+                      isAvailable
+                        ? "border-gray-200 dark:border-gray-700 hover:border-blue-500 dark:hover:border-blue-500 hover:shadow-lg hover:shadow-blue-500/20"
+                        : "border-gray-100 dark:border-gray-800 opacity-60"
                     }
-                    ${isCurrentlyConnecting
-                      ? 'bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/30 dark:to-purple-950/30 border-blue-500 dark:border-blue-500'
-                      : 'bg-white dark:bg-gray-900 hover:bg-gradient-to-br hover:from-blue-50 hover:to-purple-50 dark:hover:from-blue-950/20 dark:hover:to-purple-950/20'
+                    ${
+                      isCurrentlyConnecting
+                        ? "bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/30 dark:to-purple-950/30 border-blue-500 dark:border-blue-500"
+                        : "bg-white dark:bg-gray-900 hover:bg-gradient-to-br hover:from-blue-50 hover:to-purple-50 dark:hover:from-blue-950/20 dark:hover:to-purple-950/20"
                     }
                     disabled:cursor-not-allowed disabled:hover:shadow-none
                     group
@@ -180,14 +189,17 @@ export function WalletSelectionModal({
                 >
                   <div className="flex items-center gap-4 w-full">
                     {/* Wallet Icon */}
-                    <div className={`
+                    <div
+                      className={`
                       flex-shrink-0 w-14 h-14 rounded-2xl flex items-center justify-center
-                      ${isAvailable
-                        ? 'bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/30 dark:to-purple-900/30 group-hover:from-blue-200 group-hover:to-purple-200 dark:group-hover:from-blue-800/40 dark:group-hover:to-purple-800/40'
-                        : 'bg-gray-100 dark:bg-gray-800'
+                      ${
+                        isAvailable
+                          ? "bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/30 dark:to-purple-900/30 group-hover:from-blue-200 group-hover:to-purple-200 dark:group-hover:from-blue-800/40 dark:group-hover:to-purple-800/40"
+                          : "bg-gray-100 dark:bg-gray-800"
                       }
                       transition-all duration-300 group-hover:scale-110
-                    `}>
+                    `}
+                    >
                       <WalletIcon connector={connector} />
                     </div>
 
@@ -239,7 +251,8 @@ export function WalletSelectionModal({
                 No Wallets Detected
               </h3>
               <p className="text-sm text-gray-600 dark:text-gray-400 mb-6 max-w-sm mx-auto">
-                Install a Web3 wallet extension to connect to GNUS DAO and participate in governance.
+                Install a Web3 wallet extension to connect to GNUS DAO and
+                participate in governance.
               </p>
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
                 <Button

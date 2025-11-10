@@ -1,16 +1,15 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { useWeb3Store } from "@/lib/web3/reduxProvider";
-import { gnusDaoService } from "@/lib/contracts/gnusDaoService";
 import { Button } from "@/components/ui/Button";
-import { AlertCircle, Zap, X, Loader2 } from "lucide-react";
+import { gnusDaoService } from "@/lib/contracts/gnusDaoService";
+import { useWeb3Store } from "@/lib/web3/reduxProvider";
+import { AlertCircle, X, Zap } from "lucide-react";
+import { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
 
 export function DelegationBanner() {
   const { wallet, provider, signer } = useWeb3Store();
   const [isDelegated, setIsDelegated] = useState<boolean | null>(null);
-  const [isActivating, setIsActivating] = useState(false);
   const [isDismissed, setIsDismissed] = useState(false);
   const [votingPower, setVotingPower] = useState<bigint>(0n);
 
@@ -24,14 +23,20 @@ export function DelegationBanner() {
       try {
         // Initialize service
         const network = await provider.getNetwork();
-        await gnusDaoService.initialize(provider, signer, Number(network.chainId));
+        await gnusDaoService.initialize(
+          provider,
+          signer,
+          Number(network.chainId),
+        );
 
         // Get voting power (comes from token balance, not delegation)
         const power = await gnusDaoService.getVotingPower(wallet.address);
         setVotingPower(power);
 
         // Check if user has delegated their voting power to someone else
-        const hasOwnVotingPower = await gnusDaoService.isDelegatedToSelf(wallet.address);
+        const hasOwnVotingPower = await gnusDaoService.isDelegatedToSelf(
+          wallet.address,
+        );
         setIsDelegated(hasOwnVotingPower);
 
         // Auto-dismiss if user has voting power
@@ -51,8 +56,8 @@ export function DelegationBanner() {
     // Redirect to token acquisition page or show instructions
     toast.error(
       "You need GNUS tokens to participate in governance. " +
-      "Please acquire GNUS tokens to gain voting power.",
-      { duration: 5000 }
+        "Please acquire GNUS tokens to gain voting power.",
+      { duration: 5000 },
     );
 
     // You can add a link to a DEX or token sale page here
@@ -91,13 +96,15 @@ export function DelegationBanner() {
           <p className="text-sm text-yellow-800 dark:text-yellow-200 mb-3">
             {votingPower === 0n ? (
               <>
-                You need GNUS tokens to participate in governance. Your voting power is based on your token balance.
-                Acquire GNUS tokens to gain voting power and vote on proposals.
+                You need GNUS tokens to participate in governance. Your voting
+                power is based on your token balance. Acquire GNUS tokens to
+                gain voting power and vote on proposals.
               </>
             ) : (
               <>
-                You have delegated your voting power to another address. To vote yourself, you need to revoke the delegation.
-                Your current voting power: <strong>{votingPower.toString()} votes</strong>
+                You have delegated your voting power to another address. To vote
+                yourself, you need to revoke the delegation. Your current voting
+                power: <strong>{votingPower.toString()} votes</strong>
               </>
             )}
           </p>
@@ -132,4 +139,3 @@ export function DelegationBanner() {
     </div>
   );
 }
-

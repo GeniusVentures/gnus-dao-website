@@ -1,17 +1,20 @@
 'use client';
 
-import { SignClient } from '@walletconnect/sign-client';
-import QRCode from 'qrcode';
 import { getEnv } from '@/lib/config/env';
 import { getRuntimeEnvVar } from '@/lib/config/runtime-env';
+import { SignClient } from '@walletconnect/sign-client';
+import QRCode from 'qrcode';
 
 // Global SignClient instance
-let signClient: any = null;
-let currentSession: any = null;
+let signClient: InstanceType<typeof SignClient> | null = null;
+let currentSession: {
+	namespaces: Record<string, { accounts: string[]; chains: string[] }>;
+	topic?: string;
+} | null = null;
 let isInitialized = false;
 
 // Debug logging
-const debug = (message: string, ...args: any[]) => {
+const debug = (message: string, ...args: unknown[]) => {
 	if (process.env.NODE_ENV === 'development' || typeof window !== 'undefined') {
 		console.log(`[WalletConnect] ${message}`, ...args);
 	}
@@ -29,7 +32,7 @@ const getProjectId = async () => {
 				debug('Using build-time WalletConnect Project ID');
 				return projectId;
 			}
-		} catch (buildTimeError) {
+		} catch {
 			debug('Build-time environment not available, trying runtime environment');
 		}
 
@@ -76,8 +79,8 @@ export async function initializeWalletConnect() {
 
 	// Ensure runtime environment is loaded first
 	debug('Ensuring runtime environment is loaded...');
-	const { getRuntimeEnv } = await import('@/lib/config/runtime-env');
-	await getRuntimeEnv();
+	const { preloadRuntimeEnv } = await import('@/lib/config/runtime-env');
+	await preloadRuntimeEnv();
 	debug('Runtime environment loaded successfully');
 
 	// Get validated project ID
@@ -245,10 +248,14 @@ export function getCurrentSession() {
 	return currentSession;
 }
 
+interface WalletConnectSession {
+	namespaces: Record<string, { accounts: string[]; chains: string[] }>;
+}
+
 /**
  * Set the current session
  */
-export function setCurrentSession(session: any) {
+export function setCurrentSession(session: WalletConnectSession | null) {
 	currentSession = session;
 	debug('Session set:', session);
 }
@@ -256,12 +263,12 @@ export function setCurrentSession(session: any) {
 /**
  * Get accounts from session
  */
-export function getAccountsFromSession(session: any): string[] {
+export function getAccountsFromSession(session: WalletConnectSession | null): string[] {
 	if (!session) return [];
 
 	try {
 		const accounts: string[] = [];
-		Object.values(session.namespaces).forEach((namespace: any) => {
+		Object.values(session.namespaces).forEach((namespace) => {
 			if (namespace.accounts) {
 				namespace.accounts.forEach((account: string) => {
 					// Extract address from CAIP-10 format (eip155:1:0x...)
@@ -282,14 +289,16 @@ export function getAccountsFromSession(session: any): string[] {
 /**
  * Get chain ID from session
  */
-export function getChainIdFromSession(session: any): number | null {
+export function getChainIdFromSession(session: WalletConnectSession | null): number | null {
 	if (!session) return null;
 
 	try {
 		const namespace = session.namespaces.eip155;
-		if (namespace && namespace.chains && namespace.chains.length > 0) {
+		if (namespace?.chains && namespace.chains.length > 0) {
 			// Extract chain ID from CAIP-2 format (eip155:1)
-			const chainId = parseInt(namespace.chains[0].split(':')[1]);
+			const chainPart = namespace.chains[0]?.split(':')[1];
+			if (!chainPart) return null;
+			const chainId = parseInt(chainPart);
 			return chainId;
 		}
 		return null;
@@ -311,13 +320,15 @@ export async function disconnectWalletConnect() {
 	try {
 		debug('Disconnecting WalletConnect session...');
 
-		await signClient.disconnect({
-			topic: currentSession.topic,
-			reason: {
-				code: 6000,
-				message: 'User disconnected',
-			},
-		});
+		if (currentSession.topic) {
+			await signClient.disconnect({
+				topic: currentSession.topic,
+				reason: {
+					code: 6000,
+					message: 'User disconnected',
+				},
+			});
+		}
 
 		currentSession = null;
 		debug('Disconnected successfully');

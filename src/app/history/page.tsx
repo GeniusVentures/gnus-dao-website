@@ -1,20 +1,22 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useAppSelector } from "@/lib/store";
-import { ethers } from "ethers";
 import {
-  transactionHistoryService,
   Transaction,
+  transactionHistoryService,
   TransactionType,
 } from "@/lib/services/transactionHistoryService";
+import { useAppSelector } from "@/lib/store";
 import { ArrowDownTrayIcon, FunnelIcon } from "@heroicons/react/24/outline";
 import { formatDistanceToNow } from "date-fns";
+import { ethers } from "ethers";
+import { useEffect, useState } from "react";
 
 export default function HistoryPage() {
   const { address } = useAppSelector((state) => state.wallet);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [filteredTransactions, setFilteredTransactions] = useState<Transaction[]>([]);
+  const [filteredTransactions, setFilteredTransactions] = useState<
+    Transaction[]
+  >([]);
   const [loading, setLoading] = useState(true);
   const [filterType, setFilterType] = useState<TransactionType | "ALL">("ALL");
   const [searchQuery, setSearchQuery] = useState("");
@@ -34,7 +36,7 @@ export default function HistoryPage() {
 
     setLoading(true);
     try {
-      const provider = new ethers.BrowserProvider(window.ethereum as any);
+      const provider = new ethers.BrowserProvider((window as any).ethereum);
       await transactionHistoryService.initialize(provider);
 
       // Get transactions from the last 10000 blocks (adjust as needed)
@@ -44,7 +46,7 @@ export default function HistoryPage() {
       const history = await transactionHistoryService.getTransactionHistory(
         address,
         fromBlock,
-        "latest"
+        "latest",
       );
 
       setTransactions(history);
@@ -169,14 +171,20 @@ export default function HistoryPage() {
               <FunnelIcon className="h-5 w-5 text-gray-500" />
               <select
                 value={filterType}
-                onChange={(e) => setFilterType(e.target.value as TransactionType | "ALL")}
+                onChange={(e) =>
+                  setFilterType(e.target.value as TransactionType | "ALL")
+                }
                 className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
               >
                 <option value="ALL">All Types</option>
-                <option value={TransactionType.PROPOSAL_CREATED}>Proposals</option>
+                <option value={TransactionType.PROPOSAL_CREATED}>
+                  Proposals
+                </option>
                 <option value={TransactionType.VOTE_CAST}>Votes</option>
                 <option value={TransactionType.DELEGATION}>Delegations</option>
-                <option value={TransactionType.TOKEN_TRANSFER}>Transfers</option>
+                <option value={TransactionType.TOKEN_TRANSFER}>
+                  Transfers
+                </option>
               </select>
             </div>
 
@@ -202,7 +210,8 @@ export default function HistoryPage() {
         </div>
 
         <div className="mt-4 text-sm text-gray-600 dark:text-gray-400">
-          Showing {filteredTransactions.length} of {transactions.length} transactions
+          Showing {filteredTransactions.length} of {transactions.length}{" "}
+          transactions
         </div>
       </div>
 
@@ -210,11 +219,15 @@ export default function HistoryPage() {
       {loading ? (
         <div className="text-center py-12">
           <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-          <p className="mt-4 text-gray-600 dark:text-gray-400">Loading transaction history...</p>
+          <p className="mt-4 text-gray-600 dark:text-gray-400">
+            Loading transaction history...
+          </p>
         </div>
       ) : filteredTransactions.length === 0 ? (
         <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-lg shadow-md">
-          <p className="text-gray-600 dark:text-gray-400">No transactions found</p>
+          <p className="text-gray-600 dark:text-gray-400">
+            No transactions found
+          </p>
         </div>
       ) : (
         <div className="space-y-4">
@@ -226,11 +239,15 @@ export default function HistoryPage() {
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2">
-                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${getTypeColor(tx.type)}`}>
+                    <span
+                      className={`px-3 py-1 rounded-full text-sm font-medium ${getTypeColor(tx.type)}`}
+                    >
                       {tx.type}
                     </span>
                     <span className="text-sm text-gray-500 dark:text-gray-400">
-                      {formatDistanceToNow(new Date(tx.timestamp * 1000), { addSuffix: true })}
+                      {formatDistanceToNow(new Date(tx.timestamp * 1000), {
+                        addSuffix: true,
+                      })}
                     </span>
                   </div>
                   <p className="text-gray-900 dark:text-white font-medium mb-1">
@@ -246,7 +263,9 @@ export default function HistoryPage() {
                   </a>
                 </div>
                 <div className="text-right">
-                  <div className="text-sm text-gray-500 dark:text-gray-400">Block #{tx.blockNumber}</div>
+                  <div className="text-sm text-gray-500 dark:text-gray-400">
+                    Block #{tx.blockNumber}
+                  </div>
                 </div>
               </div>
             </div>
@@ -256,4 +275,3 @@ export default function HistoryPage() {
     </div>
   );
 }
-

@@ -1,5 +1,6 @@
-import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { gnusDaoService } from '@/lib/contracts/gnusDaoService';
+import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { ethers } from 'ethers';
 
 interface GnusDaoSliceState {
 	initialized: boolean;
@@ -25,10 +26,16 @@ const initialState: GnusDaoSliceState = {
 export const initializeGnusDao = createAsyncThunk(
 	'gnusDao/initialize',
 	async (_, { getState, rejectWithValue }) => {
-		const state = getState() as {
-			web3: { provider?: any; signer?: any; currentNetwork?: { id: number } };
+		interface Web3State {
+			provider?: ethers.BrowserProvider;
+			signer?: ethers.JsonRpcSigner;
+			currentNetwork?: { id: number };
+		}
+		interface RootState {
+			web3: Web3State;
 			wallet: { address?: string };
-		};
+		}
+		const state = getState() as RootState;
 
 		const { provider, signer, currentNetwork } = state.web3;
 		const { address } = state.wallet;

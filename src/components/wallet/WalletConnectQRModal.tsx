@@ -1,49 +1,54 @@
-'use client'
+"use client";
 
-import { useEffect, useState } from 'react'
-import { X, Copy, Smartphone, QrCode, Shield, Sparkles } from 'lucide-react'
+import { useEffect, useState } from "react";
+import { X, Copy, Smartphone, QrCode, Shield, Sparkles } from "lucide-react";
 
 interface WalletConnectQRModalProps {
-  isOpen: boolean
-  onClose: () => void
-  qrCodeDataUrl: string
-  uri: string
+  isOpen: boolean;
+  onClose: () => void;
+  qrCodeDataUrl: string;
+  uri: string;
 }
 
-export function WalletConnectQRModal({ isOpen, onClose, qrCodeDataUrl, uri }: WalletConnectQRModalProps) {
-  const [copied, setCopied] = useState(false)
+export function WalletConnectQRModal({
+  isOpen,
+  onClose,
+  qrCodeDataUrl,
+  uri,
+}: WalletConnectQRModalProps) {
+  const [copied, setCopied] = useState(false);
 
   // Close on escape key
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onClose()
+      if (e.key === "Escape") {
+        onClose();
       }
-    }
+    };
 
     if (isOpen) {
-      document.addEventListener('keydown', handleEscape)
+      document.addEventListener("keydown", handleEscape);
       // Prevent body scroll when modal is open
-      document.body.style.overflow = 'hidden'
+      document.body.style.overflow = "hidden";
     }
 
     return () => {
-      document.removeEventListener('keydown', handleEscape)
-      document.body.style.overflow = 'unset'
-    }
-  }, [isOpen, onClose])
+      document.removeEventListener("keydown", handleEscape);
+      document.body.style.overflow = "unset";
+    };
+  }, [isOpen, onClose]);
 
   const handleCopyURI = async () => {
     try {
-      await navigator.clipboard.writeText(uri)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
+      await navigator.clipboard.writeText(uri);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
     } catch (error) {
-      console.error('Failed to copy URI:', error)
+      console.error("Failed to copy URI:", error);
     }
-  }
+  };
 
-  if (!isOpen) return null
+  if (!isOpen) return null;
 
   return (
     <div
@@ -100,12 +105,11 @@ export function WalletConnectQRModal({ isOpen, onClose, qrCodeDataUrl, uri }: Wa
           <div className="text-center space-y-2 bg-blue-50 dark:bg-blue-950/30 rounded-2xl p-4 border border-blue-100 dark:border-blue-900">
             <div className="flex items-center justify-center gap-2 text-blue-600 dark:text-blue-400">
               <Smartphone className="w-5 h-5" />
-              <p className="text-sm font-semibold">
-                Open your mobile wallet
-              </p>
+              <p className="text-sm font-semibold">Open your mobile wallet</p>
             </div>
             <p className="text-xs text-gray-600 dark:text-gray-400">
-              Scan with MetaMask, Trust Wallet, Rainbow, or 300+ supported wallets
+              Scan with MetaMask, Trust Wallet, Rainbow, or 300+ supported
+              wallets
             </p>
           </div>
 
@@ -124,8 +128,8 @@ export function WalletConnectQRModal({ isOpen, onClose, qrCodeDataUrl, uri }: Wa
                     className="w-72 h-72 rounded-2xl"
                     data-testid="walletconnect-qr-code"
                     onError={(e) => {
-                      console.error('QR code image failed to load');
-                      e.currentTarget.style.display = 'none';
+                      console.error("QR code image failed to load");
+                      e.currentTarget.style.display = "none";
                     }}
                   />
                   {/* Corner decorations */}
@@ -159,7 +163,7 @@ export function WalletConnectQRModal({ isOpen, onClose, qrCodeDataUrl, uri }: Wa
               className="w-full px-6 py-4 text-sm font-semibold text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] flex items-center justify-center gap-2"
             >
               <Copy className="w-4 h-4" />
-              {copied ? '✓ Copied to Clipboard!' : 'Copy Connection Link'}
+              {copied ? "✓ Copied to Clipboard!" : "Copy Connection Link"}
             </button>
             <p className="text-xs text-center text-gray-600 dark:text-gray-400">
               Can't scan? Copy the link and paste it in your wallet app
@@ -174,22 +178,40 @@ export function WalletConnectQRModal({ isOpen, onClose, qrCodeDataUrl, uri }: Wa
             </p>
             <div className="grid grid-cols-4 gap-3">
               {[
-                { name: 'MetaMask', icon: '/wallets/metamask.svg', color: 'from-orange-400 to-orange-600' },
-                { name: 'Trust', icon: '/wallets/generic.svg', color: 'from-blue-400 to-blue-600' },
-                { name: 'Rainbow', icon: '/wallets/generic.svg', color: 'from-purple-400 to-pink-600' },
-                { name: 'Coinbase', icon: '/wallets/coinbase.svg', color: 'from-blue-500 to-blue-700' }
+                {
+                  name: "MetaMask",
+                  icon: "/wallets/metamask.svg",
+                  color: "from-orange-400 to-orange-600",
+                },
+                {
+                  name: "Trust",
+                  icon: "/wallets/generic.svg",
+                  color: "from-blue-400 to-blue-600",
+                },
+                {
+                  name: "Rainbow",
+                  icon: "/wallets/generic.svg",
+                  color: "from-purple-400 to-pink-600",
+                },
+                {
+                  name: "Coinbase",
+                  icon: "/wallets/coinbase.svg",
+                  color: "from-blue-500 to-blue-700",
+                },
               ].map((wallet) => (
                 <div
                   key={wallet.name}
                   className="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-gradient-to-br hover:from-blue-50 hover:to-purple-50 dark:hover:from-blue-950/30 dark:hover:to-purple-950/30 transition-all duration-300 cursor-pointer group border border-transparent hover:border-blue-200 dark:hover:border-blue-800"
                 >
-                  <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${wallet.color} flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow`}>
+                  <div
+                    className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${wallet.color} flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow`}
+                  >
                     <img
                       src={wallet.icon}
                       alt={wallet.name}
                       className="w-7 h-7"
                       onError={(e) => {
-                        e.currentTarget.style.display = 'none'
+                        e.currentTarget.style.display = "none";
                       }}
                     />
                   </div>
@@ -212,7 +234,8 @@ export function WalletConnectQRModal({ isOpen, onClose, qrCodeDataUrl, uri }: Wa
                   End-to-End Encrypted
                 </p>
                 <p className="text-xs text-green-700 dark:text-green-300">
-                  Your connection is fully encrypted. GNUS DAO never has access to your private keys or funds.
+                  Your connection is fully encrypted. GNUS DAO never has access
+                  to your private keys or funds.
                 </p>
               </div>
             </div>
@@ -220,5 +243,5 @@ export function WalletConnectQRModal({ isOpen, onClose, qrCodeDataUrl, uri }: Wa
         </div>
       </div>
     </div>
-  )
+  );
 }

@@ -1,8 +1,8 @@
-import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
-import { ethers } from 'ethers';
-import { WalletState, WalletConnector } from '@/lib/web3/types';
-import { getConnectorById } from '@/lib/web3/connectors';
 import { getNetworkConfig } from '@/lib/config/networks';
+import { getConnectorById } from '@/lib/web3/connectors';
+import { WalletConnector, WalletState } from '@/lib/web3/types';
+import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { ethers } from 'ethers';
 
 interface WalletSliceState extends WalletState {
 	provider?: ethers.BrowserProvider | undefined;
@@ -45,7 +45,7 @@ export const connectWallet = createAsyncThunk(
 			if (chainId === 1) {
 				try {
 					ensName = (await provider.lookupAddress(address)) || undefined;
-				} catch (error) {
+				} catch {
 					// ENS lookup failed, ignore
 				}
 			}
@@ -144,8 +144,10 @@ export const switchNetwork = createAsyncThunk(
 								chainId: `0x${network.id.toString(16)}`,
 								chainName: network.displayName,
 								nativeCurrency: network.nativeCurrency,
-								rpcUrls: network.rpcUrls.default.http,
-								blockExplorerUrls: [network.blockExplorers.default.url],
+								rpcUrls: network.rpcUrls?.[0] ? [network.rpcUrls[0]] : [network.rpcUrl],
+								blockExplorerUrls: network.blockExplorers?.[0]?.url
+									? [network.blockExplorers[0].url]
+									: [network.blockExplorerUrl],
 							},
 						],
 					});

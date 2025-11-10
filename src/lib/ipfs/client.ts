@@ -5,22 +5,22 @@
 
 'use client';
 
+import { getIPFSConfig, getIPFSUrl } from './config';
 import type {
-	IPFSUploadResult,
-	IPFSUploadOptions,
-	IPFSRetrievalOptions,
 	IPFSPinStatus,
+	IPFSRetrievalOptions,
+	IPFSUploadOptions,
+	IPFSUploadResult,
 	ProposalMetadata,
 } from './types';
-import { getIPFSConfig, getIPFSUrl } from './config';
 import {
-	validateFile,
 	createIPFSError,
+	generateUniqueFilename,
 	isValidIPFSHash,
 	retryWithBackoff,
-	withTimeout,
 	sanitizeFilename,
-	generateUniqueFilename,
+	validateFile,
+	withTimeout,
 } from './utils';
 
 class ClientIPFSService {
@@ -79,7 +79,7 @@ class ClientIPFSService {
 				`Upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
 				'UPLOAD_ERROR',
 				'UPLOAD_FAILED',
-				error,
+				error as Record<string, unknown>,
 			);
 		}
 	}
@@ -111,7 +111,7 @@ class ClientIPFSService {
 				`Failed to upload proposal metadata: ${error instanceof Error ? error.message : 'Unknown error'}`,
 				'UPLOAD_ERROR',
 				'METADATA_UPLOAD_FAILED',
-				error,
+				error as Record<string, unknown>,
 			);
 		}
 	}
@@ -161,7 +161,7 @@ class ClientIPFSService {
 				`Failed to retrieve content from IPFS: ${error instanceof Error ? error.message : 'Unknown error'}`,
 				'RETRIEVAL_ERROR',
 				'RETRIEVAL_FAILED',
-				error,
+				error as Record<string, unknown>,
 			);
 		}
 	}
@@ -185,7 +185,7 @@ class ClientIPFSService {
 				`Failed to retrieve proposal metadata: ${error instanceof Error ? error.message : 'Unknown error'}`,
 				'RETRIEVAL_ERROR',
 				'METADATA_RETRIEVAL_FAILED',
-				error,
+				error as Record<string, unknown>,
 			);
 		}
 	}
@@ -228,7 +228,7 @@ class ClientIPFSService {
 				`Failed to pin content: ${error instanceof Error ? error.message : 'Unknown error'}`,
 				'PIN_ERROR',
 				'PIN_FAILED',
-				error,
+				error as Record<string, unknown>,
 			);
 		}
 	}
@@ -285,7 +285,7 @@ class ClientIPFSService {
 				`Pinata upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
 				'UPLOAD_ERROR',
 				'PINATA_FAILED',
-				error,
+				error as Record<string, unknown>,
 			);
 		}
 	}

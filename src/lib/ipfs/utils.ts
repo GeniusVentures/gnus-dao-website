@@ -3,8 +3,8 @@
  * Helper functions for file validation, formatting, and IPFS operations
  */
 
-import { FileValidationResult, IPFSError } from './types';
 import { getIPFSConfig } from './config';
+import { FileValidationResult, IPFSError } from './types';
 
 /**
  * Validate file before upload
@@ -83,7 +83,7 @@ export function createIPFSError(
 	message: string,
 	type: IPFSError['type'],
 	code?: string,
-	details?: any,
+	details?: Record<string, unknown>,
 ): IPFSError {
 	const error = new Error(message) as IPFSError;
 	error.type = type;
@@ -132,7 +132,7 @@ export function extractIPFSHash(url: string): string | null {
 
 		for (const pattern of patterns) {
 			const match = url.match(pattern);
-			if (match && match[1] && isValidIPFSHash(match[1])) {
+			if (match?.[1] && isValidIPFSHash(match[1])) {
 				return match[1];
 			}
 		}
@@ -148,7 +148,11 @@ export function extractIPFSHash(url: string): string | null {
  */
 export function generateUniqueFilename(originalName: string): string {
 	const timestamp = Date.now();
-	const random = Math.random().toString(36).substring(2, 8);
+	// Use crypto.randomUUID() for secure random string generation
+	const random =
+		typeof crypto !== 'undefined' && crypto.randomUUID
+			? crypto.randomUUID().substring(0, 8)
+			: Math.random().toString(36).substring(2, 8);
 	const extension = originalName.split('.').pop();
 	const nameWithoutExt = originalName.replace(/\.[^/.]+$/, '');
 

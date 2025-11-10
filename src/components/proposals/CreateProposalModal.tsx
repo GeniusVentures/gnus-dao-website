@@ -1,25 +1,25 @@
 "use client";
 
-import React, { useState } from "react";
+import { useSiweProtectedAction } from "@/components/auth/SiweGuard";
+import { FileUpload } from "@/components/ipfs/FileUpload";
+import { Button } from "@/components/ui/Button";
+import { gnusDaoService } from "@/lib/contracts/gnusDaoService";
+import { SecureIPFSService } from "@/lib/ipfs/secureUpload";
+import type { IPFSUploadResult, ProposalMetadata } from "@/lib/ipfs/types";
+import { useWeb3Store } from "@/lib/web3/reduxProvider";
 import {
-  Plus,
-  FileText,
-  Users,
-  DollarSign,
-  Code,
-  Settings,
   AlertTriangle,
+  Code,
+  DollarSign,
+  FileText,
   Info,
+  Plus,
+  Settings,
+  Users,
   X,
 } from "lucide-react";
-import { Button } from "@/components/ui/Button";
-import { useWeb3Store } from "@/lib/web3/reduxProvider";
-import { gnusDaoService } from "@/lib/contracts/gnusDaoService";
+import { useState } from "react";
 import { toast } from "react-hot-toast";
-import { SecureIPFSService } from "@/lib/ipfs/secureUpload";
-import type { ProposalMetadata, IPFSUploadResult } from "@/lib/ipfs/types";
-import { FileUpload } from "@/components/ipfs/FileUpload";
-import { useSiweProtectedAction } from "@/components/auth/SiweGuard";
 
 interface CreateProposalModalProps {
   onClose: () => void;
@@ -37,7 +37,7 @@ export function CreateProposalModal({
   onClose,
   onProposalCreated,
 }: CreateProposalModalProps) {
-  const { wallet, provider, signer, tokenBalance } = useWeb3Store();
+  const { wallet, provider, signer } = useWeb3Store();
   const { executeProtected } = useSiweProtectedAction();
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState<
@@ -50,9 +50,8 @@ export function CreateProposalModal({
   const [category, setCategory] = useState<
     "treasury" | "protocol" | "governance" | "community"
   >("treasury");
-  const [discussionUrl, setDiscussionUrl] = useState("");
-  const [tags, setTags] = useState<string[]>([]);
-  const [tagInput, setTagInput] = useState("");
+  const [discussionUrl] = useState("");
+  const [tags] = useState<string[]>([]);
 
   // Voting configuration
   const [votingPeriodDays, setVotingPeriodDays] = useState(7);
@@ -121,58 +120,58 @@ export function CreateProposalModal({
     setActions(newActions);
   };
 
-  // Tag management
-  const addTag = () => {
-    if (tagInput.trim() && !tags.includes(tagInput.trim())) {
-      setTags([...tags, tagInput.trim()]);
-      setTagInput("");
-    }
-  };
+  // Tag management - commented out as not currently used
+  // const addTag = () => {
+  //   if (tagInput.trim() && !tags.includes(tagInput.trim())) {
+  //     setTags([...tags, tagInput.trim()]);
+  //     setTagInput("");
+  //   }
+  // };
 
-  const removeTag = (tagToRemove: string) => {
-    setTags(tags.filter((tag) => tag !== tagToRemove));
-  };
+  // const removeTag = (tagToRemove: string) => {
+  //   setTags(tags.filter((tag) => tag !== tagToRemove));
+  // };
 
-  // File upload handling
-  const handleFileUpload = async (
-    event: React.ChangeEvent<HTMLInputElement>,
-  ) => {
-    const files = event.target.files;
-    if (!files || files.length === 0) return;
-
-    setUploading(true);
-    setUploadProgress(0);
-
-    try {
-      const uploadPromises = Array.from(files).map(async (file) => {
-        const result = await SecureIPFSService.uploadProposalAttachment(file);
-        if (!result.success) {
-          throw new Error(result.error || "Upload failed");
-        }
-        // Convert to IPFSUploadResult format
-        return {
-          hash: result.ipfsHash || "",
-          name: file.name,
-          size: result.pinSize || file.size,
-          url: SecureIPFSService.getGatewayUrl(result.ipfsHash || ""),
-        };
-      });
-
-      const results = await Promise.all(uploadPromises);
-      setAttachments([...attachments, ...results]);
-      toast.success(`${results.length} file(s) uploaded successfully`);
-    } catch (error) {
-      console.error("File upload failed:", error);
-      toast.error(
-        error instanceof Error ? error.message : "Failed to upload files"
-      );
-    } finally {
-      setUploading(false);
-      setUploadProgress(0);
-      // Reset file input
-      event.target.value = "";
-    }
-  };
+  // File upload handling - commented out as not currently used
+  // const handleFileUpload = async (
+  //   event: React.ChangeEvent<HTMLInputElement>,
+  // ) => {
+  //   const files = event.target.files;
+  //   if (!files || files.length === 0) return;
+  //
+  //   setUploading(true);
+  //   setUploadProgress(0);
+  //
+  //   try {
+  //     const uploadPromises = Array.from(files).map(async (file) => {
+  //       const result = await SecureIPFSService.uploadProposalAttachment(file);
+  //       if (!result.success) {
+  //         throw new Error(result.error || "Upload failed");
+  //       }
+  //       // Convert to IPFSUploadResult format
+  //       return {
+  //         hash: result.ipfsHash || "",
+  //         name: file.name,
+  //         size: result.pinSize || file.size,
+  //         url: SecureIPFSService.getGatewayUrl(result.ipfsHash || ""),
+  //       };
+  //     });
+  //
+  //     const results = await Promise.all(uploadPromises);
+  //     setAttachments([...attachments, ...results]);
+  //     toast.success(`${results.length} file(s) uploaded successfully`);
+  //   } catch (error) {
+  //     console.error("File upload failed:", error);
+  //     toast.error(
+  //       error instanceof Error ? error.message : "Failed to upload files",
+  //     );
+  //   } finally {
+  //     setUploading(false);
+  //     setUploadProgress(0);
+  //     // Reset file input
+  //     event.target.value = "";
+  //   }
+  // };
 
   const removeAttachment = (index: number) => {
     setAttachments(attachments.filter((_, i) => i !== index));
@@ -210,12 +209,12 @@ export function CreateProposalModal({
         {
           requireAuth: true,
           errorMessage: "You must sign in with Ethereum to create proposals",
-        }
+        },
       );
     } catch (error) {
       console.error("Error in handleSubmit:", error);
       toast.error(
-        error instanceof Error ? error.message : "Failed to submit proposal"
+        error instanceof Error ? error.message : "Failed to submit proposal",
       );
     }
   };

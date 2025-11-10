@@ -67,23 +67,31 @@ export const coinbaseConnector: WalletConnector = {
 	},
 
 	connect: async () => {
-		if (!(window as any).ethereum) {
+		interface EthereumProvider {
+			request: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
+			providers?: Array<{
+				isCoinbaseWallet?: boolean;
+				request: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
+			}>;
+		}
+		const windowWithEthereum = window as unknown as { ethereum?: EthereumProvider };
+		if (!windowWithEthereum.ethereum) {
 			throw new Error('Coinbase Wallet not found');
 		}
 
 		// For Coinbase Wallet, we might need to select the provider
-		let ethereum = (window as any).ethereum;
-		if ((window as any).ethereum.providers) {
+		let ethereum = windowWithEthereum.ethereum;
+		if (windowWithEthereum.ethereum.providers) {
 			ethereum =
-				(window as any).ethereum.providers.find((p: any) => p.isCoinbaseWallet) ||
-				(window as any).ethereum;
+				windowWithEthereum.ethereum.providers.find((p) => p.isCoinbaseWallet) ||
+				windowWithEthereum.ethereum;
 		}
 
-		const accounts = await ethereum.request({
+		const accounts = (await ethereum.request({
 			method: 'eth_requestAccounts',
-		});
+		})) as string[];
 
-		if (!accounts || accounts.length === 0) {
+		if (!accounts || !Array.isArray(accounts) || accounts.length === 0 || !accounts[0]) {
 			throw new Error('No accounts found');
 		}
 
@@ -115,10 +123,10 @@ export const walletConnectConnector: WalletConnector = {
 	connect: async () => {
 		try {
 			// Ensure runtime environment is loaded before initializing WalletConnect
-			const { getRuntimeEnv } = await import('@/lib/config/runtime-env');
+			const { preloadRuntimeEnv } = await import('@/lib/config/runtime-env');
 
 			console.log('[WalletConnect] Ensuring runtime environment is loaded...');
-			await getRuntimeEnv(); // This will load the environment if not already loaded
+			await preloadRuntimeEnv(); // This will load the environment if not already loaded
 
 			// Use Reown AppKit with official WalletConnect modal
 			const { openWalletConnect } = await import('@/lib/web3/appkit');
@@ -128,14 +136,14 @@ export const walletConnectConnector: WalletConnector = {
 			// Connect using the provider (this shows the official WalletConnect modal)
 			const result = await openWalletConnect();
 
-			if (!result || !result.accounts || result.accounts.length === 0) {
+			if (!result?.accounts || result.accounts.length === 0 || !result.accounts[0]) {
 				throw new Error('No accounts returned from WalletConnect');
 			}
 
 			console.log('[WalletConnect] Connected successfully:', result.accounts[0]);
 
 			// Create ethers provider from WalletConnect provider
-			const ethersProvider = new ethers.BrowserProvider(result.provider);
+			const ethersProvider = new ethers.BrowserProvider(result.provider as any);
 			const network = await ethersProvider.getNetwork();
 
 			return {
@@ -166,9 +174,8 @@ export const walletConnectConnector: WalletConnector = {
 		try {
 			const { disconnectWalletConnect } = await import('@/lib/web3/appkit');
 			await disconnectWalletConnect();
-		} catch (error) {
-			if (process.env.NODE_ENV === 'development') {
-			}
+		} catch {
+			// Disconnect failed
 		}
 	},
 };

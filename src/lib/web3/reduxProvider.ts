@@ -1,16 +1,16 @@
 'use client';
 
-import { ethers } from 'ethers';
+import { NetworkConfig } from '@/lib/config/networks';
 import { useAppDispatch, useAppSelector } from '@/lib/store';
+import { initializeGnusDao, refreshGnusDaoData } from '@/lib/store/slices/gnusDaoSlice';
 import {
 	connectWallet,
 	disconnectWallet,
 	refreshBalance,
 	switchNetwork,
 } from '@/lib/store/slices/walletSlice';
-import { sendTransaction, estimateGas, getBalance } from '@/lib/store/slices/web3Slice';
-import { refreshGnusDaoData, initializeGnusDao } from '@/lib/store/slices/gnusDaoSlice';
-import { NetworkConfig } from '@/lib/config/networks';
+import { estimateGas, getBalance, sendTransaction } from '@/lib/store/slices/web3Slice';
+import { ethers } from 'ethers';
 import { Web3ContextType } from './types';
 
 /**
@@ -95,8 +95,10 @@ export function useWeb3Store(): Web3ContextType & {
 						chainId: `0x${network.id.toString(16)}`,
 						chainName: network.displayName,
 						nativeCurrency: network.nativeCurrency,
-						rpcUrls: network.rpcUrls.default.http,
-						blockExplorerUrls: [network.blockExplorers.default.url],
+						rpcUrls: network.rpcUrls?.[0] ? [network.rpcUrls[0]] : [network.rpcUrl],
+						blockExplorerUrls: network.blockExplorers?.[0]?.url
+							? [network.blockExplorers[0].url]
+							: [network.blockExplorerUrl],
 					},
 				],
 			});
@@ -141,14 +143,21 @@ export function useWeb3Store(): Web3ContextType & {
 		},
 
 		// Contract interaction
-		getContract: <T = ethers.Contract>(address: string, abi: any): T => {
+		getContract: <T = ethers.Contract>(
+			address: string,
+			abi: ethers.ContractInterface,
+		): T => {
 			const signerOrProvider = web3.signer || web3.provider;
 
 			if (!signerOrProvider) {
 				throw new Error('No signer or provider available');
 			}
 
-			return new ethers.Contract(address, abi, signerOrProvider) as T;
+			return new ethers.Contract(
+				address,
+				abi as unknown as ethers.InterfaceAbi,
+				signerOrProvider,
+			) as T;
 		},
 
 		// GNUS DAO methods

@@ -1,98 +1,120 @@
-'use client'
+"use client";
 
-import React, { useState, useEffect } from 'react'
-import { CheckCircle, AlertCircle, XCircle, Loader2, Settings } from 'lucide-react'
-import { Button } from '@/components/ui/Button'
-import { ipfsService, isIPFSConfigured } from '@/lib/ipfs'
+import React, { useState, useEffect } from "react";
+import {
+  CheckCircle,
+  AlertCircle,
+  XCircle,
+  Loader2,
+  Settings,
+} from "lucide-react";
+import { Button } from "@/components/ui/Button";
+import { ipfsService, isIPFSConfigured } from "@/lib/ipfs";
 
 interface IPFSStatusProps {
-  showDetails?: boolean
-  className?: string
+  showDetails?: boolean;
+  className?: string;
 }
 
 interface ServiceStatus {
-  configured: boolean
-  initialized: boolean
-  hasPinata: boolean
-  hasIPFSClient: boolean
-  error?: string
+  configured: boolean;
+  initialized: boolean;
+  hasPinata: boolean;
+  hasIPFSClient: boolean;
+  error?: string;
 }
 
-export function IPFSStatus({ showDetails = false, className = '' }: IPFSStatusProps) {
+export function IPFSStatus({
+  showDetails = false,
+  className = "",
+}: IPFSStatusProps) {
   const [status, setStatus] = useState<ServiceStatus>({
     configured: false,
     initialized: false,
     hasPinata: false,
-    hasIPFSClient: false
-  })
-  const [loading, setLoading] = useState(true)
-  const [expanded, setExpanded] = useState(showDetails)
+    hasIPFSClient: false,
+  });
+  const [loading, setLoading] = useState(true);
+  const [expanded, setExpanded] = useState(showDetails);
 
   useEffect(() => {
-    checkStatus()
-  }, [])
+    checkStatus();
+  }, []);
 
   const checkStatus = async () => {
-    setLoading(true)
-    
+    setLoading(true);
+
     try {
-      const configured = isIPFSConfigured()
-      const serviceStatus = ipfsService.getStatus()
-      
+      const configured = isIPFSConfigured();
+      const serviceStatus = ipfsService.getStatus();
+
       setStatus({
         configured,
         initialized: serviceStatus.initialized,
         hasPinata: serviceStatus.hasPinata,
-        hasIPFSClient: serviceStatus.hasIPFSClient
-      })
+        hasIPFSClient: serviceStatus.hasIPFSClient,
+      });
     } catch (error) {
-      setStatus(prev => ({
+      setStatus((prev) => ({
         ...prev,
-        error: error instanceof Error ? error.message : 'Failed to check status'
-      }))
+        error:
+          error instanceof Error ? error.message : "Failed to check status",
+      }));
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const getStatusIcon = () => {
     if (loading) {
-      return <Loader2 className="w-4 h-4 animate-spin text-gray-500" />
+      return <Loader2 className="w-4 h-4 animate-spin text-gray-500" />;
     }
 
     if (status.error) {
-      return <XCircle className="w-4 h-4 text-red-500" />
+      return <XCircle className="w-4 h-4 text-red-500" />;
     }
 
-    if (status.configured && status.initialized && (status.hasPinata || status.hasIPFSClient)) {
-      return <CheckCircle className="w-4 h-4 text-green-500" />
+    if (
+      status.configured &&
+      status.initialized &&
+      (status.hasPinata || status.hasIPFSClient)
+    ) {
+      return <CheckCircle className="w-4 h-4 text-green-500" />;
     }
 
     if (status.configured) {
-      return <AlertCircle className="w-4 h-4 text-yellow-500" />
+      return <AlertCircle className="w-4 h-4 text-yellow-500" />;
     }
 
-    return <XCircle className="w-4 h-4 text-red-500" />
-  }
+    return <XCircle className="w-4 h-4 text-red-500" />;
+  };
 
   const getStatusText = () => {
-    if (loading) return 'Checking IPFS status...'
-    if (status.error) return 'IPFS Error'
-    if (status.configured && status.initialized && (status.hasPinata || status.hasIPFSClient)) {
-      return 'IPFS Ready'
+    if (loading) return "Checking IPFS status...";
+    if (status.error) return "IPFS Error";
+    if (
+      status.configured &&
+      status.initialized &&
+      (status.hasPinata || status.hasIPFSClient)
+    ) {
+      return "IPFS Ready";
     }
-    if (status.configured) return 'IPFS Partially Configured'
-    return 'IPFS Not Configured'
-  }
+    if (status.configured) return "IPFS Partially Configured";
+    return "IPFS Not Configured";
+  };
 
   const getStatusColor = () => {
-    if (loading || status.error) return 'text-gray-600'
-    if (status.configured && status.initialized && (status.hasPinata || status.hasIPFSClient)) {
-      return 'text-green-600'
+    if (loading || status.error) return "text-gray-600";
+    if (
+      status.configured &&
+      status.initialized &&
+      (status.hasPinata || status.hasIPFSClient)
+    ) {
+      return "text-green-600";
     }
-    if (status.configured) return 'text-yellow-600'
-    return 'text-red-600'
-  }
+    if (status.configured) return "text-yellow-600";
+    return "text-red-600";
+  };
 
   return (
     <div className={`bg-white border rounded-lg ${className}`}>
@@ -104,7 +126,7 @@ export function IPFSStatus({ showDetails = false, className = '' }: IPFSStatusPr
             {getStatusText()}
           </span>
         </div>
-        
+
         <div className="flex items-center space-x-2">
           <Button
             variant="ghost"
@@ -113,9 +135,9 @@ export function IPFSStatus({ showDetails = false, className = '' }: IPFSStatusPr
             disabled={loading}
             title="Refresh status"
           >
-            <Loader2 className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            <Loader2 className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
           </Button>
-          
+
           {!showDetails && (
             <Button
               variant="ghost"
@@ -141,12 +163,16 @@ export function IPFSStatus({ showDetails = false, className = '' }: IPFSStatusPr
                 ) : (
                   <XCircle className="w-3 h-3 text-red-500" />
                 )}
-                <span className={status.configured ? 'text-green-600' : 'text-red-600'}>
-                  {status.configured ? 'Yes' : 'No'}
+                <span
+                  className={
+                    status.configured ? "text-green-600" : "text-red-600"
+                  }
+                >
+                  {status.configured ? "Yes" : "No"}
                 </span>
               </div>
             </div>
-            
+
             <div className="flex items-center justify-between">
               <span>Initialized:</span>
               <div className="flex items-center space-x-1">
@@ -155,12 +181,16 @@ export function IPFSStatus({ showDetails = false, className = '' }: IPFSStatusPr
                 ) : (
                   <XCircle className="w-3 h-3 text-red-500" />
                 )}
-                <span className={status.initialized ? 'text-green-600' : 'text-red-600'}>
-                  {status.initialized ? 'Yes' : 'No'}
+                <span
+                  className={
+                    status.initialized ? "text-green-600" : "text-red-600"
+                  }
+                >
+                  {status.initialized ? "Yes" : "No"}
                 </span>
               </div>
             </div>
-            
+
             <div className="flex items-center justify-between">
               <span>Pinata:</span>
               <div className="flex items-center space-x-1">
@@ -169,12 +199,16 @@ export function IPFSStatus({ showDetails = false, className = '' }: IPFSStatusPr
                 ) : (
                   <XCircle className="w-3 h-3 text-gray-400" />
                 )}
-                <span className={status.hasPinata ? 'text-green-600' : 'text-gray-500'}>
-                  {status.hasPinata ? 'Available' : 'Not configured'}
+                <span
+                  className={
+                    status.hasPinata ? "text-green-600" : "text-gray-500"
+                  }
+                >
+                  {status.hasPinata ? "Available" : "Not configured"}
                 </span>
               </div>
             </div>
-            
+
             <div className="flex items-center justify-between">
               <span>IPFS Client:</span>
               <div className="flex items-center space-x-1">
@@ -183,32 +217,38 @@ export function IPFSStatus({ showDetails = false, className = '' }: IPFSStatusPr
                 ) : (
                   <XCircle className="w-3 h-3 text-gray-400" />
                 )}
-                <span className={status.hasIPFSClient ? 'text-green-600' : 'text-gray-500'}>
-                  {status.hasIPFSClient ? 'Available' : 'Not configured'}
+                <span
+                  className={
+                    status.hasIPFSClient ? "text-green-600" : "text-gray-500"
+                  }
+                >
+                  {status.hasIPFSClient ? "Available" : "Not configured"}
                 </span>
               </div>
             </div>
           </div>
-          
+
           {status.error && (
             <div className="p-2 bg-red-50 border border-red-200 rounded text-sm text-red-700">
               <strong>Error:</strong> {status.error}
             </div>
           )}
-          
+
           {!status.configured && (
             <div className="p-2 bg-yellow-50 border border-yellow-200 rounded text-sm text-yellow-700">
-              <strong>Configuration needed:</strong> Please set up IPFS environment variables in your .env file.
+              <strong>Configuration needed:</strong> Please set up IPFS
+              environment variables in your .env file.
             </div>
           )}
-          
+
           {status.configured && !status.hasPinata && !status.hasIPFSClient && (
             <div className="p-2 bg-orange-50 border border-orange-200 rounded text-sm text-orange-700">
-              <strong>No upload service:</strong> Configure either Pinata or IPFS node credentials.
+              <strong>No upload service:</strong> Configure either Pinata or
+              IPFS node credentials.
             </div>
           )}
         </div>
       )}
     </div>
-  )
+  );
 }

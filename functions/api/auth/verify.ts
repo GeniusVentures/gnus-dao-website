@@ -160,9 +160,20 @@ export const onRequest: PagesFunction<Env> = async (context) => {
 };
 
 /**
+ * Session object interface
+ */
+interface Session {
+	id: string;
+	address: string;
+	chainId: number;
+	issuedAt: string;
+	expiresAt: string;
+}
+
+/**
  * Generate JWT token for session
  */
-async function generateJWT(session: any, secret: string): Promise<string> {
+async function generateJWT(session: Session, secret: string): Promise<string> {
 	const header = {
 		alg: 'HS256',
 		typ: 'JWT',

@@ -1,6 +1,6 @@
-import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
+import { getNetworkConfig, NetworkConfig, SUPPORTED_NETWORKS } from '@/lib/config/networks';
+import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { ethers } from 'ethers';
-import { NetworkConfig, SUPPORTED_NETWORKS, getNetworkConfig } from '@/lib/config/networks';
 
 interface Web3SliceState {
 	provider?: ethers.BrowserProvider | undefined;
@@ -139,7 +139,14 @@ const web3Slice = createSlice({
 			// Handle wallet connection from wallet slice
 			.addMatcher(
 				(action) => action.type === 'wallet/connect/fulfilled',
-				(state, action: any) => {
+				(
+					state,
+					action: PayloadAction<{
+						provider: ethers.BrowserProvider;
+						signer: ethers.JsonRpcSigner;
+						network: NetworkConfig;
+					}>,
+				) => {
 					state.provider = action.payload.provider;
 					state.signer = action.payload.signer;
 					state.currentNetwork = action.payload.network;
@@ -157,7 +164,7 @@ const web3Slice = createSlice({
 			// Handle network switch from wallet slice
 			.addMatcher(
 				(action) => action.type === 'wallet/switchNetwork/fulfilled',
-				(state, action: any) => {
+				(state, action: PayloadAction<{ network: NetworkConfig }>) => {
 					state.currentNetwork = action.payload.network;
 				},
 			);

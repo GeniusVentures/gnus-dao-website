@@ -1,0 +1,107 @@
+# Enhanced Cloudflare Pages configuration for GNUS DAO
+name = "gnus-dao-web"
+compatibility_date = "2024-01-01"
+compatibility_flags = ["nodejs_compat"]
+pages_build_output_dir = "out"
+
+# Global environment variables
+[vars]
+CLOUDFLARE_PAGES = "true"
+NODE_ENV = "production"
+
+# KV namespace for authentication sessions
+[[kv_namespaces]]
+binding = "AUTH_SESSIONS"
+id = "669cfebda6a544e0a2a66b482a5b5e35"
+preview_id = "c03ccc431a3540be9dbbf3eade06dcc5"
+
+# KV namespace for IPFS caching
+[[kv_namespaces]]
+binding = "IPFS_CACHE"
+id = "22f5c52a20ba44d3b060975e212f1e42"
+preview_id = "0779abda6db947c982834b4474a619df"
+
+# Additional KV for application state
+[[kv_namespaces]]
+binding = "APP_CACHE"
+id = "8e2dd1e6309844cbbce9a9ffa901d37e"
+preview_id = "6dfc2abf75cd4de99807c282c462bc8d"
+
+# Durable Objects for real-time features (future use)
+# [[durable_objects.bindings]]
+# name = "PROPOSAL_COUNTER"
+# class_name = "ProposalCounter"
+
+# R2 bucket for large file storage (future use)
+# [[r2_buckets]]
+# binding = "PROPOSAL_STORAGE"
+# bucket_name = "gnus-dao-proposals"
+
+# Environment configurations removed to avoid conflicts
+# Set environment variables in Cloudflare Pages Dashboard instead
+
+# Build configuration for Cloudflare Pages
+# Note: These settings are configured in the Cloudflare Pages dashboard
+# Build command: yarn build:hybrid
+# Build output directory: out
+# Node.js version: 18
+
+# ========================================
+# CLOUDFLARE PAGES ENVIRONMENT VARIABLES
+# ========================================
+# Set these in Cloudflare Pages Dashboard > Settings > Environment Variables
+#
+# PUBLIC VARIABLES (Safe to expose to client):
+# - NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID
+# - NEXT_PUBLIC_ETHEREUM_RPC_URL
+# - NEXT_PUBLIC_BASE_RPC_URL
+# - NEXT_PUBLIC_POLYGON_RPC_URL
+# - NEXT_PUBLIC_SKALE_RPC_URL
+# - NEXT_PUBLIC_ARBITRUM_RPC_URL
+# - NEXT_PUBLIC_SEPOLIA_RPC_URL
+# - NEXT_PUBLIC_SEPOLIA_GNUS_DAO_ADDRESS
+# - NEXT_PUBLIC_ETHEREUM_GNUS_DAO_ADDRESS
+# - NEXT_PUBLIC_BASE_GNUS_DAO_ADDRESS
+# - NEXT_PUBLIC_POLYGON_GNUS_DAO_ADDRESS
+# - NEXT_PUBLIC_SKALE_GNUS_DAO_ADDRESS
+# - NEXT_PUBLIC_APP_NAME
+# - NEXT_PUBLIC_APP_URL
+# - NEXT_PUBLIC_APP_VERSION
+# - NEXT_PUBLIC_IPFS_GATEWAY
+# - NEXT_PUBLIC_IPFS_GATEWAY_BACKUP
+#
+# SENSITIVE VARIABLES (NEVER expose to client - Workers only):
+# ⚠️ CRITICAL: Set these as ENCRYPTED environment variables in Cloudflare
+# - PINATA_JWT (for IPFS uploads via Workers)
+# - PINATA_API_KEY (backup authentication)
+# - PINATA_SECRET_KEY (backup authentication)
+# - JWT_SECRET (for session token signing - generate with: openssl rand -base64 32)
+#
+# OPTIONAL VARIABLES:
+# - NEXT_PUBLIC_ALCHEMY_API_KEY
+# - NEXT_PUBLIC_INFURA_API_KEY
+# - NEXT_PUBLIC_CLOUDFLARE_IMAGE_RESIZING
+# - NEXT_PUBLIC_ANALYTICS_ID
+#
+# ========================================
+# SETUP INSTRUCTIONS
+# ========================================
+# 1. Create KV Namespaces in Cloudflare Dashboard:
+#    - AUTH_SESSIONS (for SIWE session storage)
+#    - IPFS_CACHE (for IPFS content caching)
+#    - APP_CACHE (for application state)
+#
+# 2. Update KV namespace IDs in this file (lines 14-27)
+#
+# 3. Set environment variables in Cloudflare Pages Dashboard:
+#    Settings > Environment Variables > Production/Preview
+#
+# 4. Generate JWT_SECRET:
+#    openssl rand -base64 32
+#
+# 5. Deploy:
+#    wrangler pages deploy out --project-name=gnus-dao-web
+
+# Security headers and redirects are configured in:
+# - public/_headers (security headers)
+# - public/_redirects (URL redirects and SPA routing)

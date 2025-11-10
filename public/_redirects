@@ -1,0 +1,40 @@
+# Enhanced Cloudflare Pages redirects for GNUS DAO SPA routing
+# Comprehensive routing for Next.js static export with SEO optimization
+
+# Legacy governance route redirects (SEO-friendly)
+/governance /proposals 301
+/vote /proposals 301
+/voting /proposals 301
+/dao /proposals 301
+/dao/governance /proposals 301
+
+# Legacy proposal routes
+/proposal/:id /proposals/:id 301
+
+# Proposal detail pages (SPA routing)
+/proposals/* /index.html 200
+
+# Treasury routes (SPA routing)
+/treasury/* /index.html 200
+
+# Analytics routes (SPA routing)
+/analytics/* /index.html 200
+
+# History routes (SPA routing)
+/history/* /index.html 200
+
+# Settings routes (SPA routing)
+/settings/* /index.html 200
+
+# Documentation routes (SPA routing)
+/docs/* /index.html 200
+
+# Health check endpoint
+/health /index.html 200
+
+# Sitemap and robots
+/sitemap.xml /sitemap.xml 200
+/robots.txt /robots.txt 200
+
+# Catch-all for SPA routing - must be last
+/* /index.html 200

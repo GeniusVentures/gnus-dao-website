@@ -1,541 +1,226 @@
-# GNUS DAO Diamond
+# GNUS DAO Website
 
-A modular, upgradeable smart contract system built on the ERC-2535 Diamond Proxy Standard, providing a flexible foundation for decentralized autonomous organization (DAO) functionality.
+# 🗳️ GNUS DAO Governance Platform
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Hardhat](https://img.shields.io/badge/Built%20with-Hardhat-FFDB1C.svg)](https://hardhat.org/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![Solidity](https://img.shields.io/badge/Solidity-%23363636.svg?logo=solidity&logoColor=white)](https://soliditylang.org/)
+A modern, enterprise-grade decentralized autonomous organization (DAO) governance platform built with Next.js 14, featuring quadratic voting, multi-chain support, and Diamond pattern smart contract integration.
 
 ## 🌟 Features
 
-- **💎 Diamond Proxy Architecture**: Implements ERC-2535 for unlimited contract size and modularity
-- **🔄 Seamless Upgrades**: Add, replace, or remove functionality without changing the main contract address
-- **🏗️ Modular Design**: Organized facet system for clear separation of concerns
-- **🛡️ Enterprise Security**: OpenZeppelin Defender integration for production deployments
-- **🧪 Comprehensive Testing**: Multi-chain testing environment with extensive test coverage
-- **⚡ TypeScript Integration**: Full type safety with auto-generated TypeScript bindings
-- **🌐 Multi-Network Support**: Deploy across multiple EVM-compatible networks
-- **📊 Advanced Monitoring**: Real-time deployment tracking and status monitoring
+### Core Governance Features
+- **✅ Proposal Creation**: Create and submit governance proposals with IPFS metadata storage
+- **✅ Voting System**: Vote For/Against proposals directly from the interface
+- **✅ Proposal States**: Real-time proposal status (Active, Pending, Succeeded, Defeated, Executed)
+- **✅ Vote Tracking**: View voting history and user vote receipts
+- **✅ Quadratic Voting**: Advanced voting mechanism for democratic decision-making
+- **✅ Time-based Voting**: Configurable voting periods and execution delays
 
-## 🏗️ Architecture
-
-### Diamond Proxy Pattern (ERC-2535)
-
-```bash
-┌─────────────────┐
-│   Diamond       │  ← Main contract (never changes address)
-│   (Proxy)       │
-└─────────┬───────┘
-          │
-    ┌─────▼─────┐
-    │ Diamond   │
-    │ Storage   │
-    └─────┬─────┘
-          │
-    ┌─────▼─────────────────────────────┐
-    │           Facets                  │
-    ├─────────────┬─────────────────────┤
-    │ Ownership   │ Access Control      │
-    │ Facet       │ Facet               │
-    ├─────────────┼─────────────────────┤
-    │ Diamond     │ Diamond             │
-    │ Cut Facet   │ Loupe Facet         │
-    ├─────────────┼─────────────────────┤
-    │ Init        │ Custom              │
-    │ Facet       │ Facets              │
-    └─────────────┴─────────────────────┘
-```
-
-### Core Facets
-
-- **DiamondCutFacet**: Handles diamond upgrades (add/replace/remove facets)
-- **DiamondLoupeFacet**: Inspection functions for facets and selectors
-- **GNUSDAOOwnershipFacet**: Ownership management and access control
-- **GNUSDAOAccessControlFacet**: Role-based access control system
-- **GNUSDAOInitFacet**: Initialization and upgrade logic
+### Technical Features
+- **✅ Multi-Chain Support**: Compatible with Ethereum, Base, Polygon, and SKALE networks
+- **✅ Diamond Pattern Integration**: Upgradeable smart contracts using EIP-2535
+- **✅ WalletConnect v2**: Seamless wallet integration with MetaMask and WalletConnect
+- **✅ IPFS Integration**: Decentralized storage via Pinata for proposal metadata
+- **✅ Real-time Updates**: Live proposal status and voting results
+- **✅ Mobile Responsive**: Optimized for all device sizes
+- **✅ Dark/Light Theme**: User preference-based theming
 
 ## 🚀 Quick Start
 
 ### Prerequisites
 
-- Node.js >= 20.0.0
-- Yarn (recommended) or npm
-- Git
+- Node.js 18+ and yarn
+- MetaMask or compatible Web3 wallet
+- Access to Sepolia testnet (for development)
 
 ### Installation
 
 ```bash
-# Clone the repository
-git clone https://github.com/GeniusVentures/gnus-dao.git
-cd gnus-dao
 
 # Install dependencies
 yarn install
 
-# Copy environment template
-cp .env.example .env
+# Set up environment variables
+cp .env.example .env.local
+# Edit .env.local with your configuration
+
+# Start development server
+yarn dev
 ```
 
-### Configuration
+### Environment Configuration
 
-Set up your environment variables in `.env`:
+Create a `.env.local` file with the following variables:
 
-```bash
-# Network Configuration
-MAINNET_RPC=https://mainnet.infura.io/v3/your-key
-SEPOLIA_RPC=https://sepolia.infura.io/v3/your-key
-POLYGON_RPC=https://polygon-mainnet.g.alchemy.com/v2/your-key
+```env
+# WalletConnect Configuration
+NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=805f6520f2f2934352c65fe6bd70d15d
 
-# Deployment Keys
-PRIVATE_KEY=your_private_key_here
-TEST_PRIVATE_KEY=your_test_private_key_here
+# Network Configuration (Sepolia Testnet)
+NEXT_PUBLIC_SEPOLIA_RPC_URL=
+NEXT_PUBLIC_SEPOLIA_GNUS_DAO_ADDRESS=0x57AE78C65F7Dd6d158DE9F4cA9CCeaA98C988199
 
-# API Keys for Verification
-ETHERSCAN_API_KEY=your_etherscan_api_key
-POLYGONSCAN_API_KEY=your_polygonscan_api_key
-```
-
-### Compile Contracts
-
-```bash
-# Compile all contracts and generate Diamond ABI with TypeScript types
-yarn compile
-
-# Build TypeScript and compile contracts with Diamond ABI generation
-yarn build
-
-# Clean compiled artifacts
-yarn clean
-```
-
-### Run Tests
-
-```bash
-# Run all tests
-yarn test
-
-# Run tests with coverage
-yarn coverage
-
-# Run specific test file
-yarn test test/unit/diamond-abi-generator.test.ts
-```
-
-## 📦 Deployment
-
-### Available Scripts
-
-The project includes the following yarn scripts defined in `package.json`:
-
-```bash
-# Development Scripts
-yarn clean              # Clean compiled artifacts
-yarn compile            # Compile contracts and generate Diamond ABI
-yarn build              # Build TypeScript, compile contracts, and generate ABI (⚠️ currently has TypeScript errors)
-yarn test               # Run all tests
-yarn coverage           # Run tests with coverage report
-
-# ABI Generation Scripts  
-yarn generate-diamond-abi           # Generate Diamond ABI
-yarn generate-diamond-abi-typechain # Generate Diamond ABI with TypeChain types
-```
-
-> **Note**: The `yarn build` command currently has TypeScript compilation errors that need to be resolved. For development, use `yarn compile` which works correctly.
-
-### Custom Deployment
-
-For deployment, you'll need to use the deployment scripts directly:
-
-```bash
-# Example: Deploy using TypeScript scripts
-npx ts-node scripts/deploy/rpc/deploy-rpc.ts GNUSDAODiamond sepolia
-
-# Example: Deploy using Defender
-npx ts-node scripts/deploy/defender/deploy-defender.ts GNUSDAODiamond mainnet
-```
-
-### Deployment Scripts
-
-The project includes several deployment strategies using TypeScript scripts:
-
-#### RPC Deployment (Direct)
-
-```bash
-# Basic deployment
-npx ts-node scripts/deploy/rpc/deploy-rpc.ts GNUSDAODiamond sepolia
-
-# With custom options (if supported by script)
-npx ts-node scripts/deploy/rpc/deploy-rpc.ts GNUSDAODiamond sepolia --verbose
-
-# Manual step-by-step deployment
-npx ts-node scripts/deploy/rpc/deploy-rpc-manual.ts GNUSDAODiamond sepolia
-```
-
-#### Defender Deployment (Recommended for Production)
-
-```bash
-# Deploy via OpenZeppelin Defender
-npx ts-node scripts/deploy/defender/deploy-defender.ts GNUSDAODiamond mainnet
-
-# Check deployment status
-npx ts-node scripts/deploy/defender/status-defender.ts GNUSDAODiamond mainnet
-```
-
-## 🔧 Development Tools
-
-### Diamond Management
-
-```bash
-# Check deployment status
-npx ts-node scripts/deploy/rpc/status-rpc.ts GNUSDAODiamond sepolia --detailed
-
-# Verify deployment integrity
-npx ts-node scripts/deploy/rpc/verify-rpc.ts GNUSDAODiamond sepolia --etherscan
-
-# Upgrade diamond (add new facets or update existing ones)
-npx ts-node scripts/deploy/rpc/upgrade-rpc.ts GNUSDAODiamond sepolia
-```
-
-### ABI Generation
-
-The project automatically generates a combined Diamond ABI with TypeScript types:
-
-```bash
-# Generate Diamond ABI
-yarn generate-diamond-abi
-
-# Generate with TypeChain types  
-yarn generate-diamond-abi-typechain
-
-# Build everything (compile + generate ABI)
-yarn build
-```
-
-### Testing
-
-```bash
-# Run all tests
-yarn test
-
-# Run tests with coverage
-yarn coverage
-
-# Run specific test files
-yarn test test/unit/diamond-abi-generator.test.ts
-yarn test test/integration/defender/DefenderDeployment.test.ts
+# IPFS Configuration (Pinata)
+NEXT_PUBLIC_PINATA_API_KEY=your_pinata_api_key
+NEXT_PUBLIC_PINATA_SECRET_KEY=your_pinata_secret_key
+NEXT_PUBLIC_PINATA_JWT=your_pinata_jwt_token
 ```
 
 ## 📁 Project Structure
 
-```bash
-gnus-dao-diamond/
-├── contracts/                    # Solidity smart contracts
-│   └── gnusdaodiamond/           # Diamond facet contracts
-│       ├── facets/               # Individual facet implementations
-│       ├── interfaces/           # Solidity interfaces
-│       ├── libraries/            # Shared libraries
-│       └── upgradeInitializers/  # Upgrade initialization contracts
-├── diamonds/                     # Diamond configuration
-│   └── GNUSDAODiamond/          # Diamond-specific config
-│       ├── deployments/          # Deployment records
-│       ├── callbacks/            # Post-deployment callbacks
-│       └── gnusdaodiamond.config.json  # Facet configuration
-├── scripts/                      # Deployment and utility scripts
-│   ├── deploy/                   # Deployment strategies
-│   │   ├── rpc/                  # Direct RPC deployment
-│   │   └── defender/             # OpenZeppelin Defender deployment
-│   ├── setup/                    # Deployment infrastructure
-│   └── utils/                    # Utility functions
-├── test/                         # Test suite
-│   ├── unit/                     # Unit tests
-│   ├── integration/              # Integration tests
-│   └── deployment/               # Deployment tests
-├── typechain-types/              # Generated TypeScript types
-├── diamond-typechain-types/      # Diamond-specific TypeScript types
-└── diamond-abi/                  # Generated Diamond ABI artifacts
+```
+src/
+├── app/                    # Next.js 14 App Router pages
+│   ├── proposals/         # Proposal management pages
+│   │   ├── page.tsx       # Main proposals listing
+│   │   └── [id]/          # Individual proposal details
+│   ├── treasury/          # Treasury management
+│   ├── analytics/         # DAO analytics dashboard
+│   └── governance/        # Governance settings
+├── components/            # Reusable React components
+│   ├── proposals/         # Proposal-related components
+│   │   ├── CreateProposalModal.tsx  # Proposal creation
+│   │   └── ProposalCard.tsx         # Proposal display
+│   ├── voting/           # Voting interface components
+│   ├── wallet/           # Wallet connection components
+│   └── ui/               # Base UI components (Button, Modal, etc.)
+├── lib/                  # Core business logic
+│   ├── contracts/        # Smart contract interactions
+│   │   ├── gnusDaoService.ts        # Main DAO service
+│   │   └── GNUSDAODiamond.json      # Contract ABI
+│   ├── web3/            # Web3 provider and Redux store
+│   ├── ipfs/            # IPFS integration (Pinata)
+│   └── utils/           # Utility functions
+├── types/               # TypeScript type definitions
+└── scripts/             # Build and deployment scripts
 ```
 
-## 🔧 Configuration
+## 🔧 Development
 
-### Diamond Configuration
-
-The diamond configuration is defined in `diamonds/GNUSDAODiamond/gnusdaodiamond.config.json`:
-
-```json
-{
-  "protocolVersion": 1.0,
-  "protocolInitFacet": "GNUSDAOInitFacet",
-  "facets": {
-    "DiamondCutFacet": {
-      "priority": 10,
-      "versions": { "0.0": {} }
-    },
-    "DiamondLoupeFacet": {
-      "priority": 20,
-      "versions": { "0.0": {} }
-    },
-    "GNUSDAOOwnershipFacet": {
-      "priority": 30,
-      "versions": { "0.0": {} }
-    }
-  }
-}
-```
-
-### Hardhat Configuration
-
-Key configurations in `hardhat.config.ts`:
-
-- **Multi-chain support** via `hardhat-multichain`
-- **Diamond configuration** via `hardhat-diamonds`
-- **Network settings** for multiple EVM chains
-- **Compiler optimization** for gas efficiency
-
-## 🧪 Testing Strategy
-
-### Test Categories
-
-1. **Unit Tests**: Individual facet testing
-2. **Integration Tests**: Cross-facet functionality
-3. **Deployment Tests**: End-to-end deployment validation
-4. **Multi-chain Tests**: Cross-network compatibility
-
-### Test Environment
+### Available Scripts
 
 ```bash
-# Run tests with Hardhat
-yarn test
+# Development
+yarn dev                    # Start development server (port 3000)
+yarn dev:turbo             # Start development server with Turbopack
 
-# Test with coverage
-yarn coverage
+# Building
+yarn build                 # Standard Next.js build
+yarn build:production      # Production build with optimizations for Cloudflare Pages
 
-# Test specific files
-yarn test test/specific-test-file.test.ts
+# Testing
+yarn test                  # Run unit tests
+yarn test:coverage         # Run tests with coverage
+yarn test:e2e             # Run Playwright end-to-end tests
+yarn test:e2e:ui          # Run Playwright tests with UI
+yarn validate             # Run type-check + lint + tests
+
+# Code Quality
+yarn lint                  # Run ESLint
+yarn lint:fix             # Fix linting issues automatically
+yarn type-check           # TypeScript type checking
+yarn format               # Format code with Prettier
+
+# Deployment
+yarn deploy:prepare        # Build for production
+yarn deploy:cloudflare     # Deploy to Cloudflare Pages
+
+# Maintenance
+yarn clean                 # Clean build artifacts
+yarn clean:all            # Clean everything including node_modules
 ```
 
-### Test Utilities
+### Testing Strategy
 
-- **Diamond test helpers**: Load and interact with deployed diamonds
-- **Network utilities**: Multi-chain test orchestration
-- **Mock contracts**: Isolated testing environments
+The project includes comprehensive testing:
 
-## 🔒 Security
-
-### Security Features
-
-- **Multi-signature support** via OpenZeppelin Defender
-- **Role-based access control** with granular permissions
-- **Upgrade authorization** with ownership verification
-- **Function selector collision prevention**
-- **Comprehensive test coverage** including edge cases
-
-### Security Tools
-
-- **Slither**: Static analysis for vulnerability detection
-- **OpenZeppelin Defender**: Production-grade security monitoring
-- **Coverage reports**: Ensure comprehensive testing
-- **Gas optimization**: Efficient contract execution
-
-## 🚀 Deployment Strategies
-
-### 1. Local Development
-
-- Instant deployment and testing
-- Full upgrade simulation
-- Development-focused tooling
-
-### 2. RPC Deployment
-
-- Direct blockchain interaction
-- Custom gas strategies
-- Retry mechanisms for reliability
-
-### 3. OpenZeppelin Defender
-
-- Multi-signature workflow
-- Automated monitoring
-- Enterprise security features
-
-## 📚 Advanced Usage
-
-### Custom Facet Development
-
-```solidity
-// Example: Create a new facet
-pragma solidity ^0.8.9;
-
-import "../libraries/LibDiamond.sol";
-
-contract CustomFacet {
-    function customFunction() external {
-        LibDiamond.enforceIsContractOwner();
-        // Your logic here
-    }
-}
-```
-
-### Diamond Upgrades
-
-```bash
-# Add new facet
-npx ts-node scripts/deploy/rpc/upgrade-rpc.ts GNUSDAODiamond sepolia
-
-# Dry run upgrade (see what will change, if supported by script)
-npx ts-node scripts/deploy/rpc/upgrade-rpc.ts GNUSDAODiamond sepolia --dry-run
-```
-
-### TypeScript Integration
-
-```typescript
-import { GNUSDAODiamond } from '../diamond-typechain-types';
-import { ethers } from 'hardhat';
-
-// Type-safe contract interaction
-const diamond = await ethers.getContractAt(
-  'GNUSDAODiamond',
-  diamondAddress
-) as GNUSDAODiamond;
-
-// All functions are typed and auto-completed
-await diamond.transferOwnership(newOwner);
-```
-
-## 🤝 Contributing
-
-We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
+- **✅ Unit Tests**: Jest with React Testing Library for component testing
+- **✅ E2E Tests**: Playwright for end-to-end user flow testing
+- **✅ Type Safety**: Full TypeScript coverage with strict mode
+- **✅ Linting**: ESLint with custom rules for Web3 development
+- **✅ Integration Tests**: Contract interaction testing
 
 ### Development Workflow
 
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/amazing-feature`
-3. Make your changes and add tests
-4. Run the test suite: `yarn test`
-5. Commit your changes: `git commit -m 'Add amazing feature'`
-6. Push to the branch: `git push origin feature/amazing-feature`
-7. Open a Pull Request
+1. **Local Development**: `yarn dev` starts the development server
+2. **Code Quality**: `yarn validate` runs all quality checks
+3. **Testing**: `yarn test:coverage` ensures >80% test coverage
+4. **Building**: `yarn build:hybrid` creates production-ready build
+5. **Deployment**: Automatic deployment via GitHub Actions
 
-### Code Standards
+## 🌐 Deployment
 
-- **Solidity**: Follow official style guide
-- **TypeScript**: ESLint + Prettier configuration
-- **Testing**: Minimum 80% coverage required
-- **Documentation**: Comprehensive inline documentation
+### Cloudflare Pages (Production)
 
-## 📖 Documentation
-
-- [Diamond Standard (EIP-2535)](https://eips.ethereum.org/EIPS/eip-2535)
-- [OpenZeppelin Defender Docs](https://docs.openzeppelin.com/defender/)
-- [Hardhat Documentation](https://hardhat.org/docs)
-- [TypeChain Documentation](https://github.com/dethcrypto/TypeChain)
-
-## 🐛 Troubleshooting
-
-### Common Issues
-
-#### TypeScript build errors
+The project is optimized for Cloudflare Pages deployment:
 
 ```bash
-# The yarn build command currently has TypeScript compilation errors
-# Use yarn compile instead for development:
-yarn clean
-yarn compile
+# Build for production
+yarn build:production
+
+# Deploy using Wrangler CLI
+yarn deploy:cloudflare
 ```
 
-#### Diamond ABI generation fails
+**Live Deployment**: https://gnus-dao-web.pages.dev
 
-```bash
-# Clean and regenerate
-yarn clean
-yarn compile
-# OR
-yarn build
+### GitHub Actions CI/CD
+
+Automated deployment pipeline includes:
+
+- **✅ Code Quality Checks**: TypeScript, ESLint, Prettier
+- **✅ Automated Testing**: Unit and integration tests
+- **✅ Build Verification**: Ensures successful production builds
+- **✅ Automatic Deployment**: Deploy to Cloudflare Pages on main branch
+- **✅ Preview Deployments**: Deploy preview for pull requests
+
+
+## 🏗️ Architecture
+
+### Smart Contract Integration
+
+The platform integrates with Diamond pattern smart contracts (EIP-2535):
+
+- **✅ Upgradeable Architecture**: Modular contract system with facets
+- **✅ Gas Optimization**: Efficient function delegation and storage
+- **✅ Feature Modularity**: Separate facets for proposals, voting, treasury
+- **✅ Contract Address**: `0x57AE78C65F7Dd6d158DE9F4cA9CCeaA98C988199` (Sepolia)
+
+### Key Contract Functions
+
+```typescript
+// Proposal Management
+propose(title: string, ipfsHash: string) → uint256
+getProposalBasic(proposalId: uint256) → (id, proposer, title, ipfsHash)
+getProposalStatus(proposalId: uint256) → (startTime, endTime, totalVotes, executed, cancelled)
+
+// Voting System
+vote(proposalId: uint256, votes: uint256) → void
+hasVoted(proposalId: uint256, voter: address) → bool
+getVote(proposalId: uint256, voter: address) → uint256
+
+// Configuration
+getVotingConfig() → (proposalThreshold, votingDelay, votingPeriod, quorumThreshold)
 ```
 
-#### Compilation errors
+## 📊 Current Status
 
-```bash
-# Clean all artifacts and rebuild
-yarn clean
-yarn compile
-```
+### ✅ Completed Features
 
-#### Test failures related to missing artifacts
+- **Proposal Creation**: Full end-to-end proposal creation with IPFS upload
 
-```bash
-# Some tests may fail due to missing contract artifacts
-# Ensure contracts are compiled first:
-yarn compile
-yarn test
-```
+- **Proposal Display**: Real-time proposal states and time remaining
+- **Wallet Integration**: WalletConnect v2 support and MetaMask support
+- **Navigation**: Seamless routing between proposal list and details
+- **State Management**: Proper proposal state calculation from contract data
+- **Error Handling**: Comprehensive error handling and user feedback
+- **Build System**: Hybrid build for Cloudflare Pages deployment
+- **CI/CD Pipeline**: Automated testing and deployment
 
-## � Security
+### 🔄 Current Tasks
 
-This project implements comprehensive local security checks to ensure code and dependencies are secure before pushing to GitHub.
-
-### Local Security Tools Setup
-
-Install the following global tools for dependency and code scanning:
-
-```bash
-# Snyk CLI (free for open source)
-npm install -g snyk
-snyk auth  # Authenticate with free account
-
-# Socket.dev CLI
-npm install -g @socketsecurity/cli
-
-# OSV-Scanner (requires Go)
-go install github.com/google/ossf/osv-scanner/cmd/osv-scanner@latest
-
-# Semgrep (requires Python)
-pip install semgrep
-
-# Sigstore CLI (for provenance validation)
-pip install sigstore
-```
-
-### Security Scripts
-
-Run these scripts regularly to scan for vulnerabilities:
-
-- `yarn audit` - Check dependencies for known CVEs
-- `yarn depcheck` - Identify unused packages
-- `yarn snyk:test` - Scan dependencies with Snyk
-- `yarn socket:scan` - Detect supply chain risks
-- `yarn osv:scan` - Check OSV database vulnerabilities
-- `yarn semgrep:scan` - Static analysis for code vulnerabilities
-- `yarn security-check` - Run all security scans
-
-### Pre-commit Hooks
-
-The project uses Husky and lint-staged for pre-commit checks:
-
-- Lints and formats staged files
-- Runs dependency audit
-- Executes tests
-
-To set up hooks after cloning:
-
-```bash
-yarn install
-yarn prepare  # Sets up Husky
-```
-
-### Secure Dependency Management
-
-- Use `yarn install --frozen-lockfile` for reproducible builds
-- Regularly audit and update dependencies
-- Minimize dependencies to reduce attack surface
-
-## �📄 License
-
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🙏 Acknowledgments
-
-- [EIP-2535 Diamond Standard](https://eips.ethereum.org/EIPS/eip-2535) by Nick Mudge
-- [OpenZeppelin](https://openzeppelin.com/) for security standards
-- [Hardhat](https://hardhat.org/) for development framework
-- [TypeChain](https://github.com/dethcrypto/TypeChain) for TypeScript integration
+- **Enhanced UI/UX**: Improve visual design and user experience
+- **Wallet Integration**: WalletConnect v2 support, SIWE for cloudflare
+- **Voting System**: Vote For/Against functionality with wallet integration
+- **Performance Optimization**: Optimize bundle size and loading times
+- **Advanced Voting**: Implement delegation and quadratic voting features
+- **Treasury Management**: Add treasury proposal and execution features
+- **Analytics Dashboard**: Implement governance analytics and metrics

@@ -179,7 +179,7 @@ class SmartTrigger {
 		let match: RegExpExecArray | null;
 
 		while ((match = functionRegex.exec(diff)) !== null) {
-			matches.push(match[1]);
+			matches.push(match[1]!);
 		}
 
 		return [...new Set(matches)]; // Remove duplicates
@@ -192,7 +192,7 @@ class SmartTrigger {
 		let match: RegExpExecArray | null;
 
 		while ((match = varRegex.exec(diff)) !== null) {
-			matches.push(match[1]);
+			matches.push(match[1]!);
 		}
 
 		return [...new Set(matches)];
@@ -204,7 +204,7 @@ class SmartTrigger {
 		let match: RegExpExecArray | null;
 
 		while ((match = modifierRegex.exec(diff)) !== null) {
-			matches.push(match[1]);
+			matches.push(match[1]!);
 		}
 
 		return [...new Set(matches)];

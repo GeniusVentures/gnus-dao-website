@@ -1,8 +1,10 @@
-node_modules
-.env
-coverage
+##########################
+# GNUS DAO .gitignore  ###
+##########################
 coverage.json
-typechain
+typechain-types/
+diamond-abi/
+diamond-typechain-types/
 
 #Hardhat files
 cache
@@ -11,7 +13,6 @@ artifacts
 .idea
 
 logs
-typechain-types
 fast.test.ts
 dist
 .vscode/settings.json
@@ -23,8 +24,189 @@ diamond-abi/
 
 config/
 test-diamonds
-diamond-typechain-types
 deployments
 test-output
 test-mocks
 reports
+
+##########################
+
+# dependencies
+/node_modules
+/.pnp
+.pnp.js
+.yarn/install-state.gz
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+/deploy/
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# local env files
+.env*.local
+.env
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+Thumbs.db
+
+# Logs
+logs
+*.log
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+*.lcov
+
+# nyc test coverage
+.nyc_output
+
+# Dependency directories
+node_modules/
+jspm_packages/
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# Yarn cache (too large for git)
+.yarn/cache
+
+# parcel-bundler cache (https://parceljs.org/)
+.cache
+.parcel-cache
+
+# next.js build output
+.next
+
+# nuxt.js build output
+.nuxt
+
+# vuepress build output
+.vuepress/dist
+
+# Serverless directories
+.serverless
+
+# FuseBox cache
+.fusebox/
+
+# DynamoDB Local files
+.dynamodb/
+
+# TernJS port file
+.tern-port
+
+# Stores VSCode versions used for testing VSCode extensions
+.vscode-test
+
+# Test files and debug files
+*test*.js
+*debug*.js
+*test*.json
+*debug*.png
+*test*.png
+
+# Large files and build artifacts (prevent files >100MB)
+*.pack
+*.node
+*.wasm
+*.bin
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Additional Next.js cache patterns
+.next/cache/
+.next/static/chunks/
+.next/server/
+.next/trace
+
+# Webpack and build caches
+.webpack/
+webpack-stats.json
+build-stats.json
+
+# Package manager caches and large files
+.pnpm-store/
+.yarn/cache/
+.yarn/unplugged/
+.yarn/build-state.yml
+.yarn/install-state.gz
+node_modules/.cache/
+
+# Cloudflare and deployment
+wrangler.toml.backup
+.wrangler/
+.dev.vars
+.env.production
+
+# Build artifacts and temporary files
+*.tsbuildinfo
+.turbo/
+.swc/
+
+# Test artifacts
+test-results/
+playwright-report/
+coverage/
+*.coverage
+
+# IDE and editor files
+.vscode/settings.json
+.idea/workspace.xml
+*.sublime-*
+.history/
+
+# OS generated files
+.DS_Store?
+ehthumbs.db
+Icon?
+Thumbs.db
+*.tmp
+*.temp

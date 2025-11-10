@@ -1,0 +1,55 @@
+# Enhanced robots.txt for GNUS DAO
+# Optimized for search engines and Web3 crawlers
+
+User-agent: *
+Allow: /
+
+# Allow all main sections
+Allow: /proposals
+Allow: /treasury
+Allow: /analytics
+Allow: /docs
+
+# Allow proposal detail pages
+Allow: /proposals/*
+
+# Disallow admin and internal paths
+Disallow: /api/
+Disallow: /_next/
+Disallow: /admin/
+Disallow: /private/
+
+# Allow common crawlers
+User-agent: Googlebot
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+User-agent: Slurp
+Allow: /
+
+User-agent: DuckDuckBot
+Allow: /
+
+User-agent: Baiduspider
+Allow: /
+
+User-agent: YandexBot
+Allow: /
+
+# Web3 and blockchain crawlers
+User-agent: Web3Bot
+Allow: /
+
+User-agent: BlockchainBot
+Allow: /
+
+# Sitemap location
+Sitemap: https://dao.gnus.ai/sitemap.xml
+
+# Crawl delay (be respectful)
+Crawl-delay: 1
+
+# Host preference
+Host: dao.gnus.ai

@@ -1,5 +1,5 @@
+import { formatEther, parseEther } from 'ethers';
 import { ethers, network } from 'hardhat';
-import { parseEther, formatEther } from 'ethers';
 import { GNUSDAODiamond } from '../../diamond-typechain-types'; // Update the path to your typechain types
 import { INetworkDeployInfo } from '../common'; // Update the path to your common types
 
@@ -26,7 +26,11 @@ async function main(networkDeployInfo: INetworkDeployInfo) {
 
 	// Fund the impersonated deployer account
 	const fundAmount = parseEther('10'); // Adjust as needed
-	const [funder] = await ethers.getSigners();
+	const signers = await ethers.getSigners();
+	if (signers.length === 0) {
+		throw new Error('No signers available to fund the deployer account');
+	}
+	const funder = signers[0]!;
 	console.log(`Funding deployer account with ${formatEther(fundAmount)} ETH`);
 	await funder.sendTransaction({
 		to: DeployerAddress,

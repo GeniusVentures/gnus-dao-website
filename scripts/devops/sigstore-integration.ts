@@ -402,7 +402,7 @@ class SigstoreIntegration {
 		this.verifyCertificate(bundle.verificationMaterial.certificate);
 
 		// Verify transparency log entry
-		await this.verifyTransparencyLogEntry(bundle.verificationMaterial.tlogEntries[0]);
+		await this.verifyTransparencyLogEntry(bundle.verificationMaterial.tlogEntries[0]!);
 
 		// Verify signature
 		this.verifySignature(bundle);

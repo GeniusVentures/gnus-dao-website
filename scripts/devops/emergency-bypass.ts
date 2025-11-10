@@ -52,7 +52,7 @@ const HOOKS = ['pre-commit', 'commit-msg', 'pre-push'];
 
 class EmergencyBypassTool {
 	private args: string[];
-	private command: string;
+	private command: string | undefined;
 	private logDir: string;
 	private bypassLogFile: string;
 	private options: BypassOptions;

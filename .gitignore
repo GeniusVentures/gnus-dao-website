@@ -35,7 +35,7 @@ reports
 /node_modules
 /.pnp
 .pnp.js
-.yarn/install-state.gz
+.yarn
 
 # testing
 /coverage

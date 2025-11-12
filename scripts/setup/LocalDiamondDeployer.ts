@@ -1,6 +1,3 @@
-import type { JsonRpcProvider } from '@ethersproject/providers';
-import type { HardhatEthersProvider } from '@nomicfoundation/hardhat-ethers/internal/hardhat-ethers-provider';
-import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers';
 import {
 	DeploymentRepository,
 	Diamond,
@@ -11,9 +8,12 @@ import {
 	LocalDeploymentStrategy,
 	cutKey,
 	impersonateAndFundSigner,
-} from 'diamonds';
+} from '@diamondslab/diamonds';
+import '@diamondslab/hardhat-diamonds';
+import type { JsonRpcProvider } from '@ethersproject/providers';
+import type { HardhatEthersProvider } from '@nomicfoundation/hardhat-ethers/internal/hardhat-ethers-provider';
+import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers';
 import hre, { ethers } from 'hardhat';
-import 'hardhat-diamonds';
 import { join } from 'path';
 
 // Hardhat task system used for Diamond ABI generation

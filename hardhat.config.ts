@@ -1,9 +1,9 @@
+import '@diamondslab/hardhat-diamonds';
 import '@nomicfoundation/hardhat-toolbox';
 import '@nomicfoundation/hardhat-web3-v4';
 import '@typechain/hardhat';
 import * as fs from 'fs';
 import 'hardhat-abi-exporter';
-import 'hardhat-diamonds';
 import 'hardhat-gas-reporter';
 import 'hardhat-multichain';
 import { HardhatUserConfig } from 'hardhat/config';

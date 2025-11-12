@@ -4,25 +4,27 @@
  * Note: These tests require actual IPFS service configuration
  */
 
-// Mock the IPFS dependencies to avoid import errors in test environment
-jest.mock(
-	'ipfs-http-client',
-	() => ({
-		create: jest.fn(() => ({
-			add: jest.fn(),
-			pin: { add: jest.fn() },
-		})),
-	}),
-	{ virtual: true },
-);
+// Mock the Helia dependencies to avoid import errors in test environment
+jest.mock('helia', () => ({
+	createHelia: jest.fn(() => Promise.resolve({
+		stop: jest.fn(),
+	})),
+}));
 
-jest.mock('@pinata/sdk', () => ({
+jest.mock('@helia/unixfs', () => ({
+	unixfs: jest.fn(() => ({
+		addFile: jest.fn(),
+		addBytes: jest.fn(),
+	})),
+}));
+
+jest.mock('pinata-web3', () => ({
 	PinataSDK: jest.fn(() => ({
 		upload: {
 			file: jest.fn(),
 		},
-		pinning: {
-			pinByHash: jest.fn(),
+		files: {
+			delete: jest.fn(),
 		},
 	})),
 }));

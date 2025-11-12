@@ -252,20 +252,24 @@ Object.defineProperty(global, "crypto", {
 });
 
 // Mock IPFS dependencies
-jest.mock("@pinata/sdk", () => ({
+jest.mock("pinata-web3", () => ({
   __esModule: true,
-  default: jest.fn().mockImplementation(() => ({
-    pinFileToIPFS: jest.fn().mockResolvedValue({
-      IpfsHash: "QmTestHash123",
-      PinSize: 1024,
-      Timestamp: new Date().toISOString(),
-    }),
-    pinJSONToIPFS: jest.fn().mockResolvedValue({
-      IpfsHash: "QmTestJSONHash123",
-      PinSize: 512,
-      Timestamp: new Date().toISOString(),
-    }),
-    unpin: jest.fn().mockResolvedValue({}),
+  PinataSDK: jest.fn().mockImplementation(() => ({
+    upload: {
+      file: jest.fn().mockResolvedValue({
+        IpfsHash: "QmTestHash123",
+        PinSize: 1024,
+        Timestamp: new Date().toISOString(),
+      }),
+      json: jest.fn().mockResolvedValue({
+        IpfsHash: "QmTestJSONHash123",
+        PinSize: 512,
+        Timestamp: new Date().toISOString(),
+      }),
+    },
+    files: {
+      delete: jest.fn().mockResolvedValue({}),
+    },
     testAuthentication: jest.fn().mockResolvedValue({
       authenticated: true,
     }),

@@ -101,6 +101,9 @@ jobs:
         run: |
           echo "🚀 Building GNUS DAO Platform for production..."
           yarn build:production
+          # Note: To use OpenNext Cloudflare adapter instead:
+          # Replace above with: yarn build:cloudflare
+          # And update directory below to: .open-next/assets
 
       - name: 🔍 Validate Build Output
         run: |
@@ -120,9 +123,9 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           projectName: gnus-dao-web
-          directory: out
+          directory: out  # Use .open-next/assets when using OpenNext
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}
-          wranglerVersion: '3'
+          wranglerVersion: '3'  # Requires 3.99.0+ for OpenNext
 
       - name: 🎉 Deployment Success
         run: |

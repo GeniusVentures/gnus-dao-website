@@ -186,6 +186,9 @@ wrangler.toml.backup
 .dev.vars
 .env.production
 
+# OpenNext build output
+.open-next/
+
 # Build artifacts and temporary files
 *.tsbuildinfo
 .turbo/

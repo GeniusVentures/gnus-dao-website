@@ -1,0 +1,67 @@
+diff --git a/node_modules/@diamondslab/hardhat-diamonds/dist/src/lib/TypeChainIntegration.js b/node_modules/@diamondslab/hardhat-diamonds/dist/src/lib/TypeChainIntegration.js
+index 7638c36..538d574 100644
+--- a/node_modules/@diamondslab/hardhat-diamonds/dist/src/lib/TypeChainIntegration.js
++++ b/node_modules/@diamondslab/hardhat-diamonds/dist/src/lib/TypeChainIntegration.js
+@@ -95,8 +95,9 @@ class HardhatTypeChainIntegration {
+      */
+     async runTypeChain(abiPath, target, outputDir, verbose) {
+         return new Promise((resolve, reject) => {
++            const typechainCliPath = (0, path_1.join)(this.hre.config.paths.root, 'node_modules', 'typechain', 'dist', 'cli', 'cli.js');
+             const args = [
+-                "typechain",
++                typechainCliPath,
+                 "--target",
+                 target,
+                 "--out-dir",
+@@ -104,9 +105,9 @@ class HardhatTypeChainIntegration {
+                 abiPath,
+             ];
+             if (verbose) {
+-                console.log(chalk_1.default.cyan(`   Running: npx ${args.join(" ")}`));
++                console.log(chalk_1.default.cyan(`   Running: node ${args.join(" ")}`));
+             }
+-            const child = (0, child_process_1.spawn)("npx", args, {
++            const child = (0, child_process_1.spawn)("node", args, {
+                 stdio: verbose ? "inherit" : "pipe",
+                 cwd: this.hre.config.paths.root,
+             });
+@@ -187,9 +188,14 @@ class HardhatTypeChainIntegration {
+             console.log(chalk_1.default.blue("🔍 Validating TypeChain setup..."));
+         }
+         try {
+-            // Check if TypeChain is available using --help instead of --version
+-            await this.runCommand("npx", ["typechain", "--help"], { stdio: "pipe" });
+-            if (verbose) {
++            // Check if TypeChain is available by checking file system
++            const fs = require('fs');
++            const path = require('path');
++            const typechainCliPath = path.join(this.hre.config.paths.root, 'node_modules', 'typechain', 'dist', 'cli', 'cli.js');
++            if (!fs.existsSync(typechainCliPath)) {
++                issues.push("TypeChain CLI is not available");
++                suggestions.push("Install TypeChain: npm install --save-dev typechain @typechain/ethers-v6");
++            } else if (verbose) {
+                 console.log(chalk_1.default.green("   ✅ TypeChain CLI is available"));
+             }
+         }
+diff --git a/node_modules/@diamondslab/hardhat-diamonds/dist/src/tasks/shared/TaskValidation.js b/node_modules/@diamondslab/hardhat-diamonds/dist/src/tasks/shared/TaskValidation.js
+index cf43351..ad231e9 100644
+--- a/node_modules/@diamondslab/hardhat-diamonds/dist/src/tasks/shared/TaskValidation.js
++++ b/node_modules/@diamondslab/hardhat-diamonds/dist/src/tasks/shared/TaskValidation.js
+@@ -332,7 +332,16 @@ class TaskValidation {
+         }
+         // Check if diamonds module is available
+         try {
+-            require("@diamondslab/diamonds");
++            const fs = require('fs');
++            const path = require('path');
++            const diamondsPath = path.join(process.cwd(), 'node_modules', '@diamondslab', 'diamonds', 'package.json');
++            if (!fs.existsSync(diamondsPath)) {
++                errors.push({
++                    field: 'dependencies',
++                    message: 'diamonds module not found',
++                    suggestion: 'Install the diamonds module: npm install @diamondslab/diamonds'
++                });
++            }
+         }
+         catch {
+             errors.push({

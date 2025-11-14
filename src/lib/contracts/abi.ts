@@ -183,7 +183,8 @@ export const FUNCTION_SELECTORS = {
 import { keccak256, toUtf8Bytes } from 'ethers';
 
 export const ROLES = {
-	DEFAULT_ADMIN_ROLE: '0x0000000000000000000000000000000000000000000000000000000000000000',
+	// DEFAULT_ADMIN_ROLE is bytes32(0) - the default admin role
+	DEFAULT_ADMIN_ROLE: '0x' + '0'.repeat(64),
 	// Computed as keccak256("PROPOSER_ROLE")
 	get PROPOSER_ROLE() {
 		return keccak256(toUtf8Bytes('PROPOSER_ROLE'));

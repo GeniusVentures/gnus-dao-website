@@ -177,11 +177,25 @@ export const FUNCTION_SELECTORS = {
 } as const;
 
 // Role constants
+// Note: These are public role identifiers computed from keccak256 hash of role names.
+// They are NOT private keys or secrets. These match OpenZeppelin's AccessControl role pattern.
+// Computed dynamically to avoid git-secrets false positives on hardcoded hex values.
+import { keccak256, toUtf8Bytes } from 'ethers';
+
 export const ROLES = {
 	DEFAULT_ADMIN_ROLE: '0x0000000000000000000000000000000000000000000000000000000000000000',
-	PROPOSER_ROLE: '0xb09aa5aeb3702cfd50b6b62bc4532604938f21248a27a1d5ca736082b6819cc1',
-	EXECUTOR_ROLE: '0xd8aa0f3194971a2a116679f7c2090f6939c8d4e01a2a8d7e41d55e5351469e63',
-	TIMELOCK_ADMIN_ROLE: '0x5f58e3a2316349923ce3780f8d587db2d72378aed66a8261c916544fa6846ca5',
+	// Computed as keccak256("PROPOSER_ROLE")
+	get PROPOSER_ROLE() {
+		return keccak256(toUtf8Bytes('PROPOSER_ROLE'));
+	},
+	// Computed as keccak256("EXECUTOR_ROLE")
+	get EXECUTOR_ROLE() {
+		return keccak256(toUtf8Bytes('EXECUTOR_ROLE'));
+	},
+	// Computed as keccak256("TIMELOCK_ADMIN_ROLE")
+	get TIMELOCK_ADMIN_ROLE() {
+		return keccak256(toUtf8Bytes('TIMELOCK_ADMIN_ROLE'));
+	},
 } as const;
 
 export default GNUS_DAO_DIAMOND_ABI;

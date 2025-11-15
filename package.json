@@ -162,7 +162,7 @@
     "@commitlint/cli": "^19.8.1",
     "@commitlint/config-conventional": "^19.8.1",
     "@diamondslab/diamonds": "^1.2.1",
-    "@diamondslab/hardhat-diamonds": "^1.1.7",
+    "@diamondslab/hardhat-diamonds": "^1.1.8",
     "@ethersproject/sha2": "^5.8.0",
     "@gnus.ai/contracts-upgradeable-diamond": "=4.5.0",
     "@nomicfoundation/hardhat-chai-matchers": "^2.0.0",

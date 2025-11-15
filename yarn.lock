@@ -2696,14 +2696,16 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@diamondslab/hardhat-diamonds@npm:^1.1.7":
-  version: 1.1.7
-  resolution: "@diamondslab/hardhat-diamonds@npm:1.1.7"
+"@diamondslab/hardhat-diamonds@npm:^1.1.8":
+  version: 1.1.8
+  resolution: "@diamondslab/hardhat-diamonds@npm:1.1.8"
+  dependencies:
+    chalk: "npm:^5.6.2"
   peerDependencies:
     "@diamondslab/diamonds": ^1.0.0
     ethers: ^6.0.0
     hardhat: ^2.0.0
-  checksum: 10/6a1ffdb5bdc5dcf1195eeab0bc8b5ac3879197910c6bb7a9dc65284f6d16f59df0ff480303453901048bcd834ba8d05ba7f7d100d819bcddd72c12c8b19ea746
+  checksum: 10/f1e93cdf52741316887e3fc0ee3b5ce0c434858f8fad54075e919ece134ed3a0f7fd3ddfd82e0679b442414aced24e49ab6d889dcd5e53d0a5a2602094848079
   languageName: node
   linkType: hard
 
@@ -12635,7 +12637,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"chalk@npm:^5.3.0, chalk@npm:^5.4.1":
+"chalk@npm:^5.3.0, chalk@npm:^5.4.1, chalk@npm:^5.6.2":
   version: 5.6.2
   resolution: "chalk@npm:5.6.2"
   checksum: 10/1b2f48f6fba1370670d5610f9cd54c391d6ede28f4b7062dd38244ea5768777af72e5be6b74fb6c6d54cb84c4a2dff3f3afa9b7cb5948f7f022cfd3d087989e0
@@ -16758,7 +16760,7 @@ __metadata:
     "@commitlint/cli": "npm:^19.8.1"
     "@commitlint/config-conventional": "npm:^19.8.1"
     "@diamondslab/diamonds": "npm:^1.2.1"
-    "@diamondslab/hardhat-diamonds": "npm:^1.1.7"
+    "@diamondslab/hardhat-diamonds": "npm:^1.1.8"
     "@ethersproject/sha2": "npm:^5.8.0"
     "@gnus.ai/contracts-upgradeable-diamond": "npm:=4.5.0"
     "@headlessui/react": "npm:^2.2.7"

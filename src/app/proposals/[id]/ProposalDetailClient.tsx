@@ -8,6 +8,7 @@ import { ProposalState, VoteSupport } from "@/lib/contracts/gnusDao";
 import { gnusDaoService } from "@/lib/contracts/gnusDaoService";
 import { formatAddress } from "@/lib/utils";
 import { useWeb3Store } from "@/lib/web3/reduxProvider";
+import { checkRateLimit } from "@/lib/utils/clientRateLimiter";
 import {
   ArrowLeft,
   Ban,
@@ -258,6 +259,15 @@ export default function ProposalDetailClient() {
 
   const handleVote = async (support: VoteSupport) => {
     if (!proposal || !wallet.address) return;
+
+    // Check rate limit before voting
+    const rateLimitCheck = checkRateLimit('VOTE_CAST');
+    if (!rateLimitCheck.allowed) {
+      toast.error(
+        `Too many votes. Please wait ${rateLimitCheck.resetIn} seconds before voting again.`
+      );
+      return;
+    }
 
     setVoting(true);
     try {

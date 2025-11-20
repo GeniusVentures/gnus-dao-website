@@ -1,7 +1,10 @@
 /**
  * Cloudflare Worker: Secure IPFS Upload
  * Handles IPFS uploads with secure API key management
+ * Rate Limited: 5 uploads per minute per authenticated user
  */
+
+import { withRateLimit } from '../../utils/rateLimiter';
 
 interface Env {
 	PINATA_JWT: string;
@@ -36,7 +39,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
 	// Verify authentication
 	const authHeader = request.headers.get('Authorization');
 	if (!authHeader || !authHeader.startsWith('Bearer ')) {
-		return new Response(JSON.stringify({ error: '⚠️' }), {
+		return new Response(JSON.stringify({ error: 'Unauthorized' }), {
 			status: 401,
 			headers: {
 				'Content-Type': 'application/json',
@@ -45,73 +48,101 @@ export const onRequest: PagesFunction<Env> = async (context) => {
 		});
 	}
 
+	// Extract user address from JWT for rate limiting
+	const token = authHeader.substring(7);
+	let userAddress: string;
+
 	try {
-		// Verify session token
-		const token = authHeader.substring(7);
-		await verifyJWT(token, env.JWT_SECRET);
-
-		// Get form data
-		const formData = await request.formData();
-		const file = formData.get('file');
-		const metadata = formData.get('metadata');
-
-		if (!file) {
-			return new Response(JSON.stringify({ error: 'No file provided' }), {
-				status: 400,
-				headers: {
-					'Content-Type': 'application/json',
-					'Access-Control-Allow-Origin': '*',
-				},
-			});
-		}
-
-		// Upload to Pinata using secure API key from environment
-		const pinataFormData = new FormData();
-		pinataFormData.append('file', file);
-
-		if (metadata) {
-			pinataFormData.append('pinataMetadata', metadata);
-		}
-
-		const pinataResponse = await fetch('https://api.pinata.cloud/pinning/pinFileToIPFS', {
-			method: 'POST',
-			headers: {
-				Authorization: `Bearer ${env.PINATA_JWT}`,
-			},
-			body: pinataFormData,
-		});
-
-		if (!pinataResponse.ok) {
-			throw new Error('Pinata upload failed');
-		}
-
-		const result = await pinataResponse.json();
-
-		return new Response(
-			JSON.stringify({
-				success: true,
-				ipfsHash: result.IpfsHash,
-				pinSize: result.PinSize,
-				timestamp: result.Timestamp,
-			}),
-			{
-				status: 200,
-				headers: {
-					'Content-Type': 'application/json',
-					'Access-Control-Allow-Origin': '*',
-				},
-			},
-		);
+		const payload = await verifyJWT(token, env.JWT_SECRET);
+		userAddress = payload.address;
 	} catch (error) {
-		console.error('IPFS upload failed:', error);
-		return new Response(JSON.stringify({ error: 'Upload failed' }), {
-			status: 500,
+		return new Response(JSON.stringify({ error: 'Invalid token' }), {
+			status: 401,
 			headers: {
 				'Content-Type': 'application/json',
 				'Access-Control-Allow-Origin': '*',
 			},
 		});
 	}
+
+	// Apply rate limiting: 5 uploads per minute per user
+	return withRateLimit(
+		request,
+		env.AUTH_SESSIONS,
+		{
+			limit: 5,
+			windowSeconds: 60,
+			keyPrefix: `rate:upload:${userAddress}`,
+		},
+		async () => {
+			try {
+				// Get form data
+				const formData = await request.formData();
+				const file = formData.get('file');
+				const metadata = formData.get('metadata');
+
+				if (!file) {
+					return new Response(JSON.stringify({ error: 'No file provided' }), {
+						status: 400,
+						headers: {
+							'Content-Type': 'application/json',
+							'Access-Control-Allow-Origin': '*',
+						},
+					});
+				}
+
+				// Upload to Pinata using secure API key from environment
+				const pinataFormData = new FormData();
+				pinataFormData.append('file', file);
+
+				if (metadata) {
+					pinataFormData.append('pinataMetadata', metadata);
+				}
+
+				const pinataResponse = await fetch(
+					'https://api.pinata.cloud/pinning/pinFileToIPFS',
+					{
+						method: 'POST',
+						headers: {
+							Authorization: `Bearer ${env.PINATA_JWT}`,
+						},
+						body: pinataFormData,
+					},
+				);
+
+				if (!pinataResponse.ok) {
+					throw new Error('Pinata upload failed');
+				}
+
+				const result = await pinataResponse.json();
+
+				return new Response(
+					JSON.stringify({
+						success: true,
+						ipfsHash: result.IpfsHash,
+						pinSize: result.PinSize,
+						timestamp: result.Timestamp,
+					}),
+					{
+						status: 200,
+						headers: {
+							'Content-Type': 'application/json',
+							'Access-Control-Allow-Origin': '*',
+						},
+					},
+				);
+			} catch (error) {
+				console.error('IPFS upload failed:', error);
+				return new Response(JSON.stringify({ error: 'Upload failed' }), {
+					status: 500,
+					headers: {
+						'Content-Type': 'application/json',
+						'Access-Control-Allow-Origin': '*',
+					},
+				});
+			}
+		},
+	);
 };
 
 /**

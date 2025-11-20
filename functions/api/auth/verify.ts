@@ -2,7 +2,10 @@
  * Cloudflare Worker: Verify SIWE Signature
  * Backend verification for Sign-In with Ethereum messages
  * Note: Uses ethers.js for signature verification (compatible with Cloudflare Workers)
+ * Rate Limited: 5 requests per minute per IP
  */
+
+import { withRateLimit } from '../../utils/rateLimiter';
 
 interface Env {
 	AUTH_SESSIONS: KVNamespace;
@@ -39,124 +42,136 @@ export const onRequest: PagesFunction<Env> = async (context) => {
 		});
 	}
 
-	try {
-		// Check if JWT_SECRET is configured
-		if (!env.JWT_SECRET) {
-			console.error('JWT_SECRET not configured');
-			console.error('Available env keys:', Object.keys(env));
-			return new Response(
-				JSON.stringify({
-					error: 'Server configuration error',
-					details:
-						'JWT_SECRET environment variable is not set. Please configure it in Cloudflare Pages Dashboard.',
-					availableEnv: Object.keys(env),
-				}),
-				{
-					status: 500,
-					headers: {
-						'Content-Type': 'application/json',
-						'Access-Control-Allow-Origin': '*',
+	// Apply rate limiting: 5 requests per minute per IP
+	return withRateLimit(
+		request,
+		env.AUTH_SESSIONS,
+		{
+			limit: 5,
+			windowSeconds: 60,
+			keyPrefix: 'rate:verify',
+		},
+		async () => {
+			try {
+				// Check if JWT_SECRET is configured
+				if (!env.JWT_SECRET) {
+					console.error('JWT_SECRET not configured');
+					console.error('Available env keys:', Object.keys(env));
+					return new Response(
+						JSON.stringify({
+							error: 'Server configuration error',
+							details:
+								'JWT_SECRET environment variable is not set. Please configure it in Cloudflare Pages Dashboard.',
+							availableEnv: Object.keys(env),
+						}),
+						{
+							status: 500,
+							headers: {
+								'Content-Type': 'application/json',
+								'Access-Control-Allow-Origin': '*',
+							},
+						},
+					);
+				}
+
+				const body: VerifyRequest = await request.json();
+				const { message, signature, nonce, address, chainId } = body;
+
+				if (!message || !signature || !nonce || !address) {
+					return new Response(JSON.stringify({ error: 'Missing required fields' }), {
+						status: 400,
+						headers: {
+							'Content-Type': 'application/json',
+							'Access-Control-Allow-Origin': '*',
+						},
+					});
+				}
+
+				// Verify nonce exists and is valid
+				const nonceData = await env.AUTH_SESSIONS.get(`nonce:${nonce}`);
+				if (!nonceData) {
+					return new Response(JSON.stringify({ error: 'Invalid or expired nonce' }), {
+						status: 401,
+						headers: {
+							'Content-Type': 'application/json',
+							'Access-Control-Allow-Origin': '*',
+						},
+					});
+				}
+
+				// Verify the signature matches the message and address
+				// The client has already verified this using ethers.js
+				// Here we just validate the nonce and create the session
+				// For production, you could add additional verification using Web Crypto API
+
+				// Verify nonce is in the message
+				if (!message.includes(nonce)) {
+					return new Response(JSON.stringify({ error: 'Nonce mismatch' }), {
+						status: 401,
+						headers: {
+							'Content-Type': 'application/json',
+							'Access-Control-Allow-Origin': '*',
+						},
+					});
+				}
+
+				// Delete used nonce
+				await env.AUTH_SESSIONS.delete(`nonce:${nonce}`);
+
+				// Create session
+				const sessionId = crypto.randomUUID();
+				const session = {
+					id: sessionId,
+					address: address, // Keep original case from SIWE message
+					chainId: chainId || 1,
+					issuedAt: new Date().toISOString(),
+					expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours
+				};
+
+				// Store session in KV
+				await env.AUTH_SESSIONS.put(
+					`session:${sessionId}`,
+					JSON.stringify(session),
+					{ expirationTtl: 86400 }, // 24 hours
+				);
+
+				// Generate JWT token
+				const token = await generateJWT(session, env.JWT_SECRET);
+
+				return new Response(
+					JSON.stringify({
+						success: true,
+						session,
+						token,
+					}),
+					{
+						status: 200,
+						headers: {
+							'Content-Type': 'application/json',
+							'Access-Control-Allow-Origin': '*',
+							'Cache-Control': 'no-store, max-age=0',
+						},
 					},
-				},
-			);
-		}
-
-		const body: VerifyRequest = await request.json();
-		const { message, signature, nonce, address, chainId } = body;
-
-		if (!message || !signature || !nonce || !address) {
-			return new Response(JSON.stringify({ error: 'Missing required fields' }), {
-				status: 400,
-				headers: {
-					'Content-Type': 'application/json',
-					'Access-Control-Allow-Origin': '*',
-				},
-			});
-		}
-
-		// Verify nonce exists and is valid
-		const nonceData = await env.AUTH_SESSIONS.get(`nonce:${nonce}`);
-		if (!nonceData) {
-			return new Response(JSON.stringify({ error: 'Invalid or expired nonce' }), {
-				status: 401,
-				headers: {
-					'Content-Type': 'application/json',
-					'Access-Control-Allow-Origin': '*',
-				},
-			});
-		}
-
-		// Verify the signature matches the message and address
-		// The client has already verified this using ethers.js
-		// Here we just validate the nonce and create the session
-		// For production, you could add additional verification using Web Crypto API
-
-		// Verify nonce is in the message
-		if (!message.includes(nonce)) {
-			return new Response(JSON.stringify({ error: 'Nonce mismatch' }), {
-				status: 401,
-				headers: {
-					'Content-Type': 'application/json',
-					'Access-Control-Allow-Origin': '*',
-				},
-			});
-		}
-
-		// Delete used nonce
-		await env.AUTH_SESSIONS.delete(`nonce:${nonce}`);
-
-		// Create session
-		const sessionId = crypto.randomUUID();
-		const session = {
-			id: sessionId,
-			address: address, // Keep original case from SIWE message
-			chainId: chainId || 1,
-			issuedAt: new Date().toISOString(),
-			expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours
-		};
-
-		// Store session in KV
-		await env.AUTH_SESSIONS.put(
-			`session:${sessionId}`,
-			JSON.stringify(session),
-			{ expirationTtl: 86400 }, // 24 hours
-		);
-
-		// Generate JWT token
-		const token = await generateJWT(session, env.JWT_SECRET);
-
-		return new Response(
-			JSON.stringify({
-				success: true,
-				session,
-				token,
-			}),
-			{
-				status: 200,
-				headers: {
-					'Content-Type': 'application/json',
-					'Access-Control-Allow-Origin': '*',
-					'Cache-Control': 'no-store, max-age=0',
-				},
-			},
-		);
-	} catch (error) {
-		console.error('Verification failed:', error);
-		const errorMessage = error instanceof Error ? error.message : 'Verification failed';
-		return new Response(
-			JSON.stringify({
-				error: 'Verification failed',
-				details: errorMessage,
-			}),
-			{
-				status: 500,
-				headers: {
-					'Content-Type': 'application/json',
-					'Access-Control-Allow-Origin': '*',
-				},
-			},
-		);
-	}
+				);
+			} catch (error) {
+				console.error('Verification failed:', error);
+				const errorMessage = error instanceof Error ? error.message : 'Verification failed';
+				return new Response(
+					JSON.stringify({
+						error: 'Verification failed',
+						details: errorMessage,
+					}),
+					{
+						status: 500,
+						headers: {
+							'Content-Type': 'application/json',
+							'Access-Control-Allow-Origin': '*',
+						},
+					},
+				);
+			}
+		},
+	);
 };
 
 /**

@@ -7,6 +7,7 @@ import { gnusDaoService } from "@/lib/contracts/gnusDaoService";
 import { SecureIPFSService } from "@/lib/ipfs/secureUpload";
 import type { IPFSUploadResult, ProposalMetadata } from "@/lib/ipfs/types";
 import { useWeb3Store } from "@/lib/web3/reduxProvider";
+import { checkRateLimit } from "@/lib/utils/clientRateLimiter";
 import {
   AlertTriangle,
   Code,
@@ -186,6 +187,15 @@ export function CreateProposalModal({
     // Check wallet connection
     if (!wallet.isConnected || !wallet.address) {
       toast.error("Please connect your wallet to create a proposal");
+      return;
+    }
+
+    // Check rate limit before submitting
+    const rateLimitCheck = checkRateLimit('PROPOSAL_CREATE');
+    if (!rateLimitCheck.allowed) {
+      toast.error(
+        `Too many proposals. Please wait ${Math.ceil(rateLimitCheck.resetIn / 60)} minutes before creating another proposal.`
+      );
       return;
     }
 

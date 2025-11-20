@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/Button";
 import { VoteSupport } from "@/lib/contracts/gnusDao";
 import { gnusDaoService } from "@/lib/contracts/gnusDaoService";
 import { useWeb3Store } from "@/lib/web3/reduxProvider";
+import { checkRateLimit } from "@/lib/utils/clientRateLimiter";
 import {
   AlertTriangle,
   Calculator,
@@ -106,6 +107,15 @@ export function QuadraticVotingModal({
 
   const handleVote = async () => {
     if (selectedSupport === null || !wallet.address) return;
+
+    // Check rate limit before voting
+    const rateLimitCheck = checkRateLimit('VOTE_CAST');
+    if (!rateLimitCheck.allowed) {
+      toast.error(
+        `Too many votes. Please wait ${rateLimitCheck.resetIn} seconds before voting again.`
+      );
+      return;
+    }
 
     // Check validation before submitting
     if (validationResult && !validationResult.valid) {

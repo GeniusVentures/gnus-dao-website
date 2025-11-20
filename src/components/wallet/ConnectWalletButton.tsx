@@ -10,6 +10,7 @@ import { WalletConfigError } from "@/components/error/WalletConfigError";
 import { WalletConnector } from "@/lib/web3/types";
 import { useToast } from "@/hooks/useToast";
 import { ToastContainer } from "@/components/ui/Toast";
+import { checkRateLimit } from "@/lib/utils/clientRateLimiter";
 
 interface ConnectWalletButtonProps {
   variant?: "default" | "outline" | "ghost";
@@ -44,6 +45,17 @@ export function ConnectWalletButton({
   };
 
   const handleSelectWallet = async (connector: WalletConnector) => {
+    // Check rate limit before attempting connection
+    const rateLimitCheck = checkRateLimit('WALLET_CONNECT');
+    if (!rateLimitCheck.allowed) {
+      toast.error(
+        "Too Many Attempts",
+        `Please wait ${rateLimitCheck.resetIn} seconds before trying again.`,
+        5000
+      );
+      return;
+    }
+
     setConnectingWallet(connector.id);
     setConfigError(null);
 

@@ -104,20 +104,20 @@ function parseStackTrace(stack: string): any[] {
 }
 
 /**
- * Wrap API handler with error tracking
+ * Wrap API handler with error tracking (for Cloudflare Pages Functions)
  */
-export function withErrorTracking(
-	handler: (request: Request, env: any) => Promise<Response>,
+export function withErrorTracking<Env = any>(
+	handler: PagesFunction<Env>,
 	config?: ErrorTrackingConfig,
-): (request: Request, env: any) => Promise<Response> {
-	return async (request: Request, env: any) => {
+): PagesFunction<Env> {
+	return async (context) => {
 		try {
-			return await handler(request, env);
+			return await handler(context);
 		} catch (error) {
 			// Log error
 			await captureException(
 				error as Error,
-				{ url: request.url, method: request.method },
+				{ url: context.request.url, method: context.request.method },
 				config,
 			);
 
@@ -131,6 +131,7 @@ export function withErrorTracking(
 					status: 500,
 					headers: {
 						'Content-Type': 'application/json',
+						'Access-Control-Allow-Origin': '*',
 					},
 				},
 			);

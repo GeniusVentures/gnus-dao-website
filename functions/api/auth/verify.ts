@@ -4,9 +4,13 @@
  * Note: Uses ethers.js for signature verification (compatible with Cloudflare Workers)
  */
 
+import { withErrorTracking } from '../../utils/errorTracking';
+
 interface Env {
 	AUTH_SESSIONS: KVNamespace;
 	JWT_SECRET: string;
+	SENTRY_DSN?: string;
+	ENVIRONMENT?: string;
 }
 
 interface VerifyRequest {
@@ -17,7 +21,7 @@ interface VerifyRequest {
 	chainId: number;
 }
 
-export const onRequest: PagesFunction<Env> = async (context) => {
+const handler: PagesFunction<Env> = async (context) => {
 	const { request, env } = context;
 
 	// Handle CORS preflight
@@ -205,3 +209,5 @@ async function generateJWT(session: Session, secret: string): Promise<string> {
 	const signatureB64 = btoa(String.fromCharCode(...new Uint8Array(signature)));
 	return `${data}.${signatureB64}`;
 }
+
+export const onRequest = withErrorTracking<Env>(handler);

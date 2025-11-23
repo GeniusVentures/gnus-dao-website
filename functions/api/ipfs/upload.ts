@@ -3,12 +3,16 @@
  * Handles IPFS uploads with secure API key management and file validation
  */
 
+import { withErrorTracking } from '../../utils/errorTracking';
+
 interface Env {
 	PINATA_JWT: string;
 	PINATA_API_KEY: string;
 	PINATA_SECRET_KEY: string;
 	AUTH_SESSIONS: KVNamespace;
 	JWT_SECRET: string;
+	SENTRY_DSN?: string;
+	ENVIRONMENT?: string;
 }
 
 // File validation constants
@@ -68,7 +72,7 @@ function validateFile(file: File): { isValid: boolean; error?: string } {
 	return { isValid: true };
 }
 
-export const onRequest: PagesFunction<Env> = async (context) => {
+const handler: PagesFunction<Env> = async (context) => {
 	const { request, env } = context;
 
 	// Handle CORS preflight
@@ -222,3 +226,5 @@ async function verifyJWT(token: string, secret: string): Promise<any> {
 
 	return payload;
 }
+
+export const onRequest = withErrorTracking<Env>(handler);

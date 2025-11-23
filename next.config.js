@@ -1,5 +1,7 @@
 /** @type {import('next').NextConfig} */
 
+const { withSentryConfig } = require("@sentry/nextjs");
+
 // Initialize OpenNext Cloudflare for development
 // This enables bindings during local development
 if (process.env.NODE_ENV === "development") {
@@ -8,7 +10,9 @@ if (process.env.NODE_ENV === "development") {
     initOpenNextCloudflareForDev();
   } catch (error) {
     // @opennextjs/cloudflare not installed yet - skip initialization
-    console.log("Note: @opennextjs/cloudflare not installed. Running in standard Next.js mode.");
+    console.log(
+      "Note: @opennextjs/cloudflare not installed. Running in standard Next.js mode.",
+    );
   }
 }
 
@@ -523,4 +527,27 @@ const nextConfig = {
   }),
 };
 
-module.exports = nextConfig;
+// Sentry configuration options
+const sentryWebpackPluginOptions = {
+  // Suppresses source map uploading logs during build
+  silent: true,
+  org: process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT,
+  authToken: process.env.SENTRY_AUTH_TOKEN,
+
+  // Only upload source maps in production
+  dryRun: process.env.NODE_ENV !== "production",
+
+  // Disable source map upload if no auth token
+  disableServerWebpackPlugin: !process.env.SENTRY_AUTH_TOKEN,
+  disableClientWebpackPlugin: !process.env.SENTRY_AUTH_TOKEN,
+
+  // Hide source maps from public
+  hideSourceMaps: true,
+
+  // Automatically tree-shake Sentry logger statements to reduce bundle size
+  disableLogger: true,
+};
+
+// Export configuration with Sentry wrapper
+module.exports = withSentryConfig(nextConfig, sentryWebpackPluginOptions);

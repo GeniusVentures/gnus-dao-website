@@ -3,12 +3,16 @@
  * Secure nonce generation for Sign-In with Ethereum
  */
 
+import { withErrorTracking } from '../../utils/errorTracking';
+
 interface Env {
 	AUTH_SESSIONS: KVNamespace;
 	JWT_SECRET: string;
+	SENTRY_DSN?: string;
+	ENVIRONMENT?: string;
 }
 
-export const onRequest: PagesFunction<Env> = async (context) => {
+const handler: PagesFunction<Env> = async (context) => {
 	const { request, env } = context;
 
 	// Handle CORS preflight
@@ -56,12 +60,8 @@ export const onRequest: PagesFunction<Env> = async (context) => {
 		});
 	} catch (error) {
 		console.error('Nonce generation failed:', error);
-		return new Response(JSON.stringify({ error: 'Failed to generate nonce' }), {
-			status: 500,
-			headers: {
-				'Content-Type': 'application/json',
-				'Access-Control-Allow-Origin': '*',
-			},
-		});
+		throw error; // Let withErrorTracking handle it
 	}
 };
+
+export const onRequest = withErrorTracking<Env>(handler);

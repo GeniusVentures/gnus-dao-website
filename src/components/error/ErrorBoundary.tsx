@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/Button";
 import { logger } from "@/lib/utils/logger";
 import { AlertTriangle, Bug, Home, RefreshCw } from "lucide-react";
 import React, { Component, ErrorInfo, ReactNode } from "react";
+import * as Sentry from "@sentry/nextjs";
 
 interface Props {
   children: ReactNode;
@@ -42,6 +43,21 @@ export class ErrorBoundary extends Component<Props, State> {
 
   override componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     const { onError, level = "component" } = this.props;
+
+    // Log error to Sentry with context
+    Sentry.captureException(error, {
+      contexts: {
+        react: {
+          componentStack: errorInfo.componentStack,
+          errorBoundary: this.constructor.name,
+        },
+      },
+      tags: {
+        errorBoundaryLevel: level,
+        errorId: this.state.errorId,
+      },
+      level: level === "page" ? "error" : "warning",
+    });
 
     // Log error with context
     logger.error(

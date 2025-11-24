@@ -1,7 +1,9 @@
 /**
  * Cloudflare Worker: Secure IPFS Upload
- * Handles IPFS uploads with secure API key management
+ * Handles IPFS uploads with secure API key management and file validation
  */
+
+import { withErrorTracking } from '../../utils/errorTracking';
 
 interface Env {
 	PINATA_JWT: string;
@@ -9,9 +11,68 @@ interface Env {
 	PINATA_SECRET_KEY: string;
 	AUTH_SESSIONS: KVNamespace;
 	JWT_SECRET: string;
+	SENTRY_DSN?: string;
+	ENVIRONMENT?: string;
 }
 
-export const onRequest: PagesFunction<Env> = async (context) => {
+// File validation constants
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const ALLOWED_MIME_TYPES = [
+	'image/jpeg',
+	'image/png',
+	'image/gif',
+	'image/webp',
+	'image/svg+xml',
+	'application/pdf',
+	'text/plain',
+	'application/json',
+];
+
+/**
+ * Validate uploaded file
+ */
+function validateFile(file: File): { isValid: boolean; error?: string } {
+	// Check file size
+	if (file.size > MAX_FILE_SIZE) {
+		return {
+			isValid: false,
+			error: `File size exceeds maximum allowed size of ${MAX_FILE_SIZE / 1024 / 1024}MB`,
+		};
+	}
+
+	// Check MIME type
+	if (!ALLOWED_MIME_TYPES.includes(file.type)) {
+		return {
+			isValid: false,
+			error: `File type ${file.type} is not allowed. Allowed types: ${ALLOWED_MIME_TYPES.join(', ')}`,
+		};
+	}
+
+	// Check file extension
+	const fileName = file.name.toLowerCase();
+	const allowedExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg', '.pdf', '.txt', '.json'];
+	const hasValidExtension = allowedExtensions.some((ext) => fileName.endsWith(ext));
+
+	if (!hasValidExtension) {
+		return {
+			isValid: false,
+			error: `File extension not allowed. Allowed extensions: ${allowedExtensions.join(', ')}`,
+		};
+	}
+
+	// Check for suspicious file names
+	const suspiciousPatterns = [/\.exe$/i, /\.bat$/i, /\.cmd$/i, /\.sh$/i, /\.php$/i, /\.js$/i, /\.html$/i];
+	if (suspiciousPatterns.some((pattern) => pattern.test(fileName))) {
+		return {
+			isValid: false,
+			error: 'Suspicious file name detected',
+		};
+	}
+
+	return { isValid: true };
+}
+
+const handler: PagesFunction<Env> = async (context) => {
 	const { request, env } = context;
 
 	// Handle CORS preflight
@@ -63,6 +124,20 @@ export const onRequest: PagesFunction<Env> = async (context) => {
 					'Access-Control-Allow-Origin': '*',
 				},
 			});
+		}
+
+		// Validate file
+		if (file instanceof File) {
+			const validation = validateFile(file);
+			if (!validation.isValid) {
+				return new Response(JSON.stringify({ error: validation.error }), {
+					status: 400,
+					headers: {
+						'Content-Type': 'application/json',
+						'Access-Control-Allow-Origin': '*',
+					},
+				});
+			}
 		}
 
 		// Upload to Pinata using secure API key from environment
@@ -151,3 +226,5 @@ async function verifyJWT(token: string, secret: string): Promise<any> {
 
 	return payload;
 }
+
+export const onRequest = withErrorTracking<Env>(handler);

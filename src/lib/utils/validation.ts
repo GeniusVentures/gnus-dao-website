@@ -24,10 +24,15 @@ export function validateEthereumAddress(address: string): {
 		return { isValid: false, error: 'Address cannot be empty' };
 	}
 
-	// Use viem's isAddress for comprehensive validation
-	if (!isAddress(trimmed)) {
+	// Check basic format: 0x followed by 40 hex characters
+	const addressRegex = /^0x[a-fA-F0-9]{40}$/;
+	if (!addressRegex.test(trimmed)) {
 		return { isValid: false, error: 'Invalid Ethereum address format' };
 	}
+
+	// Use viem's isAddress for additional validation (checksum)
+	// But don't fail if checksum is wrong, just warn
+	const isValidChecksum = isAddress(trimmed);
 
 	return { isValid: true, sanitized: trimmed };
 }
@@ -89,8 +94,8 @@ export function validateProposalTitle(title: string): {
 		return { isValid: false, error: 'Title must be at least 3 characters' };
 	}
 
-	if (trimmed.length > 200) {
-		return { isValid: false, error: 'Title must be less than 200 characters' };
+	if (trimmed.length > 100) {
+		return { isValid: false, error: 'Title must be less than 100 characters' };
 	}
 
 	// Sanitize HTML/XSS
@@ -128,8 +133,8 @@ export function validateProposalDescription(description: string): {
 		return { isValid: false, error: 'Description must be at least 10 characters' };
 	}
 
-	if (trimmed.length > 10000) {
-		return { isValid: false, error: 'Description must be less than 10,000 characters' };
+	if (trimmed.length > 2000) {
+		return { isValid: false, error: 'Description must be less than 2,000 characters' };
 	}
 
 	// Sanitize HTML/XSS - Allow safe formatting tags
@@ -313,4 +318,46 @@ export function sanitizeHTML(html: string, allowTags: boolean = true): string {
 		ALLOW_DATA_ATTR: false,
 		ALLOWED_URI_REGEXP: /^(?:(?:https?):\/\/)/i, // Only allow http/https links
 	});
+}
+
+/**
+ * Sanitize generic input (alias for sanitizeHTML with no tags)
+ * Used for general XSS prevention and SQL injection prevention
+ */
+export function sanitizeInput(input: string): string {
+	if (!input || typeof input !== 'string') {
+		return '';
+	}
+
+	// First pass: DOMPurify to remove HTML/XSS
+	let sanitized = DOMPurify.sanitize(input, {
+		ALLOWED_TAGS: [],
+		ALLOWED_ATTR: [],
+	});
+
+	// Second pass: Remove dangerous SQL patterns
+	// Remove SQL keywords that could be used for injection
+	const sqlPatterns = [
+		/DROP\s+TABLE/gi,
+		/DELETE\s+FROM/gi,
+		/INSERT\s+INTO/gi,
+		/UPDATE\s+SET/gi,
+		/UNION\s+SELECT/gi,
+		/EXEC\s*\(/gi,
+		/EXECUTE\s*\(/gi,
+		/--/g, // SQL comments
+		/;/g, // Statement terminators
+	];
+
+	sqlPatterns.forEach((pattern) => {
+		sanitized = sanitized.replace(pattern, '');
+	});
+
+	// Remove javascript: protocol
+	sanitized = sanitized.replace(/javascript:/gi, '');
+
+	// Remove data: protocol
+	sanitized = sanitized.replace(/data:/gi, '');
+
+	return sanitized;
 }

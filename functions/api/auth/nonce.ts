@@ -4,14 +4,17 @@
  * Rate Limited: 10 requests per minute per IP
  */
 
-import { withRateLimit, getClientIP } from '../../utils/rateLimiter';
+import { withRateLimit } from '../../utils/rateLimiter';
+import { withErrorTracking } from '../../utils/errorTracking';
 
 interface Env {
 	AUTH_SESSIONS: KVNamespace;
 	JWT_SECRET: string;
+	SENTRY_DSN?: string;
+	ENVIRONMENT?: string;
 }
 
-export const onRequest: PagesFunction<Env> = async (context) => {
+const handler: PagesFunction<Env> = async (context) => {
 	const { request, env } = context;
 
 	// Handle CORS preflight
@@ -43,40 +46,31 @@ export const onRequest: PagesFunction<Env> = async (context) => {
 			keyPrefix: 'rate:nonce',
 		},
 		async () => {
-			try {
-				// Generate cryptographically secure nonce
-				const nonceBytes = new Uint8Array(16);
-				crypto.getRandomValues(nonceBytes);
-				const nonce = Array.from(nonceBytes)
-					.map((b) => b.toString(16).padStart(2, '0'))
-					.join('');
+			// Generate cryptographically secure nonce
+			const nonceBytes = new Uint8Array(16);
+			crypto.getRandomValues(nonceBytes);
+			const nonce = Array.from(nonceBytes)
+				.map((b) => b.toString(16).padStart(2, '0'))
+				.join('');
 
-				// Store nonce in KV with 10-minute expiration
-				const expiresAt = Date.now() + 10 * 60 * 1000;
-				await env.AUTH_SESSIONS.put(
-					`nonce:${nonce}`,
-					JSON.stringify({ createdAt: Date.now(), expiresAt }),
-					{ expirationTtl: 600 }, // 10 minutes
-				);
+			// Store nonce in KV with 10-minute expiration
+			const expiresAt = Date.now() + 10 * 60 * 1000;
+			await env.AUTH_SESSIONS.put(
+				`nonce:${nonce}`,
+				JSON.stringify({ createdAt: Date.now(), expiresAt }),
+				{ expirationTtl: 600 }, // 10 minutes
+			);
 
-				return new Response(JSON.stringify({ nonce, expiresAt }), {
-					status: 200,
-					headers: {
-						'Content-Type': 'application/json',
-						'Access-Control-Allow-Origin': '*',
-						'Cache-Control': 'no-store, max-age=0',
-					},
-				});
-			} catch (error) {
-				console.error('Nonce generation failed:', error);
-				return new Response(JSON.stringify({ error: 'Failed to generate nonce' }), {
-					status: 500,
-					headers: {
-						'Content-Type': 'application/json',
-						'Access-Control-Allow-Origin': '*',
-					},
-				});
-			}
+			return new Response(JSON.stringify({ nonce, expiresAt }), {
+				status: 200,
+				headers: {
+					'Content-Type': 'application/json',
+					'Access-Control-Allow-Origin': '*',
+					'Cache-Control': 'no-store, max-age=0',
+				},
+			});
 		},
 	);
 };
+
+export const onRequest = withErrorTracking<Env>(handler);

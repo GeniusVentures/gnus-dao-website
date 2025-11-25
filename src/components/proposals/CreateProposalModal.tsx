@@ -6,6 +6,12 @@ import { Button } from "@/components/ui/Button";
 import { gnusDaoService } from "@/lib/contracts/gnusDaoService";
 import { SecureIPFSService } from "@/lib/ipfs/secureUpload";
 import type { IPFSUploadResult, ProposalMetadata } from "@/lib/ipfs/types";
+import {
+  validateProposalTitle,
+  validateProposalDescription,
+  validateEthereumAddress,
+  validateIPFSHash,
+} from "@/lib/utils/validation";
 import { useWeb3Store } from "@/lib/web3/reduxProvider";
 import { checkRateLimit } from "@/lib/utils/clientRateLimiter";
 import {
@@ -179,14 +185,30 @@ export function CreateProposalModal({
   };
 
   const handleSubmit = async () => {
-    if (!title.trim() || !description.trim()) {
-      toast.error("Please fill in all required fields");
+    // Validate title
+    const titleValidation = validateProposalTitle(title);
+    if (!titleValidation.isValid) {
+      toast.error(titleValidation.error || "Invalid proposal title");
+      return;
+    }
+
+    // Validate description
+    const descriptionValidation = validateProposalDescription(description);
+    if (!descriptionValidation.isValid) {
+      toast.error(descriptionValidation.error || "Invalid proposal description");
       return;
     }
 
     // Check wallet connection
     if (!wallet.isConnected || !wallet.address) {
       toast.error("Please connect your wallet to create a proposal");
+      return;
+    }
+
+    // Validate wallet address
+    const addressValidation = validateEthereumAddress(wallet.address);
+    if (!addressValidation.isValid) {
+      toast.error("Invalid wallet address");
       return;
     }
 
@@ -204,6 +226,17 @@ export function CreateProposalModal({
       (action) => action.target.trim() !== "" || action.signature.trim() !== "",
     );
 
+    // Validate action target addresses
+    for (const action of validActions) {
+      if (action.target.trim()) {
+        const targetValidation = validateEthereumAddress(action.target);
+        if (!targetValidation.isValid) {
+          toast.error(`Invalid target address: ${action.target}`);
+          return;
+        }
+      }
+    }
+
     // Only require actions for certain categories
     if (category === "treasury" && validActions.length === 0) {
       toast.error("Treasury proposals require at least one action");
@@ -214,7 +247,7 @@ export function CreateProposalModal({
       // Execute with SIWE protection
       await executeProtected(
         async () => {
-          await submitProposal();
+          await submitProposal(titleValidation.sanitized!, descriptionValidation.sanitized!);
         },
         {
           requireAuth: true,
@@ -229,7 +262,7 @@ export function CreateProposalModal({
     }
   };
 
-  const submitProposal = async () => {
+  const submitProposal = async (sanitizedTitle: string, sanitizedDescription: string) => {
     try {
       setLoading(true);
 
@@ -261,8 +294,8 @@ export function CreateProposalModal({
 
       // Create proposal metadata for IPFS
       const proposalMetadata: ProposalMetadata = {
-        title,
-        description,
+        title: sanitizedTitle,
+        description: sanitizedDescription,
         category,
         author: wallet.address || "",
         created: Date.now(),
@@ -288,6 +321,14 @@ export function CreateProposalModal({
         }
 
         metadataHash = metadataResult.ipfsHash || "";
+
+        // Validate IPFS hash
+        const hashValidation = validateIPFSHash(metadataHash);
+        if (!hashValidation.isValid) {
+          console.warn("Invalid IPFS hash returned from upload:", metadataHash);
+          metadataHash = ""; // Clear invalid hash
+        }
+
         toast.success("Proposal metadata uploaded to IPFS");
       } catch (error) {
         console.error("Failed to upload metadata to IPFS:", error);
@@ -302,7 +343,7 @@ export function CreateProposalModal({
 
       try {
         const tx = await gnusDaoService.createProposal(
-          title,
+          sanitizedTitle,
           ipfsHashForContract,
         );
 

@@ -186,6 +186,9 @@ wrangler.toml.backup
 .dev.vars
 .env.production
 
+# Sentry
+.env.sentry-build-plugin
+
 # OpenNext build output
 .open-next/
 

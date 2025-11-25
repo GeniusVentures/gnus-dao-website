@@ -13,6 +13,7 @@ import {
   validateIPFSHash,
 } from "@/lib/utils/validation";
 import { useWeb3Store } from "@/lib/web3/reduxProvider";
+import { checkRateLimit } from "@/lib/utils/clientRateLimiter";
 import {
   AlertTriangle,
   Code,
@@ -208,6 +209,15 @@ export function CreateProposalModal({
     const addressValidation = validateEthereumAddress(wallet.address);
     if (!addressValidation.isValid) {
       toast.error("Invalid wallet address");
+      return;
+    }
+
+    // Check rate limit before submitting
+    const rateLimitCheck = checkRateLimit('PROPOSAL_CREATE');
+    if (!rateLimitCheck.allowed) {
+      toast.error(
+        `Too many proposals. Please wait ${Math.ceil(rateLimitCheck.resetIn / 60)} minutes before creating another proposal.`
+      );
       return;
     }
 

@@ -1,8 +1,10 @@
 /**
  * Cloudflare Worker: Generate SIWE Nonce
  * Secure nonce generation for Sign-In with Ethereum
+ * Rate Limited: 10 requests per minute per IP
  */
 
+import { withRateLimit } from '../../utils/rateLimiter';
 import { withErrorTracking } from '../../utils/errorTracking';
 
 interface Env {
@@ -34,34 +36,41 @@ const handler: PagesFunction<Env> = async (context) => {
 		});
 	}
 
-	try {
-		// Generate cryptographically secure nonce
-		const nonceBytes = new Uint8Array(16);
-		crypto.getRandomValues(nonceBytes);
-		const nonce = Array.from(nonceBytes)
-			.map((b) => b.toString(16).padStart(2, '0'))
-			.join('');
+	// Apply rate limiting: 10 requests per minute per IP
+	return withRateLimit(
+		request,
+		env.AUTH_SESSIONS,
+		{
+			limit: 10,
+			windowSeconds: 60,
+			keyPrefix: 'rate:nonce',
+		},
+		async () => {
+			// Generate cryptographically secure nonce
+			const nonceBytes = new Uint8Array(16);
+			crypto.getRandomValues(nonceBytes);
+			const nonce = Array.from(nonceBytes)
+				.map((b) => b.toString(16).padStart(2, '0'))
+				.join('');
 
-		// Store nonce in KV with 10-minute expiration
-		const expiresAt = Date.now() + 10 * 60 * 1000;
-		await env.AUTH_SESSIONS.put(
-			`nonce:${nonce}`,
-			JSON.stringify({ createdAt: Date.now(), expiresAt }),
-			{ expirationTtl: 600 }, // 10 minutes
-		);
+			// Store nonce in KV with 10-minute expiration
+			const expiresAt = Date.now() + 10 * 60 * 1000;
+			await env.AUTH_SESSIONS.put(
+				`nonce:${nonce}`,
+				JSON.stringify({ createdAt: Date.now(), expiresAt }),
+				{ expirationTtl: 600 }, // 10 minutes
+			);
 
-		return new Response(JSON.stringify({ nonce, expiresAt }), {
-			status: 200,
-			headers: {
-				'Content-Type': 'application/json',
-				'Access-Control-Allow-Origin': '*',
-				'Cache-Control': 'no-store, max-age=0',
-			},
-		});
-	} catch (error) {
-		console.error('Nonce generation failed:', error);
-		throw error; // Let withErrorTracking handle it
-	}
+			return new Response(JSON.stringify({ nonce, expiresAt }), {
+				status: 200,
+				headers: {
+					'Content-Type': 'application/json',
+					'Access-Control-Allow-Origin': '*',
+					'Cache-Control': 'no-store, max-age=0',
+				},
+			});
+		},
+	);
 };
 
 export const onRequest = withErrorTracking<Env>(handler);

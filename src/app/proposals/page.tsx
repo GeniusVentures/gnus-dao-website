@@ -8,6 +8,7 @@ import type { Proposal } from "@/lib/contracts/gnusDao";
 import { ProposalState, VoteSupport } from "@/lib/contracts/gnusDao";
 import { gnusDaoService } from "@/lib/contracts/gnusDaoService";
 import { useWeb3Store } from "@/lib/web3/reduxProvider";
+import { checkRateLimit } from "@/lib/utils/clientRateLimiter";
 import {
   Calendar,
   CheckCircle,
@@ -560,6 +561,15 @@ function ProposalCard({ proposal, router }: ProposalCardProps) {
   const handleVote = async (support: VoteSupport) => {
     if (!wallet.isConnected || !wallet.address) {
       toast.error("Please connect your wallet to vote");
+      return;
+    }
+
+    // Check rate limit before voting
+    const rateLimitCheck = checkRateLimit('VOTE_CAST');
+    if (!rateLimitCheck.allowed) {
+      toast.error(
+        `Too many votes. Please wait ${rateLimitCheck.resetIn} seconds before voting again.`
+      );
       return;
     }
 

@@ -1,8 +1,10 @@
 /**
  * Cloudflare Worker: Secure IPFS Upload
  * Handles IPFS uploads with secure API key management and file validation
+ * Rate Limited: 5 uploads per minute per authenticated user
  */
 
+import { withRateLimit } from '../../utils/rateLimiter';
 import { withErrorTracking } from '../../utils/errorTracking';
 
 interface Env {
@@ -50,7 +52,17 @@ function validateFile(file: File): { isValid: boolean; error?: string } {
 
 	// Check file extension
 	const fileName = file.name.toLowerCase();
-	const allowedExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg', '.pdf', '.txt', '.json'];
+	const allowedExtensions = [
+		'.jpg',
+		'.jpeg',
+		'.png',
+		'.gif',
+		'.webp',
+		'.svg',
+		'.pdf',
+		'.txt',
+		'.json',
+	];
 	const hasValidExtension = allowedExtensions.some((ext) => fileName.endsWith(ext));
 
 	if (!hasValidExtension) {
@@ -61,7 +73,15 @@ function validateFile(file: File): { isValid: boolean; error?: string } {
 	}
 
 	// Check for suspicious file names
-	const suspiciousPatterns = [/\.exe$/i, /\.bat$/i, /\.cmd$/i, /\.sh$/i, /\.php$/i, /\.js$/i, /\.html$/i];
+	const suspiciousPatterns = [
+		/\.exe$/i,
+		/\.bat$/i,
+		/\.cmd$/i,
+		/\.sh$/i,
+		/\.php$/i,
+		/\.js$/i,
+		/\.html$/i,
+	];
 	if (suspiciousPatterns.some((pattern) => pattern.test(fileName))) {
 		return {
 			isValid: false,
@@ -97,7 +117,7 @@ const handler: PagesFunction<Env> = async (context) => {
 	// Verify authentication
 	const authHeader = request.headers.get('Authorization');
 	if (!authHeader || !authHeader.startsWith('Bearer ')) {
-		return new Response(JSON.stringify({ error: '⚠️' }), {
+		return new Response(JSON.stringify({ error: 'Unauthorized' }), {
 			status: 401,
 			headers: {
 				'Content-Type': 'application/json',
@@ -106,31 +126,40 @@ const handler: PagesFunction<Env> = async (context) => {
 		});
 	}
 
+	// Extract user address from JWT for rate limiting
+	const token = authHeader.substring(7);
+	let userAddress: string;
+
 	try {
-		// Verify session token
-		const token = authHeader.substring(7);
-		await verifyJWT(token, env.JWT_SECRET);
+		const payload = await verifyJWT(token, env.JWT_SECRET);
+		userAddress = payload.sub || payload.address;
+	} catch (error) {
+		return new Response(JSON.stringify({ error: 'Invalid token' }), {
+			status: 401,
+			headers: {
+				'Content-Type': 'application/json',
+				'Access-Control-Allow-Origin': '*',
+			},
+		});
+	}
 
-		// Get form data
-		const formData = await request.formData();
-		const file = formData.get('file');
-		const metadata = formData.get('metadata');
+	// Apply rate limiting: 5 uploads per minute per user
+	return withRateLimit(
+		request,
+		env.AUTH_SESSIONS,
+		{
+			limit: 5,
+			windowSeconds: 60,
+			keyPrefix: `rate:upload:${userAddress}`,
+		},
+		async () => {
+			// Get form data
+			const formData = await request.formData();
+			const file = formData.get('file');
+			const metadata = formData.get('metadata');
 
-		if (!file) {
-			return new Response(JSON.stringify({ error: 'No file provided' }), {
-				status: 400,
-				headers: {
-					'Content-Type': 'application/json',
-					'Access-Control-Allow-Origin': '*',
-				},
-			});
-		}
-
-		// Validate file
-		if (file instanceof File) {
-			const validation = validateFile(file);
-			if (!validation.isValid) {
-				return new Response(JSON.stringify({ error: validation.error }), {
+			if (!file) {
+				return new Response(JSON.stringify({ error: 'No file provided' }), {
 					status: 400,
 					headers: {
 						'Content-Type': 'application/json',
@@ -138,55 +167,60 @@ const handler: PagesFunction<Env> = async (context) => {
 					},
 				});
 			}
-		}
 
-		// Upload to Pinata using secure API key from environment
-		const pinataFormData = new FormData();
-		pinataFormData.append('file', file);
+			// Validate file
+			if (file instanceof File) {
+				const validation = validateFile(file);
+				if (!validation.isValid) {
+					return new Response(JSON.stringify({ error: validation.error }), {
+						status: 400,
+						headers: {
+							'Content-Type': 'application/json',
+							'Access-Control-Allow-Origin': '*',
+						},
+					});
+				}
+			}
 
-		if (metadata) {
-			pinataFormData.append('pinataMetadata', metadata);
-		}
+			// Upload to Pinata using secure API key from environment
+			const pinataFormData = new FormData();
+			pinataFormData.append('file', file);
 
-		const pinataResponse = await fetch('https://api.pinata.cloud/pinning/pinFileToIPFS', {
-			method: 'POST',
-			headers: {
-				Authorization: `Bearer ${env.PINATA_JWT}`,
-			},
-			body: pinataFormData,
-		});
+			if (metadata) {
+				pinataFormData.append('pinataMetadata', metadata);
+			}
 
-		if (!pinataResponse.ok) {
-			throw new Error('Pinata upload failed');
-		}
-
-		const result = await pinataResponse.json();
-
-		return new Response(
-			JSON.stringify({
-				success: true,
-				ipfsHash: result.IpfsHash,
-				pinSize: result.PinSize,
-				timestamp: result.Timestamp,
-			}),
-			{
-				status: 200,
+			const pinataResponse = await fetch('https://api.pinata.cloud/pinning/pinFileToIPFS', {
+				method: 'POST',
 				headers: {
-					'Content-Type': 'application/json',
-					'Access-Control-Allow-Origin': '*',
+					Authorization: `Bearer ${env.PINATA_JWT}`,
 				},
-			},
-		);
-	} catch (error) {
-		console.error('IPFS upload failed:', error);
-		return new Response(JSON.stringify({ error: 'Upload failed' }), {
-			status: 500,
-			headers: {
-				'Content-Type': 'application/json',
-				'Access-Control-Allow-Origin': '*',
-			},
-		});
-	}
+				body: pinataFormData,
+			});
+
+			if (!pinataResponse.ok) {
+				throw new Error('Pinata upload failed');
+			}
+
+			const result = await pinataResponse.json();
+
+			return new Response(
+				JSON.stringify({
+					success: true,
+					ipfsHash: result.IpfsHash,
+					pinSize: result.PinSize,
+					timestamp: result.Timestamp,
+				}),
+				{
+					status: 200,
+					headers: {
+						'Content-Type': 'application/json',
+						'Access-Control-Allow-Origin': '*',
+					},
+				},
+			);
+		},
+	);
 };
 
 /**

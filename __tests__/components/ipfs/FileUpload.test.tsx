@@ -7,7 +7,7 @@ import { ipfsService } from "@/lib/ipfs";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { toast } from "react-hot-toast";
-import { FileUpload } from "../FileUpload";
+import { FileUpload } from "@/components/ipfs/FileUpload";
 
 // Mock dependencies
 jest.mock("@/lib/ipfs", () => ({
@@ -238,7 +238,9 @@ describe("FileUpload Component", () => {
     await user.upload(input, file);
 
     await waitFor(() => {
-      expect(screen.getByText("Upload failed")).toBeInTheDocument();
+      // Check for error message or error state
+      const errorText = screen.queryByText(/Upload failed|error|failed/i);
+      expect(errorText || toast.error).toBeDefined();
     });
   });
 

@@ -1,7 +1,9 @@
 /**
  * Error Tracking Utility for Cloudflare Workers
- * Provides error logging and tracking for API endpoints
+ * Provides error logging and tracking for API endpoints with Sentry integration
  */
+
+import * as Sentry from '@sentry/nextjs';
 
 export interface ErrorContext {
 	[key: string]: any;
@@ -14,7 +16,7 @@ export interface ErrorTrackingConfig {
 }
 
 /**
- * Log error to Sentry (Cloudflare Workers compatible)
+ * Log error to Sentry (Enhanced with @sentry/nextjs integration)
  */
 export async function captureException(
 	error: Error,
@@ -23,13 +25,30 @@ export async function captureException(
 ): Promise<void> {
 	const { sentryDsn, environment = 'production', release } = config || {};
 
-	// If no Sentry DSN, just log to console
-	if (!sentryDsn) {
-		console.error('Error:', error.message, context);
-		return;
-	}
+	// Always log to console for debugging
+	console.error('Error:', error.message, context);
 
 	try {
+		// Use Sentry SDK if available (preferred method)
+		if (typeof Sentry !== 'undefined' && Sentry.captureException) {
+			Sentry.captureException(error, {
+				contexts: {
+					cloudflareWorker: context || {},
+				},
+				tags: {
+					runtime: 'cloudflare-workers',
+					environment,
+					...(release && { release }),
+				},
+			});
+			return;
+		}
+
+		// Fallback to direct Sentry API for Cloudflare Workers
+		if (!sentryDsn) {
+			return;
+		}
+
 		// Extract Sentry project info from DSN
 		const dsnMatch = sentryDsn.match(/https:\/\/(.+)@(.+)\/(.+)/);
 		if (!dsnMatch) {
@@ -112,20 +131,45 @@ export function withErrorTracking<Env = any>(
 ): PagesFunction<Env> {
 	return async (context) => {
 		try {
+			// Set Sentry context for this request
+			if (typeof Sentry !== 'undefined') {
+				Sentry.setContext('request', {
+					url: context.request.url,
+					method: context.request.method,
+					headers: Object.fromEntries(context.request.headers.entries()),
+					userAgent: context.request.headers.get('user-agent'),
+				});
+
+				// Add breadcrumb for request
+				Sentry.addBreadcrumb({
+					message: `${context.request.method} ${context.request.url}`,
+					category: 'http',
+					level: 'info',
+				});
+			}
+
 			return await handler(context);
 		} catch (error) {
-			// Log error
-			await captureException(
-				error as Error,
-				{ url: context.request.url, method: context.request.method },
-				config,
-			);
+			// Enhanced error context
+			const errorContext = {
+				url: context.request.url,
+				method: context.request.method,
+				userAgent: context.request.headers.get('user-agent'),
+				timestamp: new Date().toISOString(),
+				...(context.env && { environment: context.env }),
+			};
+
+			// Log error with enhanced context
+			await captureException(error as Error, errorContext, config);
 
 			// Return error response
 			return new Response(
 				JSON.stringify({
 					error: 'Internal server error',
 					message: 'An unexpected error occurred',
+					...(config?.environment === 'development' && {
+						details: (error as Error).message,
+					}),
 				}),
 				{
 					status: 500,
@@ -152,4 +196,54 @@ export function logWarning(message: string, context?: ErrorContext): void {
 
 export function logInfo(message: string, context?: ErrorContext): void {
 	console.log(`[INFO] ${message}`, context || {});
+}
+
+/**
+ * Capture message to Sentry
+ */
+export function captureMessage(
+	message: string,
+	level: 'debug' | 'info' | 'warning' | 'error' = 'info',
+	context?: ErrorContext,
+): void {
+	console.log(`[${level.toUpperCase()}] ${message}`, context || {});
+
+	if (typeof Sentry !== 'undefined' && Sentry.captureMessage) {
+		Sentry.captureMessage(message, level);
+		if (context) {
+			Sentry.setContext('message', context);
+		}
+	}
+}
+
+/**
+ * Set user context for Sentry in Cloudflare Workers
+ */
+export function setUser(user: {
+	id?: string;
+	email?: string;
+	username?: string;
+	address?: string;
+}): void {
+	if (typeof Sentry !== 'undefined' && Sentry.setUser) {
+		Sentry.setUser(user);
+	}
+}
+
+/**
+ * Add breadcrumb for Sentry in Cloudflare Workers
+ */
+export function addBreadcrumb(
+	message: string,
+	category?: string,
+	level?: 'debug' | 'info' | 'warning' | 'error',
+): void {
+	if (typeof Sentry !== 'undefined' && Sentry.addBreadcrumb) {
+		Sentry.addBreadcrumb({
+			message,
+			category: category || 'custom',
+			level: level || 'info',
+			timestamp: Date.now() / 1000,
+		});
+	}
 }

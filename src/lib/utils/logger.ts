@@ -1,4 +1,5 @@
 import { isDevelopment, isProduction } from '@/lib/config/env';
+import * as Sentry from '@sentry/nextjs';
 
 /**
  * Log levels for different types of messages
@@ -70,21 +71,49 @@ class Logger {
 		if (typeof window !== 'undefined') {
 			// Handle unhandled promise rejections
 			window.addEventListener('unhandledrejection', (event) => {
-				this.error('Unhandled Promise Rejection', {
+				const error = new Error(`Unhandled Promise Rejection: ${event.reason}`);
+				const context = {
 					reason: event.reason,
 					promise: event.promise,
+				};
+
+				this.error('Unhandled Promise Rejection', context);
+
+				// Send to Sentry
+				Sentry.captureException(error, {
+					contexts: {
+						promise: context,
+					},
+					tags: {
+						errorType: 'unhandledRejection',
+					},
 				});
 			});
 
 			// Handle global errors
 			window.addEventListener('error', (event) => {
-				this.error('Global Error', {
+				const context = {
 					message: event.message,
 					filename: event.filename,
 					lineno: event.lineno,
 					colno: event.colno,
 					error: event.error,
-				});
+				};
+
+				this.error('Global Error', context, event.error);
+
+				// Send to Sentry (if not already captured)
+				if (event.error && !event.error._sentryProcessed) {
+					Sentry.captureException(event.error, {
+						contexts: {
+							errorEvent: context,
+						},
+						tags: {
+							errorType: 'globalError',
+						},
+					});
+					event.error._sentryProcessed = true;
+				}
 			});
 		}
 	}
@@ -197,10 +226,40 @@ class Logger {
 
 	warn(message: string, context?: Record<string, any>) {
 		this.log(LogLevel.WARN, message, context);
+
+		// Send warnings to Sentry in production
+		if (isProduction()) {
+			Sentry.captureMessage(message, 'warning');
+			Sentry.setContext('warning', context || {});
+		}
 	}
 
 	error(message: string, context?: Record<string, any>, error?: Error) {
 		this.log(LogLevel.ERROR, message, context, error);
+
+		// Send to Sentry for all errors
+		if (error) {
+			Sentry.captureException(error, {
+				contexts: {
+					logger: context || {},
+				},
+				tags: {
+					loggerMessage: message,
+					errorType: 'loggedError',
+				},
+			});
+		} else {
+			// Create an error from the message if no error object provided
+			const syntheticError = new Error(message);
+			Sentry.captureException(syntheticError, {
+				contexts: {
+					logger: context || {},
+				},
+				tags: {
+					errorType: 'loggedMessage',
+				},
+			});
+		}
 	}
 
 	/**
@@ -258,6 +317,64 @@ class Logger {
 	 */
 	export(): string {
 		return JSON.stringify(this.entries, null, 2);
+	}
+
+	/**
+	 * Set user context for Sentry
+	 */
+	setUser(user: { id?: string; email?: string; username?: string; address?: string }) {
+		Sentry.setUser(user);
+	}
+
+	/**
+	 * Set additional context for Sentry
+	 */
+	setContext(key: string, context: Record<string, any>) {
+		Sentry.setContext(key, context);
+	}
+
+	/**
+	 * Add breadcrumb for Sentry
+	 */
+	addBreadcrumb(
+		message: string,
+		category?: string,
+		level?: 'debug' | 'info' | 'warning' | 'error',
+	) {
+		Sentry.addBreadcrumb({
+			message,
+			category: category || 'custom',
+			level: level || 'info',
+			timestamp: Date.now() / 1000,
+		});
+	}
+
+	/**
+	 * Capture Web3 specific errors with enhanced context
+	 */
+	captureWeb3Error(
+		error: Error,
+		context: {
+			action?: string;
+			chainId?: number;
+			contractAddress?: string;
+			method?: string;
+			walletType?: string;
+			transactionHash?: string;
+		},
+	) {
+		this.error(`Web3 Error: ${context.action || 'Unknown'}`, context, error);
+
+		Sentry.captureException(error, {
+			contexts: {
+				web3: context,
+			},
+			tags: {
+				errorType: 'web3Error',
+				chainId: context.chainId?.toString(),
+				walletType: context.walletType,
+			},
+		});
 	}
 }
 

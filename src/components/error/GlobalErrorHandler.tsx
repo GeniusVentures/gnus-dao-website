@@ -2,6 +2,7 @@
 
 import { logger } from "@/lib/utils/logger";
 import { useEffect } from "react";
+import * as Sentry from "@sentry/nextjs";
 
 /**
  * Global error handler component that sets up error tracking
@@ -9,6 +10,14 @@ import { useEffect } from "react";
  */
 export function GlobalErrorHandler() {
   useEffect(() => {
+    // Set up Sentry context for the session
+    Sentry.setContext("session", {
+      startTime: new Date().toISOString(),
+      userAgent: navigator.userAgent,
+      url: window.location.href,
+      referrer: document.referrer,
+    });
+
     // Track page load performance
     if (typeof window !== "undefined" && "performance" in window) {
       const loadTime = performance.now();
@@ -16,19 +25,40 @@ export function GlobalErrorHandler() {
         page: window.location.pathname,
       });
 
+      // Add Sentry breadcrumb for page load
+      Sentry.addBreadcrumb({
+        message: `Page loaded: ${window.location.pathname}`,
+        category: "navigation",
+        level: "info",
+        data: {
+          loadTime,
+          page: window.location.pathname,
+        },
+      });
+
       // Track navigation performance
       const observer = new PerformanceObserver((list) => {
         for (const entry of list.getEntries()) {
           if (entry.entryType === "navigation") {
             const navEntry = entry as PerformanceNavigationTiming;
-            logger.performance(
-              "Navigation",
-              navEntry.loadEventEnd - navEntry.loadEventStart,
-              {
+            const navigationTime = navEntry.loadEventEnd - navEntry.loadEventStart;
+            
+            logger.performance("Navigation", navigationTime, {
+              type: navEntry.type,
+              page: window.location.pathname,
+            });
+
+            // Add Sentry breadcrumb for navigation performance
+            Sentry.addBreadcrumb({
+              message: `Navigation completed: ${navigationTime}ms`,
+              category: "performance",
+              level: "info",
+              data: {
                 type: navEntry.type,
                 page: window.location.pathname,
+                navigationTime,
               },
-            );
+            });
           }
         }
       });
@@ -164,19 +194,43 @@ export function GlobalErrorHandler() {
 }
 
 /**
- * Hook for manual error reporting
+ * Hook for manual error reporting with Sentry integration
  */
 export function useErrorReporting() {
   const reportError = (error: Error, context?: Record<string, any>) => {
     logger.error("Manual Error Report", context, error);
+    
+    // Also send directly to Sentry with additional context
+    Sentry.captureException(error, {
+      contexts: {
+        manualReport: context || {},
+      },
+      tags: {
+        reportType: "manual",
+      },
+    });
   };
 
   const reportWarning = (message: string, context?: Record<string, any>) => {
     logger.warn(`Manual Warning: ${message}`, context);
+    
+    // Send warning to Sentry
+    Sentry.captureMessage(`Manual Warning: ${message}`, "warning");
+    if (context) {
+      Sentry.setContext("manualWarning", context);
+    }
   };
 
   const reportInfo = (message: string, context?: Record<string, any>) => {
     logger.info(`Manual Info: ${message}`, context);
+    
+    // Send info to Sentry in development or for important events
+    if (process.env.NODE_ENV === "development" || context?.important) {
+      Sentry.captureMessage(`Manual Info: ${message}`, "info");
+      if (context) {
+        Sentry.setContext("manualInfo", context);
+      }
+    }
   };
 
   return {
@@ -187,56 +241,60 @@ export function useErrorReporting() {
 }
 
 /**
- * Hook for Web3 error reporting
+ * Hook for Web3 error reporting with enhanced Sentry integration
  */
 export function useWeb3ErrorReporting() {
   const reportConnectionError = (error: Error, walletType?: string) => {
-    logger.error(
-      "Web3 Connection Error",
-      {
-        walletType,
-        category: "web3-connection",
-      },
-      error,
-    );
+    const context = {
+      walletType,
+      category: "web3-connection",
+    };
+    
+    logger.captureWeb3Error(error, {
+      action: "connection",
+      walletType,
+    });
   };
 
-  const reportTransactionError = (error: Error, transactionType?: string) => {
-    logger.error(
-      "Web3 Transaction Error",
-      {
-        transactionType,
-        category: "web3-transaction",
-      },
-      error,
-    );
+  const reportTransactionError = (
+    error: Error, 
+    transactionType?: string,
+    transactionHash?: string,
+    chainId?: number
+  ) => {
+    logger.captureWeb3Error(error, {
+      action: "transaction",
+      transactionHash,
+      chainId,
+    });
   };
 
   const reportContractError = (
     error: Error,
     contractAddress?: string,
     method?: string,
+    chainId?: number,
   ) => {
-    logger.error(
-      "Web3 Contract Error",
-      {
-        contractAddress,
-        method,
-        category: "web3-contract",
-      },
-      error,
-    );
+    logger.captureWeb3Error(error, {
+      action: "contract",
+      contractAddress,
+      method,
+      chainId,
+    });
   };
 
   const reportNetworkError = (error: Error, chainId?: number) => {
-    logger.error(
-      "Web3 Network Error",
-      {
-        chainId,
-        category: "web3-network",
-      },
-      error,
-    );
+    logger.captureWeb3Error(error, {
+      action: "network",
+      chainId,
+    });
+  };
+
+  const reportWalletError = (error: Error, walletType?: string, action?: string) => {
+    logger.captureWeb3Error(error, {
+      action: action || "wallet",
+      walletType,
+    });
   };
 
   return {
@@ -244,5 +302,6 @@ export function useWeb3ErrorReporting() {
     reportTransactionError,
     reportContractError,
     reportNetworkError,
+    reportWalletError,
   };
 }

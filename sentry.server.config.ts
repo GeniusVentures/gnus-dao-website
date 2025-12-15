@@ -15,13 +15,17 @@ Sentry.init({
 	// Adjust this value in production, or use tracesSampler for greater control
 	tracesSampleRate: ENVIRONMENT === 'production' ? 0.1 : 1.0,
 
+
+
 	// Setting this option to true will print useful information to the console while you're setting up Sentry.
 	debug: ENVIRONMENT === 'development',
 
-	integrations: [Sentry.httpIntegration()],
+	integrations: [
+		Sentry.httpIntegration(),
+	],
 
 	// Filter out sensitive data
-	beforeSend(event, hint) {
+	beforeSend(event) {
 		// Don't send events in development unless explicitly enabled
 		if (ENVIRONMENT === 'development' && !process.env.SENTRY_DEBUG) {
 			return null;
@@ -43,7 +47,8 @@ Sentry.init({
 			if (event.request.query_string) {
 				const sensitiveParams = ['token', 'key', 'secret', 'password'];
 				sensitiveParams.forEach((param) => {
-					if (event.request?.query_string?.includes(param)) {
+					if (typeof event.request?.query_string === 'string' && 
+						event.request.query_string.includes(param)) {
 						event.request.query_string = '[Filtered]';
 					}
 				});

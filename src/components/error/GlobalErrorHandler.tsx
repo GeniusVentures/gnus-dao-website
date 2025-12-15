@@ -3,20 +3,22 @@
 import { logger } from "@/lib/utils/logger";
 import { useEffect } from "react";
 import * as Sentry from "@sentry/nextjs";
+import { useUserActionTracking } from "@/hooks/useUserActionTracking";
+import { initializeSession, updateSessionActivity, getCurrentSession } from "@/lib/utils/sentry";
 
 /**
  * Global error handler component that sets up error tracking
  * and provides centralized error reporting
  */
 export function GlobalErrorHandler() {
+  const { trackAction, trackNavigation } = useUserActionTracking();
+
   useEffect(() => {
-    // Set up Sentry context for the session
-    Sentry.setContext("session", {
-      startTime: new Date().toISOString(),
-      userAgent: navigator.userAgent,
-      url: window.location.href,
-      referrer: document.referrer,
-    });
+    // Initialize enhanced session tracking
+    const sessionInfo = initializeSession();
+    
+    // Set up comprehensive Sentry context for the session
+    Sentry.setContext("session", sessionInfo);
 
     // Track page load performance
     if (typeof window !== "undefined" && "performance" in window) {
@@ -25,15 +27,11 @@ export function GlobalErrorHandler() {
         page: window.location.pathname,
       });
 
-      // Add Sentry breadcrumb for page load
-      Sentry.addBreadcrumb({
-        message: `Page loaded: ${window.location.pathname}`,
-        category: "navigation",
-        level: "info",
-        data: {
-          loadTime,
-          page: window.location.pathname,
-        },
+      // Track page load with user action tracking
+      trackAction('page_view', {
+        page: window.location.pathname,
+        loadTime,
+        referrer: document.referrer,
       });
 
       // Track navigation performance
@@ -48,17 +46,15 @@ export function GlobalErrorHandler() {
               page: window.location.pathname,
             });
 
-            // Add Sentry breadcrumb for navigation performance
-            Sentry.addBreadcrumb({
-              message: `Navigation completed: ${navigationTime}ms`,
-              category: "performance",
-              level: "info",
-              data: {
-                type: navEntry.type,
-                page: window.location.pathname,
+            // Track navigation performance
+            trackNavigation(
+              document.referrer || 'direct',
+              window.location.pathname,
+              {
                 navigationTime,
-              },
-            });
+                navigationType: navEntry.type,
+              }
+            );
           }
         }
       });
@@ -81,61 +77,7 @@ export function GlobalErrorHandler() {
     return undefined;
   }, []);
 
-  useEffect(() => {
-    // Track user interactions for debugging
-    const handleClick = (event: MouseEvent) => {
-      const target = event.target as HTMLElement;
-      if (target) {
-        logger.user("Click", {
-          element: target.tagName,
-          className: target.className,
-          id: target.id,
-          text: target.textContent?.slice(0, 50),
-        });
-      }
-    };
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      // Only log important key events
-      if (
-        event.key === "Enter" ||
-        event.key === "Escape" ||
-        event.metaKey ||
-        event.ctrlKey
-      ) {
-        logger.user("Keydown", {
-          key: event.key,
-          metaKey: event.metaKey,
-          ctrlKey: event.ctrlKey,
-          shiftKey: event.shiftKey,
-        });
-      }
-    };
-
-    // Add event listeners with throttling
-    let clickTimeout: ReturnType<typeof setTimeout>;
-    let keyTimeout: ReturnType<typeof setTimeout>;
-
-    const throttledClick = (event: MouseEvent) => {
-      clearTimeout(clickTimeout);
-      clickTimeout = setTimeout(() => handleClick(event), 100);
-    };
-
-    const throttledKeyDown = (event: KeyboardEvent) => {
-      clearTimeout(keyTimeout);
-      keyTimeout = setTimeout(() => handleKeyDown(event), 100);
-    };
-
-    document.addEventListener("click", throttledClick);
-    document.addEventListener("keydown", throttledKeyDown);
-
-    return () => {
-      document.removeEventListener("click", throttledClick);
-      document.removeEventListener("keydown", throttledKeyDown);
-      clearTimeout(clickTimeout);
-      clearTimeout(keyTimeout);
-    };
-  }, []);
+  // User interaction tracking is now handled by useUserActionTracking hook
 
   useEffect(() => {
     // Track Web3 connection status changes
@@ -156,27 +98,13 @@ export function GlobalErrorHandler() {
     };
   }, []);
 
-  useEffect(() => {
-    // Track visibility changes (tab switching)
-    const handleVisibilityChange = () => {
-      if (document.hidden) {
-        logger.user("Tab Hidden");
-      } else {
-        logger.user("Tab Visible");
-      }
-    };
-
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-
-    return () => {
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-    };
-  }, []);
+  // Visibility tracking is now handled by useUserActionTracking hook
 
   useEffect(() => {
     // Track beforeunload for session analytics
     const handleBeforeUnload = () => {
-      logger.user("Page Unload", {
+      trackAction('navigation', {
+        type: 'page_unload',
         page: window.location.pathname,
         sessionDuration: performance.now(),
       });
@@ -187,7 +115,7 @@ export function GlobalErrorHandler() {
     return () => {
       window.removeEventListener("beforeunload", handleBeforeUnload);
     };
-  }, []);
+  }, [trackAction]);
 
   // This component doesn't render anything
   return null;
@@ -200,13 +128,23 @@ export function useErrorReporting() {
   const reportError = (error: Error, context?: Record<string, any>) => {
     logger.error("Manual Error Report", context, error);
     
-    // Also send directly to Sentry with additional context
+    // Get current session information
+    const sessionInfo = getCurrentSession();
+    
+    // Also send directly to Sentry with additional context including session
     Sentry.captureException(error, {
       contexts: {
         manualReport: context || {},
+        session: sessionInfo || {},
       },
       tags: {
         reportType: "manual",
+        sessionId: sessionInfo?.sessionId,
+      },
+      extra: {
+        sessionDuration: sessionInfo?.duration,
+        pageViews: sessionInfo?.pageViews,
+        userActions: sessionInfo?.userActions,
       },
     });
   };
@@ -214,22 +152,50 @@ export function useErrorReporting() {
   const reportWarning = (message: string, context?: Record<string, any>) => {
     logger.warn(`Manual Warning: ${message}`, context);
     
-    // Send warning to Sentry
-    Sentry.captureMessage(`Manual Warning: ${message}`, "warning");
-    if (context) {
-      Sentry.setContext("manualWarning", context);
-    }
+    // Get current session information
+    const sessionInfo = getCurrentSession();
+    
+    // Send warning to Sentry with session context
+    Sentry.captureMessage(`Manual Warning: ${message}`, {
+      level: "warning",
+      contexts: {
+        manualWarning: context || {},
+        session: sessionInfo || {},
+      },
+      tags: {
+        sessionId: sessionInfo?.sessionId,
+      },
+      extra: {
+        sessionDuration: sessionInfo?.duration,
+        pageViews: sessionInfo?.pageViews,
+        userActions: sessionInfo?.userActions,
+      },
+    });
   };
 
   const reportInfo = (message: string, context?: Record<string, any>) => {
     logger.info(`Manual Info: ${message}`, context);
     
+    // Get current session information
+    const sessionInfo = getCurrentSession();
+    
     // Send info to Sentry in development or for important events
     if (process.env.NODE_ENV === "development" || context?.important) {
-      Sentry.captureMessage(`Manual Info: ${message}`, "info");
-      if (context) {
-        Sentry.setContext("manualInfo", context);
-      }
+      Sentry.captureMessage(`Manual Info: ${message}`, {
+        level: "info",
+        contexts: {
+          manualInfo: context || {},
+          session: sessionInfo || {},
+        },
+        tags: {
+          sessionId: sessionInfo?.sessionId,
+        },
+        extra: {
+          sessionDuration: sessionInfo?.duration,
+          pageViews: sessionInfo?.pageViews,
+          userActions: sessionInfo?.userActions,
+        },
+      });
     }
   };
 

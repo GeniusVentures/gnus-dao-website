@@ -5,6 +5,8 @@ import { ReactNode } from "react";
 import { LazyWeb3Provider } from "./LazyWeb3Provider";
 import { ReduxProvider } from "./ReduxProvider";
 import { ThemeProvider } from "./ThemeProvider";
+import { UserActionTrackingProvider } from "./UserActionTrackingProvider";
+import { MonitoringProvider } from "./MonitoringProvider";
 
 // Create a client
 const queryClient = new QueryClient({
@@ -45,8 +47,12 @@ export function Providers({ children }: ProvidersProps) {
           disableTransitionOnChange
         >
           <LazyWeb3Provider>
-            <WalletConnectInitializer />
-            {children}
+            <MonitoringProvider>
+              <UserActionTrackingProvider>
+                <WalletConnectInitializer />
+                {children}
+              </UserActionTrackingProvider>
+            </MonitoringProvider>
           </LazyWeb3Provider>
         </ThemeProvider>
       </QueryClientProvider>

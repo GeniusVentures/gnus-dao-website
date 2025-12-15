@@ -14,6 +14,7 @@ import {
 } from "@/lib/utils/validation";
 import { useWeb3Store } from "@/lib/web3/reduxProvider";
 import { checkRateLimit } from "@/lib/utils/clientRateLimiter";
+import { useUserActionTracking } from "@/hooks/useUserActionTracking";
 import {
   AlertTriangle,
   Code,
@@ -25,7 +26,7 @@ import {
   Users,
   X,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "react-hot-toast";
 
 interface CreateProposalModalProps {
@@ -46,10 +47,22 @@ export function CreateProposalModal({
 }: CreateProposalModalProps) {
   const { wallet, provider, signer } = useWeb3Store();
   const { executeProtected } = useSiweProtectedAction();
+  const { 
+    trackModalAction, 
+    trackFormSubmit, 
+    trackFileUpload, 
+    trackProposalAction,
+    trackAction 
+  } = useUserActionTracking();
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState<
     "basic" | "actions" | "attachments" | "review"
   >("basic");
+
+  // Track modal opening
+  useEffect(() => {
+    trackModalAction('open', 'CreateProposalModal');
+  }, [trackModalAction]);
 
   // Basic proposal info
   const [title, setTitle] = useState("");
@@ -106,11 +119,24 @@ export function CreateProposalModal({
       ...actions,
       { target: "", value: "0", signature: "", calldata: "0x" },
     ]);
+    
+    trackAction('click', {
+      component: 'CreateProposalModal',
+      action: 'add_proposal_action',
+      actionCount: actions.length + 1,
+    });
   };
 
   const removeAction = (index: number) => {
     if (actions.length > 1) {
       setActions(actions.filter((_, i) => i !== index));
+      
+      trackAction('click', {
+        component: 'CreateProposalModal',
+        action: 'remove_proposal_action',
+        actionIndex: index,
+        remainingActions: actions.length - 1,
+      });
     }
   };
 
@@ -181,14 +207,39 @@ export function CreateProposalModal({
   // };
 
   const removeAttachment = (index: number) => {
+    const attachment = attachments[index];
     setAttachments(attachments.filter((_, i) => i !== index));
+    
+    trackAction('click', {
+      component: 'CreateProposalModal',
+      action: 'remove_attachment',
+      fileName: attachment?.name,
+      attachmentIndex: index,
+    });
   };
 
   const handleSubmit = async () => {
+    // Track proposal submission attempt
+    trackProposalAction('create', undefined, {
+      category,
+      step,
+      titleLength: title.length,
+      descriptionLength: description.length,
+      actionCount: actions.filter(a => a.target || a.signature).length,
+      attachmentCount: attachments.length,
+      votingPeriodDays,
+      executionDelayDays,
+    });
+
     // Validate title
     const titleValidation = validateProposalTitle(title);
     if (!titleValidation.isValid) {
       toast.error(titleValidation.error || "Invalid proposal title");
+      trackAction('form_submit', {
+        component: 'CreateProposalModal',
+        result: 'validation_error',
+        error: 'invalid_title',
+      });
       return;
     }
 
@@ -357,6 +408,14 @@ export function CreateProposalModal({
           toast.success("Proposal created successfully!");
         }
 
+        // Track successful proposal creation
+        trackProposalAction('create', undefined, {
+          result: 'success',
+          category,
+          transactionHash: receipt?.hash,
+          blockNumber: receipt?.blockNumber,
+        });
+
         onProposalCreated();
         onClose();
       } catch (txError) {
@@ -365,6 +424,14 @@ export function CreateProposalModal({
       }
     } catch (error) {
       console.error("Failed to create proposal:", error);
+      
+      // Track proposal creation failure
+      trackProposalAction('create', undefined, {
+        result: 'error',
+        category,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+      
       toast.error(
         error instanceof Error ? error.message : "Failed to create proposal",
       );
@@ -595,9 +662,30 @@ export function CreateProposalModal({
       <FileUpload
         onUploadComplete={(results) => {
           setAttachments([...attachments, ...results]);
+          
+          // Track successful file uploads
+          results.forEach((result, index) => {
+            trackFileUpload(
+              result.name,
+              result.size || 0,
+              'success',
+              {
+                component: 'CreateProposalModal',
+                ipfsHash: result.hash,
+                uploadIndex: index,
+              }
+            );
+          });
+          
           toast.success(`${results.length} file(s) uploaded successfully`);
         }}
-        onUploadStart={() => setUploading(true)}
+        onUploadStart={() => {
+          setUploading(true);
+          trackAction('file_upload', {
+            component: 'CreateProposalModal',
+            action: 'upload_start',
+          });
+        }}
         onUploadProgress={setUploadProgress}
         multiple={true}
         maxFiles={5}
@@ -795,7 +883,14 @@ export function CreateProposalModal({
               of 4
             </p>
           </div>
-          <Button variant="ghost" size="sm" onClick={onClose}>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={() => {
+              trackModalAction('close', 'CreateProposalModal', { step });
+              onClose();
+            }}
+          >
             ×
           </Button>
         </div>
@@ -874,10 +969,31 @@ export function CreateProposalModal({
           <Button
             variant="outline"
             onClick={() => {
-              if (step === "actions") setStep("basic");
-              else if (step === "attachments") setStep("actions");
-              else if (step === "review") setStep("attachments");
-              else onClose();
+              if (step === "actions") {
+                setStep("basic");
+                trackAction('navigation', { 
+                  component: 'CreateProposalModal', 
+                  from: 'actions', 
+                  to: 'basic' 
+                });
+              } else if (step === "attachments") {
+                setStep("actions");
+                trackAction('navigation', { 
+                  component: 'CreateProposalModal', 
+                  from: 'attachments', 
+                  to: 'actions' 
+                });
+              } else if (step === "review") {
+                setStep("attachments");
+                trackAction('navigation', { 
+                  component: 'CreateProposalModal', 
+                  from: 'review', 
+                  to: 'attachments' 
+                });
+              } else {
+                trackModalAction('close', 'CreateProposalModal', { step: 'basic', reason: 'cancel' });
+                onClose();
+              }
             }}
             disabled={loading}
           >
@@ -886,10 +1002,33 @@ export function CreateProposalModal({
 
           <Button
             onClick={() => {
-              if (step === "basic") setStep("actions");
-              else if (step === "actions") setStep("attachments");
-              else if (step === "attachments") setStep("review");
-              else handleSubmit();
+              if (step === "basic") {
+                setStep("actions");
+                trackAction('navigation', { 
+                  component: 'CreateProposalModal', 
+                  from: 'basic', 
+                  to: 'actions',
+                  formData: { category, titleLength: title.length, descriptionLength: description.length }
+                });
+              } else if (step === "actions") {
+                setStep("attachments");
+                trackAction('navigation', { 
+                  component: 'CreateProposalModal', 
+                  from: 'actions', 
+                  to: 'attachments',
+                  actionCount: actions.filter(a => a.target || a.signature).length
+                });
+              } else if (step === "attachments") {
+                setStep("review");
+                trackAction('navigation', { 
+                  component: 'CreateProposalModal', 
+                  from: 'attachments', 
+                  to: 'review',
+                  attachmentCount: attachments.length
+                });
+              } else {
+                handleSubmit();
+              }
             }}
             disabled={
               loading ||

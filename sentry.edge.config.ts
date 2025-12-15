@@ -19,7 +19,7 @@ Sentry.init({
 	debug: ENVIRONMENT === 'development',
 
 	// Filter out sensitive data
-	beforeSend(event, hint) {
+	beforeSend(event) {
 		// Don't send events in development unless explicitly enabled
 		if (ENVIRONMENT === 'development' && !process.env.SENTRY_DEBUG) {
 			return null;

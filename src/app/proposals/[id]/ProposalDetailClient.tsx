@@ -83,6 +83,15 @@ export default function ProposalDetailClient() {
         );
       } catch (error) {
         console.error("Failed to initialize DAO service:", error);
+        
+        // Enhanced error tracking
+        if (typeof window !== 'undefined') {
+          const { captureWeb3Error } = await import('@/lib/utils/sentry');
+          captureWeb3Error(error as Error, {
+            action: 'initializeDAOService',
+            chainId: provider ? Number((await provider.getNetwork()).chainId) : undefined,
+          });
+        }
         setLoading(false);
         return;
       }
@@ -177,6 +186,16 @@ export default function ProposalDetailClient() {
       }
     } catch (error) {
       console.error("Failed to load proposal:", error);
+      
+      // Enhanced error tracking
+      if (typeof window !== 'undefined') {
+        const { captureWeb3Error } = await import('@/lib/utils/sentry');
+        captureWeb3Error(error as Error, {
+          action: 'loadProposal',
+          method: 'getProposal',
+        });
+      }
+      
       toast.error("Failed to load proposal");
     } finally {
       setLoading(false);

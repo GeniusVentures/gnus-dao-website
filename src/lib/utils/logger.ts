@@ -1,4 +1,5 @@
 import { isDevelopment, isProduction } from '@/lib/config/env';
+import * as Sentry from '@sentry/nextjs';
 
 /**
  * Log levels for different types of messages
@@ -63,28 +64,56 @@ class Logger {
 			return crypto.randomUUID();
 		}
 		// Fallback for older environments
-		return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+		return `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
 	}
 
 	private setupGlobalErrorHandlers() {
 		if (typeof window !== 'undefined') {
 			// Handle unhandled promise rejections
 			window.addEventListener('unhandledrejection', (event) => {
-				this.error('Unhandled Promise Rejection', {
+				const error = new Error(`Unhandled Promise Rejection: ${event.reason}`);
+				const context = {
 					reason: event.reason,
 					promise: event.promise,
+				};
+
+				this.error('Unhandled Promise Rejection', context);
+
+				// Send to Sentry
+				Sentry.captureException(error, {
+					contexts: {
+						promise: context,
+					},
+					tags: {
+						errorType: 'unhandledRejection',
+					},
 				});
 			});
 
 			// Handle global errors
 			window.addEventListener('error', (event) => {
-				this.error('Global Error', {
+				const context = {
 					message: event.message,
 					filename: event.filename,
 					lineno: event.lineno,
 					colno: event.colno,
 					error: event.error,
-				});
+				};
+
+				this.error('Global Error', context, event.error);
+
+				// Send to Sentry (if not already captured)
+				if (event.error && !event.error._sentryProcessed) {
+					Sentry.captureException(event.error, {
+						contexts: {
+							errorEvent: context,
+						},
+						tags: {
+							errorType: 'globalError',
+						},
+					});
+					event.error._sentryProcessed = true;
+				}
 			});
 		}
 	}
@@ -197,10 +226,105 @@ class Logger {
 
 	warn(message: string, context?: Record<string, any>) {
 		this.log(LogLevel.WARN, message, context);
+
+		// Send warnings to Sentry in production with session context
+		if (isProduction()) {
+			// Get session information
+			let sessionInfo = null;
+			try {
+				const sentryUtils = require('./sentry');
+				sessionInfo = sentryUtils.getCurrentSession();
+			} catch {
+				// Fallback if sentry utils not available
+			}
+
+			Sentry.captureMessage(message, {
+				level: 'warning',
+				contexts: {
+					warning: context || {},
+					session: sessionInfo || {},
+				},
+				tags: {
+					sessionId: sessionInfo?.sessionId,
+				},
+				extra: {
+					sessionDuration: sessionInfo?.duration,
+					pageViews: sessionInfo?.pageViews,
+					userActions: sessionInfo?.userActions,
+				},
+			});
+		}
 	}
 
 	error(message: string, context?: Record<string, any>, error?: Error) {
 		this.log(LogLevel.ERROR, message, context, error);
+
+		// Check if this is a critical error that needs immediate alerting
+		const isCritical = this.isCriticalError(message, error, context);
+		
+		// Get session information for enhanced error context
+		let sessionInfo = null;
+		try {
+			// Dynamic import to avoid circular dependencies
+			const sentryUtils = require('./sentry');
+			sessionInfo = sentryUtils.getCurrentSession();
+		} catch {
+			// Fallback if sentry utils not available
+		}
+		
+		// Send to Sentry for all errors with session context
+		if (error) {
+			Sentry.captureException(error, {
+				contexts: {
+					logger: context || {},
+					session: sessionInfo || {},
+				},
+				tags: {
+					loggerMessage: message,
+					errorType: 'loggedError',
+					critical: isCritical,
+					sessionId: sessionInfo?.sessionId,
+				},
+				extra: {
+					sessionDuration: sessionInfo?.duration,
+					pageViews: sessionInfo?.pageViews,
+					userActions: sessionInfo?.userActions,
+				},
+			});
+		} else {
+			// Create an error from the message if no error object provided
+			const syntheticError = new Error(message);
+			Sentry.captureException(syntheticError, {
+				contexts: {
+					logger: context || {},
+					session: sessionInfo || {},
+				},
+				tags: {
+					errorType: 'loggedMessage',
+					critical: isCritical,
+					sessionId: sessionInfo?.sessionId,
+				},
+				extra: {
+					sessionDuration: sessionInfo?.duration,
+					pageViews: sessionInfo?.pageViews,
+					userActions: sessionInfo?.userActions,
+				},
+			});
+		}
+
+		// Trigger critical alert if needed
+		if (isCritical && error) {
+			// Import dynamically to avoid circular dependencies
+			import('@/lib/utils/criticalErrorAlerting').then(({ criticalErrorAlerting, CriticalErrorType }) => {
+				const errorType = this.determineCriticalErrorType(message, error, context);
+				criticalErrorAlerting.triggerCriticalAlert(error, errorType, {
+					additionalData: context,
+					url: typeof window !== 'undefined' ? window.location.href : undefined
+				});
+			}).catch(() => {
+				// Silently fail if critical alerting is not available
+			});
+		}
 	}
 
 	/**
@@ -258,6 +382,194 @@ class Logger {
 	 */
 	export(): string {
 		return JSON.stringify(this.entries, null, 2);
+	}
+
+	/**
+	 * Set user context for Sentry
+	 */
+	setUser(user: { id?: string; email?: string; username?: string; address?: string }) {
+		Sentry.setUser(user);
+	}
+
+	/**
+	 * Set additional context for Sentry
+	 */
+	setContext(key: string, context: Record<string, any>) {
+		Sentry.setContext(key, context);
+	}
+
+	/**
+	 * Add breadcrumb for Sentry
+	 */
+	addBreadcrumb(
+		message: string,
+		category?: string,
+		level?: 'debug' | 'info' | 'warning' | 'error',
+	) {
+		Sentry.addBreadcrumb({
+			message,
+			category: category || 'custom',
+			level: level || 'info',
+			timestamp: Date.now() / 1000,
+		});
+	}
+
+	/**
+	 * Capture Web3 specific errors with enhanced context
+	 */
+	captureWeb3Error(
+		error: Error,
+		context: {
+			action?: string;
+			chainId?: number;
+			contractAddress?: string;
+			method?: string;
+			walletType?: string;
+			transactionHash?: string;
+		},
+	) {
+		this.error(`Web3 Error: ${context.action || 'Unknown'}`, context, error);
+
+		// Get session information
+		let sessionInfo = null;
+		try {
+			const sentryUtils = require('./sentry');
+			sessionInfo = sentryUtils.getCurrentSession();
+		} catch {
+			// Fallback if sentry utils not available
+		}
+
+		Sentry.captureException(error, {
+			contexts: {
+				web3: context,
+				session: sessionInfo || {},
+			},
+			tags: {
+				errorType: 'web3Error',
+				chainId: context.chainId?.toString(),
+				walletType: context.walletType,
+				sessionId: sessionInfo?.sessionId,
+			},
+			extra: {
+				sessionDuration: sessionInfo?.duration,
+				pageViews: sessionInfo?.pageViews,
+				userActions: sessionInfo?.userActions,
+			},
+		});
+
+		// Check if this is a critical Web3 error
+		const isCritical = this.isWeb3ErrorCritical(error, context);
+		if (isCritical) {
+			// Import dynamically to avoid circular dependencies
+			import('@/lib/utils/criticalErrorAlerting').then(({ criticalErrorAlerting, CriticalErrorType }) => {
+				criticalErrorAlerting.triggerCriticalAlert(error, CriticalErrorType.WEB3_CRITICAL, {
+					chainId: context.chainId,
+					contractAddress: context.contractAddress,
+					transactionHash: context.transactionHash,
+					walletAddress: context.walletType,
+					additionalData: context
+				});
+			}).catch(() => {
+				// Silently fail if critical alerting is not available
+			});
+		}
+	}
+
+	/**
+	 * Check if an error is critical and requires immediate alerting
+	 */
+	private isCriticalError(message: string, error?: Error, context?: Record<string, any>): boolean {
+		const criticalKeywords = [
+			'security',
+			'breach',
+			'unauthorized',
+			'corruption',
+			'system failure',
+			'critical',
+			'fatal',
+			'treasury',
+			'governance',
+			'smart contract',
+			'authentication failed',
+			'ipfs critical'
+		];
+
+		const messageText = message.toLowerCase();
+		const errorText = error?.message.toLowerCase() || '';
+		const contextText = JSON.stringify(context || {}).toLowerCase();
+
+		return criticalKeywords.some(keyword => 
+			messageText.includes(keyword) || 
+			errorText.includes(keyword) || 
+			contextText.includes(keyword)
+		);
+	}
+
+	/**
+	 * Check if a Web3 error is critical
+	 */
+	private isWeb3ErrorCritical(error: Error, context: any): boolean {
+		const criticalActions = ['treasury', 'governance', 'vote', 'proposal', 'transfer'];
+		const criticalErrors = ['revert', 'out of gas', 'insufficient funds', 'unauthorized'];
+		
+		const action = context.action?.toLowerCase() || '';
+		const errorMessage = error.message.toLowerCase();
+
+		return criticalActions.some(criticalAction => action.includes(criticalAction)) ||
+			   criticalErrors.some(criticalError => errorMessage.includes(criticalError));
+	}
+
+	/**
+	 * Determine the critical error type based on context
+	 */
+	private determineCriticalErrorType(message: string, error?: Error, context?: Record<string, any>): any {
+		const messageText = message.toLowerCase();
+		const errorText = error?.message.toLowerCase() || '';
+		const contextText = JSON.stringify(context || {}).toLowerCase();
+		
+		// Import the enum dynamically
+		const CriticalErrorType = {
+			SECURITY_BREACH: 'security_breach',
+			DATA_CORRUPTION: 'data_corruption',
+			SYSTEM_FAILURE: 'system_failure',
+			WEB3_CRITICAL: 'web3_critical',
+			API_CRITICAL: 'api_critical',
+			AUTHENTICATION_FAILURE: 'authentication_failure',
+			SMART_CONTRACT_ERROR: 'smart_contract_error',
+			TREASURY_ERROR: 'treasury_error',
+			GOVERNANCE_ERROR: 'governance_error',
+			IPFS_CRITICAL: 'ipfs_critical'
+		};
+
+		if (messageText.includes('security') || messageText.includes('breach') || messageText.includes('unauthorized')) {
+			return CriticalErrorType.SECURITY_BREACH;
+		}
+		if (messageText.includes('corruption') || errorText.includes('corruption')) {
+			return CriticalErrorType.DATA_CORRUPTION;
+		}
+		if (messageText.includes('treasury') || contextText.includes('treasury')) {
+			return CriticalErrorType.TREASURY_ERROR;
+		}
+		if (messageText.includes('governance') || contextText.includes('governance')) {
+			return CriticalErrorType.GOVERNANCE_ERROR;
+		}
+		if (messageText.includes('smart contract') || contextText.includes('contract')) {
+			return CriticalErrorType.SMART_CONTRACT_ERROR;
+		}
+		if (messageText.includes('authentication') || messageText.includes('auth')) {
+			return CriticalErrorType.AUTHENTICATION_FAILURE;
+		}
+		if (messageText.includes('ipfs') || contextText.includes('ipfs')) {
+			return CriticalErrorType.IPFS_CRITICAL;
+		}
+		if (messageText.includes('api') || contextText.includes('api')) {
+			return CriticalErrorType.API_CRITICAL;
+		}
+		if (messageText.includes('web3') || contextText.includes('web3')) {
+			return CriticalErrorType.WEB3_CRITICAL;
+		}
+		
+		return CriticalErrorType.SYSTEM_FAILURE;
 	}
 }
 

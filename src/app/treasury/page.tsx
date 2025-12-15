@@ -103,6 +103,16 @@ export default function TreasuryPage() {
       });
     } catch (error) {
       console.error("Failed to load treasury data:", error);
+      
+      // Enhanced error tracking
+      if (typeof window !== 'undefined') {
+        const { captureError } = await import('@/lib/utils/sentry');
+        captureError(error as Error, {
+          action: 'loadTreasuryData',
+          page: 'treasury',
+        });
+      }
+      
       toast.error("Failed to load treasury data");
     } finally {
       setLoading(false);

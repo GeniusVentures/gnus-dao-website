@@ -1,4 +1,137 @@
 import "@testing-library/jest-dom";
+import { TextEncoder, TextDecoder } from "util";
+import { ReadableStream } from "stream/web";
+
+// Polyfill Web APIs for Node.js environment
+global.TextEncoder = TextEncoder;
+global.TextDecoder = TextDecoder;
+global.ReadableStream = ReadableStream;
+
+// Polyfill Request, Response, Headers, FormData for Cloudflare Workers tests
+if (typeof Request === "undefined") {
+  global.Request = class Request {
+    constructor(input, init = {}) {
+      this.url = input;
+      this.method = init.method || "GET";
+      this.headers = new Headers(init.headers || {});
+      this._body = init.body;
+    }
+
+    async json() {
+      return JSON.parse(this._body);
+    }
+
+    async formData() {
+      return this._body;
+    }
+
+    async text() {
+      return this._body;
+    }
+  };
+}
+
+if (typeof Response === "undefined") {
+  global.Response = class Response {
+    constructor(body, init = {}) {
+      this.body = body;
+      this.status = init.status || 200;
+      this.statusText = init.statusText || "OK";
+      this.headers = new Headers(init.headers || {});
+    }
+
+    async json() {
+      return JSON.parse(this.body);
+    }
+
+    async text() {
+      return this.body;
+    }
+  };
+}
+
+if (typeof Headers === "undefined") {
+  global.Headers = class Headers {
+    constructor(init = {}) {
+      this._headers = new Map();
+      if (init) {
+        Object.entries(init).forEach(([key, value]) => {
+          this.set(key, value);
+        });
+      }
+    }
+
+    get(name) {
+      return this._headers.get(name.toLowerCase()) || null;
+    }
+
+    set(name, value) {
+      this._headers.set(name.toLowerCase(), String(value));
+    }
+
+    has(name) {
+      return this._headers.has(name.toLowerCase());
+    }
+
+    delete(name) {
+      this._headers.delete(name.toLowerCase());
+    }
+
+    entries() {
+      return this._headers.entries();
+    }
+
+    keys() {
+      return this._headers.keys();
+    }
+
+    values() {
+      return this._headers.values();
+    }
+  };
+}
+
+if (typeof FormData === "undefined") {
+  global.FormData = class FormData {
+    constructor() {
+      this._data = new Map();
+    }
+
+    append(name, value) {
+      this.set(name, value);
+    }
+
+    set(name, value) {
+      this._data.set(name, value);
+    }
+
+    get(name) {
+      return this._data.get(name);
+    }
+
+    has(name) {
+      return this._data.has(name);
+    }
+
+    delete(name) {
+      this._data.delete(name);
+    }
+  };
+}
+
+if (typeof File === "undefined") {
+  global.File = class File {
+    constructor(bits, name, options = {}) {
+      this.bits = bits;
+      this.name = name;
+      this.type = options.type || "";
+      this.size = bits.reduce(
+        (acc, bit) => acc + (bit.byteLength || bit.length || 0),
+        0,
+      );
+    }
+  };
+}
 
 // Mock Next.js router
 jest.mock("next/router", () => ({
@@ -242,12 +375,24 @@ Object.defineProperty(window, "matchMedia", {
   })),
 });
 
-// Mock crypto.randomUUID
+// Mock crypto API
 Object.defineProperty(global, "crypto", {
+  writable: true,
   value: {
     // Note: Math.random() is acceptable here for test mocks (non-security context)
     // nosemgrep: insecure-random
     randomUUID: () => "test-uuid-" + Math.random().toString(36).substr(2, 9),
+    getRandomValues: (arr) => {
+      for (let i = 0; i < arr.length; i++) {
+        arr[i] = Math.floor(Math.random() * 256);
+      }
+      return arr;
+    },
+    subtle: {
+      importKey: jest.fn().mockResolvedValue({}),
+      sign: jest.fn().mockResolvedValue(new ArrayBuffer(32)),
+      verify: jest.fn().mockResolvedValue(true),
+    },
   },
 });
 

@@ -2807,16 +2807,16 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@diamondslab/hardhat-diamonds@npm:^1.1.8":
-  version: 1.1.8
-  resolution: "@diamondslab/hardhat-diamonds@npm:1.1.8"
+"@diamondslab/hardhat-diamonds@npm:^1.1.9":
+  version: 1.1.9
+  resolution: "@diamondslab/hardhat-diamonds@npm:1.1.9"
   dependencies:
     chalk: "npm:^5.6.2"
   peerDependencies:
     "@diamondslab/diamonds": ^1.0.0
     ethers: ^6.0.0
     hardhat: ^2.0.0
-  checksum: 10/f1e93cdf52741316887e3fc0ee3b5ce0c434858f8fad54075e919ece134ed3a0f7fd3ddfd82e0679b442414aced24e49ab6d889dcd5e53d0a5a2602094848079
+  checksum: 10/3c00441c07ca946f9ffab4065faf2fad65d5c3e61e285676545b11dd57602ed55c66e230a4cfd6443a5734a0fca1464d61d9dbf27c448c563fbc90464865484d
   languageName: node
   linkType: hard
 
@@ -17948,7 +17948,7 @@ __metadata:
     "@commitlint/cli": "npm:^19.8.1"
     "@commitlint/config-conventional": "npm:^19.8.1"
     "@diamondslab/diamonds": "npm:^1.2.1"
-    "@diamondslab/hardhat-diamonds": "npm:^1.1.8"
+    "@diamondslab/hardhat-diamonds": "npm:^1.1.9"
     "@ethersproject/sha2": "npm:^5.8.0"
     "@gnus.ai/contracts-upgradeable-diamond": "npm:=4.5.0"
     "@headlessui/react": "npm:^2.2.7"

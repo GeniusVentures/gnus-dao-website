@@ -409,7 +409,7 @@ jest.mock("@sentry/nextjs", () => ({
 }));
 
 // Mock IPFS dependencies
-jest.mock("pinata-web3", () => ({
+jest.mock("pinata", () => ({
   __esModule: true,
   PinataSDK: jest.fn().mockImplementation(() => ({
     upload: {

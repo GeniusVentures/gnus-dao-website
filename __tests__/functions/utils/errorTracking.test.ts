@@ -20,6 +20,12 @@ jest.mock('@sentry/nextjs', () => ({
 	addBreadcrumb: mockAddBreadcrumb,
 }));
 
+// Type definitions for tests
+interface TestEnv {
+	SENTRY_DSN?: string;
+	ENVIRONMENT?: string;
+}
+
 describe('Error Tracking Utility', () => {
 	beforeEach(() => {
 		jest.clearAllMocks();
@@ -29,17 +35,17 @@ describe('Error Tracking Utility', () => {
 		it('should wrap handler and catch errors', async () => {
 			const { withErrorTracking } = await import('@/../functions/utils/errorTracking');
 
-			const mockHandler = jest.fn().mockRejectedValue(new Error('Test error'));
+			const mockHandler = jest.fn().mockRejectedValue(new Error('Test error')) as any;
 			const wrappedHandler = withErrorTracking(mockHandler);
 
 			const mockRequest = new Request('http://localhost/test');
 			const mockContext = {
 				request: mockRequest,
-				env: { SENTRY_DSN: 'test-dsn' },
-				params: {},
-				waitUntil: jest.fn(),
-				next: jest.fn(),
-				data: {},
+				env: { SENTRY_DSN: 'test-dsn' } as TestEnv,
+				params: {} as Record<string, string>,
+				waitUntil: jest.fn() as (promise: Promise<unknown>) => void,
+				next: jest.fn().mockResolvedValue(new Response()) as () => Promise<Response>,
+				data: {} as Record<string, unknown>,
 			};
 
 			const response = await wrappedHandler(mockContext);
@@ -54,17 +60,17 @@ describe('Error Tracking Utility', () => {
 
 			const mockHandler = jest.fn().mockResolvedValue(
 				new Response(JSON.stringify({ success: true }), { status: 200 })
-			);
+			) as any;
 			const wrappedHandler = withErrorTracking(mockHandler);
 
 			const mockRequest = new Request('http://localhost/test');
 			const mockContext = {
 				request: mockRequest,
-				env: {},
-				params: {},
-				waitUntil: jest.fn(),
-				next: jest.fn(),
-				data: {},
+				env: {} as TestEnv,
+				params: {} as Record<string, string>,
+				waitUntil: jest.fn() as (promise: Promise<unknown>) => void,
+				next: jest.fn().mockResolvedValue(new Response()) as () => Promise<Response>,
+				data: {} as Record<string, unknown>,
 			};
 
 			const response = await wrappedHandler(mockContext);
@@ -77,17 +83,17 @@ describe('Error Tracking Utility', () => {
 		it('should add CORS headers to error responses', async () => {
 			const { withErrorTracking } = await import('@/../functions/utils/errorTracking');
 
-			const mockHandler = jest.fn().mockRejectedValue(new Error('Test error'));
+			const mockHandler = jest.fn().mockRejectedValue(new Error('Test error')) as any;
 			const wrappedHandler = withErrorTracking(mockHandler);
 
 			const mockRequest = new Request('http://localhost/test');
 			const mockContext = {
 				request: mockRequest,
-				env: {},
-				params: {},
-				waitUntil: jest.fn(),
-				next: jest.fn(),
-				data: {},
+				env: {} as TestEnv,
+				params: {} as Record<string, string>,
+				waitUntil: jest.fn() as (promise: Promise<unknown>) => void,
+				next: jest.fn().mockResolvedValue(new Response()) as () => Promise<Response>,
+				data: {} as Record<string, unknown>,
 			};
 
 			const response = await wrappedHandler(mockContext);
@@ -99,17 +105,17 @@ describe('Error Tracking Utility', () => {
 		it('should handle non-Error objects', async () => {
 			const { withErrorTracking } = await import('@/../functions/utils/errorTracking');
 
-			const mockHandler = jest.fn().mockRejectedValue('String error');
+			const mockHandler = jest.fn().mockRejectedValue('String error') as any;
 			const wrappedHandler = withErrorTracking(mockHandler);
 
 			const mockRequest = new Request('http://localhost/test');
 			const mockContext = {
 				request: mockRequest,
-				env: {},
-				params: {},
-				waitUntil: jest.fn(),
-				next: jest.fn(),
-				data: {},
+				env: {} as TestEnv,
+				params: {} as Record<string, string>,
+				waitUntil: jest.fn() as (promise: Promise<unknown>) => void,
+				next: jest.fn().mockResolvedValue(new Response()) as () => Promise<Response>,
+				data: {} as Record<string, unknown>,
 			};
 
 			const response = await wrappedHandler(mockContext);
@@ -122,7 +128,7 @@ describe('Error Tracking Utility', () => {
 		it('should capture request context', async () => {
 			const { withErrorTracking } = await import('@/../functions/utils/errorTracking');
 
-			const mockHandler = jest.fn().mockRejectedValue(new Error('Test error'));
+			const mockHandler = jest.fn().mockRejectedValue(new Error('Test error')) as any;
 			const wrappedHandler = withErrorTracking(mockHandler);
 
 			const mockRequest = new Request('http://localhost/test?param=value', {
@@ -131,11 +137,11 @@ describe('Error Tracking Utility', () => {
 			});
 			const mockContext = {
 				request: mockRequest,
-				env: { SENTRY_DSN: 'test-dsn' },
-				params: {},
-				waitUntil: jest.fn(),
-				next: jest.fn(),
-				data: {},
+				env: { SENTRY_DSN: 'test-dsn' } as TestEnv,
+				params: {} as Record<string, string>,
+				waitUntil: jest.fn() as (promise: Promise<unknown>) => void,
+				next: jest.fn().mockResolvedValue(new Response()) as () => Promise<Response>,
+				data: {} as Record<string, unknown>,
 			};
 
 			await wrappedHandler(mockContext);
@@ -149,17 +155,17 @@ describe('Error Tracking Utility', () => {
 		it('should return consistent error response format', async () => {
 			const { withErrorTracking } = await import('@/../functions/utils/errorTracking');
 
-			const mockHandler = jest.fn().mockRejectedValue(new Error('Custom error message'));
+			const mockHandler = jest.fn().mockRejectedValue(new Error('Custom error message')) as any;
 			const wrappedHandler = withErrorTracking(mockHandler);
 
 			const mockRequest = new Request('http://localhost/test');
 			const mockContext = {
 				request: mockRequest,
-				env: {},
-				params: {},
-				waitUntil: jest.fn(),
-				next: jest.fn(),
-				data: {},
+				env: {} as TestEnv,
+				params: {} as Record<string, string>,
+				waitUntil: jest.fn() as (promise: Promise<unknown>) => void,
+				next: jest.fn().mockResolvedValue(new Response()) as () => Promise<Response>,
+				data: {} as Record<string, unknown>,
 			};
 
 			const response = await wrappedHandler(mockContext);
@@ -175,17 +181,17 @@ describe('Error Tracking Utility', () => {
 
 			const mockHandler = jest.fn().mockRejectedValue(
 				new Error('Database connection failed: password=secret123')
-			);
+			) as any;
 			const wrappedHandler = withErrorTracking(mockHandler);
 
 			const mockRequest = new Request('http://localhost/test');
 			const mockContext = {
 				request: mockRequest,
-				env: { ENVIRONMENT: 'production' },
-				params: {},
-				waitUntil: jest.fn(),
-				next: jest.fn(),
-				data: {},
+				env: { ENVIRONMENT: 'production' } as TestEnv,
+				params: {} as Record<string, string>,
+				waitUntil: jest.fn() as (promise: Promise<unknown>) => void,
+				next: jest.fn().mockResolvedValue(new Response()) as () => Promise<Response>,
+				data: {} as Record<string, unknown>,
 			};
 
 			const response = await wrappedHandler(mockContext);
@@ -202,17 +208,17 @@ describe('Error Tracking Utility', () => {
 
 			const mockHandler = jest.fn().mockResolvedValue(
 				new Response(JSON.stringify({ success: true }), { status: 200 })
-			);
+			) as any;
 			const wrappedHandler = withErrorTracking(mockHandler);
 
 			const mockRequest = new Request('http://localhost/test');
 			const mockContext = {
 				request: mockRequest,
-				env: {},
-				params: {},
-				waitUntil: jest.fn(),
-				next: jest.fn(),
-				data: {},
+				env: {} as TestEnv,
+				params: {} as Record<string, string>,
+				waitUntil: jest.fn() as (promise: Promise<unknown>) => void,
+				next: jest.fn().mockResolvedValue(new Response()) as () => Promise<Response>,
+				data: {} as Record<string, unknown>,
 			};
 
 			const start = Date.now();

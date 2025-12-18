@@ -3,7 +3,7 @@
  * Main service for IPFS operations including upload, retrieval, and pinning
  */
 
-import { PinataSDK } from 'pinata-web3';
+import { PinataSDK } from 'pinata';
 // Import helia types conditionally to avoid issues in test environments
 type Helia = any;
 type UnixFS = any;
@@ -53,8 +53,7 @@ class IPFSService {
 					pinataJwt: this.config.pinataJWT,
 				});
 			}
-			// Note: pinata-web3 only supports JWT authentication,
-			// API key + secret authentication is no longer supported
+			// Note: The new Pinata SDK supports JWT authentication
 
 			// Initialize Helia IPFS client if URL is available
 			if (this.config.ipfsApiUrl) {

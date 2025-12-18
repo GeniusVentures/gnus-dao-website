@@ -7,8 +7,8 @@ import { getIPFSConfig, validateIPFSConfig } from '../config';
 import { validateFile, formatFileSize, isValidIPFSHash } from '../utils';
 import type { ProposalMetadata } from '../types';
 
-// Mock pinata-web3 for testing
-jest.mock('pinata-web3', () => ({
+// Mock pinata for testing
+jest.mock('pinata', () => ({
 	PinataSDK: jest.fn().mockImplementation(() => ({
 		upload: {
 			file: jest.fn().mockResolvedValue({

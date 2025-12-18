@@ -1,6 +1,17 @@
 /**
  * Tests for centralized logging system
  */
+
+// Mock Sentry before importing logger to avoid circular dependency issues
+jest.mock('@sentry/nextjs', () => ({
+	captureException: jest.fn(),
+	captureMessage: jest.fn(),
+	setContext: jest.fn(),
+	setUser: jest.fn(),
+	addBreadcrumb: jest.fn(),
+	startSpan: jest.fn((config, callback) => callback()),
+}));
+
 import logger, { LogLevel } from '@/lib/utils/logger';
 
 describe('Logger', () => {

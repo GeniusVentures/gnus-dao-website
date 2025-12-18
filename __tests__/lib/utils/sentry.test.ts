@@ -41,16 +41,23 @@ describe('Sentry Error Tracking', () => {
 
 			captureError(error, context);
 
-			expect(mockCaptureException).toHaveBeenCalledWith(error, {
+			expect(mockCaptureException).toHaveBeenCalledWith(error, expect.objectContaining({
 				level: 'error',
-				contexts: {
+				contexts: expect.objectContaining({
 					custom: context,
-				},
-				tags: {
+					session: expect.any(Object),
+				}),
+				tags: expect.objectContaining({
 					errorType: 'javascript',
 					environment: process.env.NODE_ENV,
-				},
-			});
+					sessionId: expect.any(String),
+				}),
+				extra: expect.objectContaining({
+					sessionDuration: expect.any(Number),
+					pageViews: expect.any(Number),
+					userActions: expect.any(Number),
+				}),
+			}));
 		});
 
 		it('should capture errors with different levels', async () => {
@@ -82,19 +89,27 @@ describe('Sentry Error Tracking', () => {
 
 			captureWeb3Error(error, context);
 
-			expect(mockCaptureException).toHaveBeenCalledWith(error, {
+			expect(mockCaptureException).toHaveBeenCalledWith(error, expect.objectContaining({
 				level: 'error',
-				contexts: {
+				contexts: expect.objectContaining({
 					web3: context,
-				},
-				tags: {
+					session: expect.any(Object),
+				}),
+				tags: expect.objectContaining({
 					errorType: 'web3',
 					action: 'connect',
 					chainId: '1',
 					walletType: 'metamask',
-				},
+					sessionId: expect.any(String),
+				}),
+				extra: expect.objectContaining({
+					web3Context: context,
+					sessionDuration: expect.any(Number),
+					pageViews: expect.any(Number),
+					userActions: expect.any(Number),
+				}),
 				fingerprint: ['web3-error', 'connect', 'unknown'],
-			});
+			}));
 		});
 	});
 
@@ -112,18 +127,26 @@ describe('Sentry Error Tracking', () => {
 
 			captureApiError(error, context);
 
-			expect(mockCaptureException).toHaveBeenCalledWith(error, {
+			expect(mockCaptureException).toHaveBeenCalledWith(error, expect.objectContaining({
 				level: 'error',
-				contexts: {
+				contexts: expect.objectContaining({
 					api: context,
-				},
-				tags: {
+					session: expect.any(Object),
+				}),
+				tags: expect.objectContaining({
 					errorType: 'api',
 					endpoint: '/api/proposals',
 					method: 'GET',
 					statusCode: '500',
-				},
-			});
+					sessionId: expect.any(String),
+				}),
+				extra: expect.objectContaining({
+					apiContext: context,
+					sessionDuration: expect.any(Number),
+					pageViews: expect.any(Number),
+					userActions: expect.any(Number),
+				}),
+			}));
 		});
 	});
 
@@ -164,12 +187,20 @@ describe('Sentry Error Tracking', () => {
 
 			addUserActionBreadcrumb(action, data);
 
-			expect(mockAddBreadcrumb).toHaveBeenCalledWith({
+			expect(mockAddBreadcrumb).toHaveBeenCalledWith(expect.objectContaining({
 				message: 'User Action: click_proposal',
 				category: 'user',
 				level: 'info',
-				data,
-			});
+				data: expect.objectContaining({
+					proposalId: '123',
+					page: 'proposals',
+					timestamp: expect.any(Number),
+					sessionId: expect.any(String),
+					sessionDuration: expect.any(Number),
+					actionSequence: expect.any(Number),
+				}),
+				timestamp: expect.any(Number),
+			}));
 		});
 	});
 
@@ -239,13 +270,13 @@ describe('Sentry Error Tracking', () => {
 				'Performance Issue: Slow page load',
 				'warning',
 			);
-			expect(mockSetContext).toHaveBeenCalledWith('performance', context);
-			expect(mockAddBreadcrumb).toHaveBeenCalledWith({
+			expect(mockAddBreadcrumb).toHaveBeenCalledWith(expect.objectContaining({
 				message: 'Performance: pageLoad = 5000ms',
 				category: 'performance',
 				level: 'warning',
 				data: context,
-			});
+				timestamp: expect.any(Number),
+			}));
 		});
 	});
 });

@@ -4,7 +4,7 @@
  */
 
 import * as Sentry from '@sentry/nextjs';
-import { isProduction, isDevelopment } from '@/lib/config/env';
+import { isDevelopment } from '@/lib/config/env';
 
 /**
  * Enhanced error context interface
@@ -90,50 +90,8 @@ export function initializeSession(): SessionInfo {
 		};
 	}
 
-	// Ensure error tracking is initialized before session tracking
-	ensureErrorTrackingInitialized();
-
-	const now = new Date();
-	sessionInfo = {
-		sessionId: crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
-		startTime: now.toISOString(),
-		lastActivity: now.toISOString(),
-		pageViews: 1,
-		userActions: 0,
-		currentPage: window.location.pathname,
-		referrer: document.referrer || undefined,
-		userAgent: navigator.userAgent,
-		viewport: {
-			width: window.innerWidth,
-			height: window.innerHeight,
-		},
-		connectionType: (navigator as any).connection?.effectiveType || undefined,
-		language: navigator.language,
-		timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-		duration: 0,
-	};
-
-	// Set initial session context in Sentry
-	Sentry.setContext('session', sessionInfo);
-
-	// Update session on page visibility change
-	document.addEventListener('visibilitychange', updateSessionActivity);
-	
-	// Update session on page unload
-	window.addEventListener('beforeunload', updateSessionActivity);
-
-	// Update viewport on resize
-	window.addEventListener('resize', () => {
-		if (sessionInfo) {
-			sessionInfo.viewport = {
-				width: window.innerWidth,
-				height: window.innerHeight,
-			};
-			updateSessionContext();
-		}
-	});
-
-	return sessionInfo;
+	// Use internal initialization to avoid circular dependency
+	return initializeSessionInternal();
 }
 
 /**
@@ -576,8 +534,10 @@ export function initializeErrorTracking(): void {
 	setupUnhandledRejectionTracking();
 	setupConsoleErrorTracking();
 
-	// Initialize session tracking
-	initializeSession();
+	// Initialize session tracking only if not already initialized
+	if (!sessionInfo) {
+		initializeSessionInternal();
+	}
 
 	// Set initial application context
 	setApplicationContext({
@@ -587,6 +547,14 @@ export function initializeErrorTracking(): void {
 
 	// Track page navigation for session context
 	if (typeof window !== 'undefined') {
+		// Expose session functions on window to avoid circular dependencies
+		(window as any).__sentryModule = {
+			getCurrentSession,
+			incrementUserAction,
+			incrementPageView,
+			updateSessionActivity,
+		};
+
 		// Listen for navigation events
 		const originalPushState = history.pushState;
 		const originalReplaceState = history.replaceState;
@@ -605,6 +573,72 @@ export function initializeErrorTracking(): void {
 			incrementPageView(window.location.pathname);
 		});
 	}
+}
+
+/**
+ * Internal session initialization without circular dependency
+ */
+function initializeSessionInternal(): SessionInfo {
+	if (typeof window === 'undefined') {
+		// Server-side fallback
+		const serverSession = {
+			sessionId: `server-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
+			startTime: new Date().toISOString(),
+			lastActivity: new Date().toISOString(),
+			pageViews: 0,
+			userActions: 0,
+			currentPage: 'server',
+			userAgent: 'server',
+			viewport: { width: 0, height: 0 },
+			language: 'en',
+			timezone: 'UTC',
+			duration: 0,
+		};
+		sessionInfo = serverSession;
+		return serverSession;
+	}
+
+	const now = new Date();
+	sessionInfo = {
+		sessionId: crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
+		startTime: now.toISOString(),
+		lastActivity: now.toISOString(),
+		pageViews: 1,
+		userActions: 0,
+		currentPage: window.location.pathname,
+		referrer: document.referrer || undefined,
+		userAgent: navigator.userAgent,
+		viewport: {
+			width: window.innerWidth,
+			height: window.innerHeight,
+		},
+		connectionType: (navigator as any).connection?.effectiveType || undefined,
+		language: navigator.language,
+		timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+		duration: 0,
+	};
+
+	// Set initial session context in Sentry
+	Sentry.setContext('session', sessionInfo);
+
+	// Update session on page visibility change
+	document.addEventListener('visibilitychange', updateSessionActivity);
+	
+	// Update session on page unload
+	window.addEventListener('beforeunload', updateSessionActivity);
+
+	// Update viewport on resize
+	window.addEventListener('resize', () => {
+		if (sessionInfo) {
+			sessionInfo.viewport = {
+				width: window.innerWidth,
+				height: window.innerHeight,
+			};
+			updateSessionContext();
+		}
+	});
+
+	return sessionInfo;
 }
 
 // Lazy initialization flag

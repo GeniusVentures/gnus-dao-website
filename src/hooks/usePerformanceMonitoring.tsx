@@ -64,7 +64,7 @@ export function useComponentLifecycleTracking(componentName: string) {
  * Hook for tracking API call performance
  */
 export function useApiPerformanceTracking() {
-	const trackApiCall = useCallback(async <T>(
+	const trackApiCall = useCallback(async <T,>(
 		endpoint: string,
 		apiCall: () => Promise<T>,
 		context?: Record<string, any>
@@ -147,7 +147,7 @@ export function useFormPerformanceTracking(formName: string) {
  * Hook for tracking Web3 operation performance
  */
 export function useWeb3PerformanceTracking() {
-	const trackWalletConnection = useCallback(async <T>(
+	const trackWalletConnection = useCallback(async <T,>(
 		walletType: string,
 		connectionCall: () => Promise<T>
 	): Promise<T> => {
@@ -158,7 +158,7 @@ export function useWeb3PerformanceTracking() {
 		);
 	}, []);
 
-	const trackContractInteraction = useCallback(async <T>(
+	const trackContractInteraction = useCallback(async <T,>(
 		contractName: string,
 		method: string,
 		interaction: () => Promise<T>
@@ -170,7 +170,7 @@ export function useWeb3PerformanceTracking() {
 		);
 	}, []);
 
-	const trackTransactionSigning = useCallback(async <T>(
+	const trackTransactionSigning = useCallback(async <T,>(
 		transactionType: string,
 		signingCall: () => Promise<T>
 	): Promise<T> => {
@@ -192,7 +192,7 @@ export function useWeb3PerformanceTracking() {
  * Hook for tracking IPFS operation performance
  */
 export function useIPFSPerformanceTracking() {
-	const trackIPFSUpload = useCallback(async <T>(
+	const trackIPFSUpload = useCallback(async <T,>(
 		fileSize: number,
 		uploadCall: () => Promise<T>
 	): Promise<T> => {
@@ -203,7 +203,7 @@ export function useIPFSPerformanceTracking() {
 		);
 	}, []);
 
-	const trackIPFSDownload = useCallback(async <T>(
+	const trackIPFSDownload = useCallback(async <T,>(
 		hash: string,
 		downloadCall: () => Promise<T>
 	): Promise<T> => {
@@ -272,7 +272,7 @@ export function usePagePerformanceTracking(pageName: string) {
  * Hook for tracking search performance
  */
 export function useSearchPerformanceTracking() {
-	const trackSearch = useCallback(async <T>(
+	const trackSearch = useCallback(async <T,>(
 		searchTerm: string,
 		searchCall: () => Promise<T>
 	): Promise<T> => {

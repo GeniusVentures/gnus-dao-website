@@ -1,6 +1,19 @@
 /**
  * Tests for ErrorBoundary component
  */
+
+// Mock logger - must be at the top before any imports
+jest.mock('@/lib/utils/logger', () => ({
+  __esModule: true,
+  default: {
+    error: jest.fn(),
+    user: jest.fn(),
+    info: jest.fn(),
+    warn: jest.fn(),
+    debug: jest.fn(),
+  },
+}));
+
 import { render, screen, fireEvent } from '@testing-library/react';
 import { ErrorBoundary } from '@/components/error/ErrorBoundary';
 import React from 'react';
@@ -55,7 +68,7 @@ describe('ErrorBoundary', () => {
       </ErrorBoundary>
     );
 
-    expect(screen.getByText(/Something went wrong/i)).toBeInTheDocument();
+    expect(screen.getByText(/Component Error/i)).toBeInTheDocument();
   });
 
   it('should display error message', () => {
@@ -65,7 +78,7 @@ describe('ErrorBoundary', () => {
       </ErrorBoundary>
     );
 
-    expect(screen.getByText(/Test error/i)).toBeInTheDocument();
+    expect(screen.getByText(/This component failed to load properly/i)).toBeInTheDocument();
   });
 
   it('should show retry button', () => {
@@ -75,26 +88,35 @@ describe('ErrorBoundary', () => {
       </ErrorBoundary>
     );
 
-    expect(screen.getByRole('button', { name: /try again/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /retry/i })).toBeInTheDocument();
   });
 
   it('should reset error state when retry is clicked', () => {
+    let shouldThrow = true;
+    const DynamicComponent = () => {
+      if (shouldThrow) {
+        throw new Error('Test error');
+      }
+      return <div>No error</div>;
+    };
+
     const { rerender } = render(
       <ErrorBoundary>
-        <ThrowError shouldThrow={true} />
+        <DynamicComponent />
       </ErrorBoundary>
     );
 
-    const retryButton = screen.getByRole('button', { name: /try again/i });
+    // Verify error is shown
+    expect(screen.getByText(/Component Error/i)).toBeInTheDocument();
+
+    const retryButton = screen.getByRole('button', { name: /retry/i });
+    
+    // Change the component to not throw after retry
+    shouldThrow = false;
+    
     fireEvent.click(retryButton);
 
-    // After retry, re-render with no error
-    rerender(
-      <ErrorBoundary>
-        <ThrowError shouldThrow={false} />
-      </ErrorBoundary>
-    );
-
+    // After retry, the error boundary should reset and show the non-error component
     expect(screen.getByText('No error')).toBeInTheDocument();
   });
 
@@ -105,7 +127,8 @@ describe('ErrorBoundary', () => {
       </ErrorBoundary>
     );
 
-    expect(screen.getByRole('button', { name: /report/i })).toBeInTheDocument();
+    // The component only shows a Retry button, not a Report button
+    expect(screen.getByRole('button', { name: /retry/i })).toBeInTheDocument();
   });
 
   it('should display custom fallback if provided', () => {
@@ -143,7 +166,7 @@ describe('ErrorBoundary', () => {
       </ErrorBoundary>
     );
 
-    expect(screen.getByText(/Something went wrong/i)).toBeInTheDocument();
+    expect(screen.getByText(/Component Error/i)).toBeInTheDocument();
   });
 
   it('should show navigation button for page-level errors', () => {

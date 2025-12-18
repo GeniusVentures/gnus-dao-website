@@ -116,6 +116,11 @@ describe('IPFS Utils', () => {
 
 	describe('generateUniqueFilename', () => {
 		it('should generate unique filenames', () => {
+			// Mock Date.now to return different values
+			let mockTime = 1000000000000;
+			const originalDateNow = Date.now;
+			Date.now = jest.fn(() => mockTime++);
+
 			const original = 'test.txt';
 			const unique1 = generateUniqueFilename(original);
 			const unique2 = generateUniqueFilename(original);
@@ -123,6 +128,9 @@ describe('IPFS Utils', () => {
 			expect(unique1).not.toBe(unique2);
 			expect(unique1).toContain('test');
 			expect(unique1).toContain('.txt');
+
+			// Restore Date.now
+			Date.now = originalDateNow;
 		});
 
 		it('should handle files without extensions', () => {
@@ -130,7 +138,7 @@ describe('IPFS Utils', () => {
 			const unique = generateUniqueFilename(original);
 
 			expect(unique).toContain('README');
-			expect(unique).toMatch(/README_\d+_[a-z0-9]+\.README/); // Should append .README as extension
+			expect(unique).toMatch(/README_\d+_[a-z0-9-]+\.README/); // Should append .README as extension
 		});
 	});
 

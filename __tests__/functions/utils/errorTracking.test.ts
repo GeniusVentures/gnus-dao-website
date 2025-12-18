@@ -10,12 +10,14 @@ const mockCaptureException = jest.fn();
 const mockCaptureMessage = jest.fn();
 const mockSetContext = jest.fn();
 const mockSetUser = jest.fn();
+const mockAddBreadcrumb = jest.fn();
 
 jest.mock('@sentry/nextjs', () => ({
 	captureException: mockCaptureException,
 	captureMessage: mockCaptureMessage,
 	setContext: mockSetContext,
 	setUser: mockSetUser,
+	addBreadcrumb: mockAddBreadcrumb,
 }));
 
 describe('Error Tracking Utility', () => {
@@ -31,9 +33,16 @@ describe('Error Tracking Utility', () => {
 			const wrappedHandler = withErrorTracking(mockHandler);
 
 			const mockRequest = new Request('http://localhost/test');
-			const mockEnv = { SENTRY_DSN: 'test-dsn' };
+			const mockContext = {
+				request: mockRequest,
+				env: { SENTRY_DSN: 'test-dsn' },
+				params: {},
+				waitUntil: jest.fn(),
+				next: jest.fn(),
+				data: {},
+			};
 
-			const response = await wrappedHandler({ request: mockRequest, env: mockEnv } as any);
+			const response = await wrappedHandler(mockContext);
 
 			expect(response.status).toBe(500);
 			const data = await response.json();
@@ -49,9 +58,16 @@ describe('Error Tracking Utility', () => {
 			const wrappedHandler = withErrorTracking(mockHandler);
 
 			const mockRequest = new Request('http://localhost/test');
-			const mockEnv = {};
+			const mockContext = {
+				request: mockRequest,
+				env: {},
+				params: {},
+				waitUntil: jest.fn(),
+				next: jest.fn(),
+				data: {},
+			};
 
-			const response = await wrappedHandler({ request: mockRequest, env: mockEnv } as any);
+			const response = await wrappedHandler(mockContext);
 
 			expect(response.status).toBe(200);
 			const data = await response.json();
@@ -65,9 +81,16 @@ describe('Error Tracking Utility', () => {
 			const wrappedHandler = withErrorTracking(mockHandler);
 
 			const mockRequest = new Request('http://localhost/test');
-			const mockEnv = {};
+			const mockContext = {
+				request: mockRequest,
+				env: {},
+				params: {},
+				waitUntil: jest.fn(),
+				next: jest.fn(),
+				data: {},
+			};
 
-			const response = await wrappedHandler({ request: mockRequest, env: mockEnv } as any);
+			const response = await wrappedHandler(mockContext);
 
 			expect(response.headers.get('Access-Control-Allow-Origin')).toBe('*');
 			expect(response.headers.get('Content-Type')).toBe('application/json');
@@ -80,9 +103,16 @@ describe('Error Tracking Utility', () => {
 			const wrappedHandler = withErrorTracking(mockHandler);
 
 			const mockRequest = new Request('http://localhost/test');
-			const mockEnv = {};
+			const mockContext = {
+				request: mockRequest,
+				env: {},
+				params: {},
+				waitUntil: jest.fn(),
+				next: jest.fn(),
+				data: {},
+			};
 
-			const response = await wrappedHandler({ request: mockRequest, env: mockEnv } as any);
+			const response = await wrappedHandler(mockContext);
 
 			expect(response.status).toBe(500);
 		});
@@ -99,9 +129,16 @@ describe('Error Tracking Utility', () => {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 			});
-			const mockEnv = { SENTRY_DSN: 'test-dsn' };
+			const mockContext = {
+				request: mockRequest,
+				env: { SENTRY_DSN: 'test-dsn' },
+				params: {},
+				waitUntil: jest.fn(),
+				next: jest.fn(),
+				data: {},
+			};
 
-			await wrappedHandler({ request: mockRequest, env: mockEnv } as any);
+			await wrappedHandler(mockContext);
 
 			// Error should be caught and handled
 			expect(mockHandler).toHaveBeenCalled();
@@ -116,9 +153,16 @@ describe('Error Tracking Utility', () => {
 			const wrappedHandler = withErrorTracking(mockHandler);
 
 			const mockRequest = new Request('http://localhost/test');
-			const mockEnv = {};
+			const mockContext = {
+				request: mockRequest,
+				env: {},
+				params: {},
+				waitUntil: jest.fn(),
+				next: jest.fn(),
+				data: {},
+			};
 
-			const response = await wrappedHandler({ request: mockRequest, env: mockEnv } as any);
+			const response = await wrappedHandler(mockContext);
 
 			expect(response.status).toBe(500);
 			const data = await response.json();
@@ -135,9 +179,16 @@ describe('Error Tracking Utility', () => {
 			const wrappedHandler = withErrorTracking(mockHandler);
 
 			const mockRequest = new Request('http://localhost/test');
-			const mockEnv = { ENVIRONMENT: 'production' };
+			const mockContext = {
+				request: mockRequest,
+				env: { ENVIRONMENT: 'production' },
+				params: {},
+				waitUntil: jest.fn(),
+				next: jest.fn(),
+				data: {},
+			};
 
-			const response = await wrappedHandler({ request: mockRequest, env: mockEnv } as any);
+			const response = await wrappedHandler(mockContext);
 
 			const data = await response.json();
 			// Should not expose sensitive details
@@ -155,10 +206,17 @@ describe('Error Tracking Utility', () => {
 			const wrappedHandler = withErrorTracking(mockHandler);
 
 			const mockRequest = new Request('http://localhost/test');
-			const mockEnv = {};
+			const mockContext = {
+				request: mockRequest,
+				env: {},
+				params: {},
+				waitUntil: jest.fn(),
+				next: jest.fn(),
+				data: {},
+			};
 
 			const start = Date.now();
-			await wrappedHandler({ request: mockRequest, env: mockEnv } as any);
+			await wrappedHandler(mockContext);
 			const duration = Date.now() - start;
 
 			// Should complete quickly (< 100ms for simple handler)

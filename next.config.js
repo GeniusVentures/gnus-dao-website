@@ -4,17 +4,19 @@ const { withSentryConfig } = require("@sentry/nextjs");
 
 // Initialize OpenNext Cloudflare for development
 // This enables bindings during local development
-if (process.env.NODE_ENV === "development") {
-  try {
-    const { initOpenNextCloudflareForDev } = require("@opennextjs/cloudflare");
-    initOpenNextCloudflareForDev();
-  } catch (error) {
-    // @opennextjs/cloudflare not installed yet - skip initialization
-    console.log(
-      "Note: @opennextjs/cloudflare not installed. Running in standard Next.js mode.",
-    );
-  }
-}
+// Initialize OpenNext Cloudflare for development
+// This enables bindings during local development
+// if (process.env.NODE_ENV === "development") {
+//   try {
+//     const { initOpenNextCloudflareForDev } = require("@opennextjs/cloudflare");
+//     initOpenNextCloudflareForDev();
+//   } catch (error) {
+//     // @opennextjs/cloudflare not installed yet - skip initialization
+//     console.log(
+//       "Note: @opennextjs/cloudflare not installed. Running in standard Next.js mode.",
+//     );
+//   }
+// }
 
 // Environment detection
 const isCloudflarePages = process.env.CLOUDFLARE_PAGES === "true";
@@ -35,31 +37,31 @@ const nextConfig = {
   // Cloudflare Pages configuration with adapter support
   ...(isCloudflarePages &&
     useAdapter && {
-      // Configuration for @opennextjs/cloudflare adapter
-      experimental: {
-        runtime: "edge",
-      },
-    }),
+    // Configuration for @opennextjs/cloudflare adapter
+    experimental: {
+      runtime: "edge",
+    },
+  }),
 
   // Hybrid configuration: Static export with API routes for runtime config
   ...(isProduction &&
     isStaticExport &&
     !useAdapter && {
-      output: "export",
-      trailingSlash: false, // Changed to false for better Cloudflare Pages compatibility
-      distDir: "out",
-      images: {
-        unoptimized: true, // Required for static export
-      },
-      // Enable API routes for runtime configuration
-      experimental: {
-        ...(isProduction && isStaticExport && !useAdapter
-          ? {}
-          : {
-              runtime: "edge",
-            }),
-      },
-    }),
+    output: "export",
+    trailingSlash: false, // Changed to false for better Cloudflare Pages compatibility
+    distDir: "out",
+    images: {
+      unoptimized: true, // Required for static export
+    },
+    // Enable API routes for runtime configuration
+    experimental: {
+      ...(isProduction && isStaticExport && !useAdapter
+        ? {}
+        : {
+          runtime: "edge",
+        }),
+    },
+  }),
 
   // Enhanced performance optimizations
   experimental: {
@@ -83,8 +85,8 @@ const nextConfig = {
     // Cloudflare-specific optimizations
     ...(isCloudflarePages &&
       useAdapter && {
-        runtime: "edge",
-      }),
+      runtime: "edge",
+    }),
 
     // Performance monitoring
     webVitalsAttribution: ["CLS", "LCP", "FID", "FCP", "TTFB"],
@@ -109,15 +111,15 @@ const nextConfig = {
     // Production optimizations
     removeConsole: isProduction
       ? {
-          exclude: ["error", "warn"], // Keep error and warning logs
-        }
+        exclude: ["error", "warn"], // Keep error and warning logs
+      }
       : false,
 
     // Remove test attributes and debug properties in production
     reactRemoveProperties: isProduction
       ? {
-          properties: ["^data-testid$", "^data-test$", "^data-debug$"],
-        }
+        properties: ["^data-testid$", "^data-test$", "^data-debug$"],
+      }
       : false,
   },
 
@@ -204,9 +206,9 @@ const nextConfig = {
     // Loader configuration for Cloudflare
     ...(isCloudflarePages &&
       !isStaticExport && {
-        loader: "custom",
-        loaderFile: "./src/lib/utils/image-loader.js",
-      }),
+      loader: "custom",
+      loaderFile: "./src/lib/utils/image-loader.js",
+    }),
   },
 
   // Enhanced security headers (disabled for static export, handled by _headers file)

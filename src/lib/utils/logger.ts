@@ -229,11 +229,16 @@ class Logger {
 
 		// Send warnings to Sentry in production with session context
 		if (isProduction()) {
-			// Get session information
+			// Get session information dynamically to avoid circular dependency
 			let sessionInfo = null;
 			try {
-				const sentryUtils = require('./sentry');
-				sessionInfo = sentryUtils.getCurrentSession();
+				// Use dynamic import to avoid circular dependencies
+				if (typeof window !== 'undefined') {
+					const sentryModule = (window as any).__sentryModule;
+					if (sentryModule && sentryModule.getCurrentSession) {
+						sessionInfo = sentryModule.getCurrentSession();
+					}
+				}
 			} catch {
 				// Fallback if sentry utils not available
 			}
@@ -262,12 +267,15 @@ class Logger {
 		// Check if this is a critical error that needs immediate alerting
 		const isCritical = this.isCriticalError(message, error, context);
 		
-		// Get session information for enhanced error context
+		// Get session information for enhanced error context dynamically to avoid circular dependency
 		let sessionInfo = null;
 		try {
-			// Dynamic import to avoid circular dependencies
-			const sentryUtils = require('./sentry');
-			sessionInfo = sentryUtils.getCurrentSession();
+			if (typeof window !== 'undefined') {
+				const sentryModule = (window as any).__sentryModule;
+				if (sentryModule && sentryModule.getCurrentSession) {
+					sessionInfo = sentryModule.getCurrentSession();
+				}
+			}
 		} catch {
 			// Fallback if sentry utils not available
 		}
@@ -430,11 +438,15 @@ class Logger {
 	) {
 		this.error(`Web3 Error: ${context.action || 'Unknown'}`, context, error);
 
-		// Get session information
+		// Get session information dynamically to avoid circular dependency
 		let sessionInfo = null;
 		try {
-			const sentryUtils = require('./sentry');
-			sessionInfo = sentryUtils.getCurrentSession();
+			if (typeof window !== 'undefined') {
+				const sentryModule = (window as any).__sentryModule;
+				if (sentryModule && sentryModule.getCurrentSession) {
+					sessionInfo = sentryModule.getCurrentSession();
+				}
+			}
 		} catch {
 			// Fallback if sentry utils not available
 		}

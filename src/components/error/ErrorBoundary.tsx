@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/Button";
-import { logger } from "@/lib/utils/logger";
+import logger from "@/lib/utils/logger";
 import { AlertTriangle, Bug, Home, RefreshCw } from "lucide-react";
 import React, { Component, ErrorInfo, ReactNode } from "react";
 import * as Sentry from "@sentry/nextjs";
@@ -59,17 +59,22 @@ export class ErrorBoundary extends Component<Props, State> {
       level: level === "page" ? "error" : "warning",
     });
 
-    // Log error with context
-    logger.error(
-      "React Error Boundary Caught Error",
-      {
-        level,
-        errorId: this.state.errorId,
-        componentStack: errorInfo.componentStack,
-        errorBoundary: this.constructor.name,
-      },
-      error,
-    );
+    // Log error with context (safely handle logger)
+    try {
+      logger?.error?.(
+        "React Error Boundary Caught Error",
+        {
+          level,
+          errorId: this.state.errorId,
+          componentStack: errorInfo.componentStack,
+          errorBoundary: this.constructor.name,
+        },
+        error,
+      );
+    } catch {
+      // Fallback if logger is not available
+      console.error("React Error Boundary Caught Error", error);
+    }
 
     // Call custom error handler if provided
     if (onError) {
@@ -80,10 +85,15 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   handleRetry = () => {
-    logger.user("Error Boundary Retry", {
-      errorId: this.state.errorId,
-      level: this.props.level,
-    });
+    try {
+      logger?.user?.("Error Boundary Retry", {
+        errorId: this.state.errorId,
+        level: this.props.level,
+      });
+    } catch {
+      // Fallback if logger is not available
+      console.log("Error Boundary Retry");
+    }
 
     this.setState({
       hasError: false,

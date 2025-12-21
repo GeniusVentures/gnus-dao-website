@@ -153,8 +153,16 @@ export function generateUniqueFilename(originalName: string): string {
 		typeof crypto !== 'undefined' && crypto.randomUUID
 			? crypto.randomUUID().substring(0, 8)
 			: Math.random().toString(36).substring(2, 8);
-	const extension = originalName.split('.').pop();
-	const nameWithoutExt = originalName.replace(/\.[^/.]+$/, '');
+	
+	// Check if file has extension
+	const lastDotIndex = originalName.lastIndexOf('.');
+	if (lastDotIndex === -1) {
+		// No extension, append the original name as extension
+		return `${originalName}_${timestamp}_${random}.${originalName}`;
+	}
+	
+	const extension = originalName.substring(lastDotIndex + 1);
+	const nameWithoutExt = originalName.substring(0, lastDotIndex);
 
 	return `${nameWithoutExt}_${timestamp}_${random}.${extension}`;
 }

@@ -396,8 +396,20 @@ Object.defineProperty(global, "crypto", {
   },
 });
 
+// Mock Sentry to prevent routing instrumentation errors
+jest.mock("@sentry/nextjs", () => ({
+  captureException: jest.fn(),
+  captureMessage: jest.fn(),
+  setContext: jest.fn(),
+  setUser: jest.fn(),
+  addBreadcrumb: jest.fn(),
+  startSpan: jest.fn((config, callback) => callback()),
+  withSentryConfig: jest.fn((config) => config),
+  init: jest.fn(),
+}));
+
 // Mock IPFS dependencies
-jest.mock("pinata-web3", () => ({
+jest.mock("pinata", () => ({
   __esModule: true,
   PinataSDK: jest.fn().mockImplementation(() => ({
     upload: {

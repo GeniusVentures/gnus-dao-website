@@ -3,9 +3,10 @@
  * Main service for IPFS operations including upload, retrieval, and pinning
  */
 
-import { PinataSDK } from 'pinata-web3';
-import type { Helia } from 'helia';
-import type { UnixFS } from '@helia/unixfs';
+import { PinataSDK } from 'pinata';
+// Import helia types conditionally to avoid issues in test environments
+type Helia = any;
+type UnixFS = any;
 import { getIPFSConfig, getIPFSUrl, validateIPFSConfig } from './config';
 import {
 	IPFSError,
@@ -52,8 +53,7 @@ class IPFSService {
 					pinataJwt: this.config.pinataJWT,
 				});
 			}
-			// Note: pinata-web3 only supports JWT authentication,
-			// API key + secret authentication is no longer supported
+			// Note: The new Pinata SDK supports JWT authentication
 
 			// Initialize Helia IPFS client if URL is available
 			if (this.config.ipfsApiUrl) {
@@ -61,10 +61,16 @@ class IPFSService {
 				// For now, we'll create a local Helia node instead
 				// In a production environment, you might want to use @helia/http for HTTP-only operations
 				try {
-					const { createHelia } = await import('helia');
-					const { unixfs } = await import('@helia/unixfs');
-					this.helia = await createHelia();
-					this.fs = unixfs(this.helia);
+					// Dynamic import with better error handling for test environments
+					const heliaModule = await import('helia').catch(() => null);
+					const unixfsModule = await import('@helia/unixfs').catch(() => null);
+					
+					if (heliaModule && unixfsModule) {
+						this.helia = await heliaModule.createHelia();
+						this.fs = unixfsModule.unixfs(this.helia);
+					} else {
+						console.warn('Helia modules not available, falling back to Pinata only');
+					}
 				} catch (error) {
 					console.error('Failed to initialize Helia:', error);
 					// Continue without Helia - will fall back to Pinata
@@ -320,7 +326,7 @@ class IPFSService {
 				path: sanitizedName,
 				content: new Uint8Array(content),
 			}, {
-				onProgress: (evt) => {
+				onProgress: (evt: any) => {
 					// Map Helia progress events to our progress callback
 					// For now, we'll use a simple progress indication
 					if (evt.type === 'unixfs:importer:progress:file:write') {

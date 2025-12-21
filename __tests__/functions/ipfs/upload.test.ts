@@ -36,10 +36,10 @@ function createValidTestToken(
 describe('IPFS Upload API', () => {
 	beforeEach(() => {
 		jest.clearAllMocks();
-		global.fetch = jest.fn();
+		global.fetch = jest.fn() as jest.MockedFunction<typeof fetch>;
 		// Mock JWT verification to always succeed in tests
 		if (global.crypto && global.crypto.subtle) {
-			global.crypto.subtle.verify = jest.fn().mockResolvedValue(true);
+			global.crypto.subtle.verify = jest.fn().mockResolvedValue(true) as any;
 		}
 	});
 

@@ -79,7 +79,7 @@ describe('Footer', () => {
   it('should have external links with proper attributes', () => {
     render(<Footer />);
     const githubLinks = screen.getAllByText('GitHub');
-    const githubLink = githubLinks[0].closest('a');
+    const githubLink = githubLinks[0]?.closest('a');
     expect(githubLink).toHaveAttribute('href');
     expect(githubLink?.getAttribute('href')).toContain('github.com');
   });

@@ -18,7 +18,7 @@ Sentry.init({
 
 
 	// Setting this option to true will print useful information to the console while you're setting up Sentry.
-	debug: ENVIRONMENT === 'development',
+	debug: false,
 
 	integrations: [
 		Sentry.httpIntegration(),
@@ -47,7 +47,7 @@ Sentry.init({
 			if (event.request.query_string) {
 				const sensitiveParams = ['token', 'key', 'secret', 'password'];
 				sensitiveParams.forEach((param) => {
-					if (typeof event.request?.query_string === 'string' && 
+					if (typeof event.request?.query_string === 'string' &&
 						event.request.query_string.includes(param)) {
 						event.request.query_string = '[Filtered]';
 					}

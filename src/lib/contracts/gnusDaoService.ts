@@ -1,9 +1,8 @@
 import { logger } from '@/lib/utils/logger';
 import { ethers } from 'ethers';
-import type { GNUSDAODiamond } from '../../../diamond-typechain-types';
-import { GNUSDAODiamond__factory } from '../../../diamond-typechain-types';
 import type { Facet, Proposal, VoteReceipt } from './gnusDao';
-import { getGNUSDAOContract, ProposalState, VoteSupport } from './gnusDao';
+import { getGNUSDAOContract, GNUS_DAO_DIAMOND_ABI, ProposalState, VoteSupport } from './gnusDao';
+import type { GNUSDAODiamondInterface as GNUSDAODiamond } from './abi';
 
 export class GNUSDAOService {
 	private contract: GNUSDAODiamond | null = null;
@@ -11,7 +10,7 @@ export class GNUSDAOService {
 	private signer: ethers.Signer | null = null;
 	private chainId: number | null = null;
 
-	constructor() {}
+	constructor() { }
 
 	/**
 	 * Initialize the service with a provider and optional signer
@@ -40,12 +39,12 @@ export class GNUSDAOService {
 				return false;
 			}
 
-			// Create contract instance using Diamond TypeChain factory
-			// The Diamond pattern allows us to call all facet functions through the same address
-			this.contract = GNUSDAODiamond__factory.connect(
+			// Create contract instance using the unified Diamond ABI
+			this.contract = new ethers.Contract(
 				contractConfig.address,
+				GNUS_DAO_DIAMOND_ABI,
 				signer || provider,
-			);
+			) as unknown as GNUSDAODiamond;
 
 			return true;
 		} catch (error) {
@@ -65,7 +64,7 @@ export class GNUSDAOService {
 	 * Get the contract address
 	 */
 	getContractAddress(): string | null {
-		return (this.contract?.target as string) || null;
+		return (this.contractSafe?.target as string) || null;
 	}
 
 	/**
@@ -73,6 +72,10 @@ export class GNUSDAOService {
 	 */
 	getChainId(): number | null {
 		return this.chainId;
+	}
+
+	private get contractSafe(): any {
+		return this.contract as any;
 	}
 
 	// Diamond Loupe Functions
@@ -149,7 +152,7 @@ export class GNUSDAOService {
 				contract
 					.getFunction('decimals')()
 					.catch(() => 18n),
-				this.contract.totalSupply?.() || Promise.resolve(0n),
+				this.contractSafe.totalSupply?.() || Promise.resolve(0n),
 			]);
 
 			const decimals = Number(decimalsResult);
@@ -167,7 +170,7 @@ export class GNUSDAOService {
 		if (!this.contract) throw new Error('Service not initialized');
 
 		try {
-			return (await this.contract.balanceOf?.(address)) || 0n;
+			return (await this.contractSafe.balanceOf?.(address)) || 0n;
 		} catch (error) {
 			console.error('Error getting token balance:', error);
 			return 0n;
@@ -181,7 +184,7 @@ export class GNUSDAOService {
 		if (!this.contract) throw new Error('Service not initialized');
 
 		try {
-			return await this.contract.getVotingPower(address);
+			return await this.contractSafe.getVotingPower(address);
 		} catch (error) {
 			console.error('Error getting voting power:', error);
 			return 0n;
@@ -197,7 +200,7 @@ export class GNUSDAOService {
 		}
 
 		try {
-			return await this.contract.delegateVotes(delegatee);
+			return await this.contractSafe.delegateVotes(delegatee);
 		} catch (error) {
 			console.error('Error delegating votes:', error);
 			throw error;
@@ -234,7 +237,7 @@ export class GNUSDAOService {
 	async delegateToSelf(): Promise<ethers.ContractTransactionResponse> {
 		throw new Error(
 			'This contract does not support self-delegation. Voting power comes directly from your token balance. ' +
-				'You already have voting power if you hold GNUS tokens.',
+			'You already have voting power if you hold GNUS tokens.',
 		);
 	}
 
@@ -245,7 +248,7 @@ export class GNUSDAOService {
 		if (!this.contract) throw new Error('Service not initialized');
 
 		try {
-			return await this.contract.getDelegatedTo(account);
+			return await this.contractSafe.getDelegatedTo(account);
 		} catch (error) {
 			console.error('Error getting delegated to:', error);
 			return ethers.ZeroAddress;
@@ -259,7 +262,7 @@ export class GNUSDAOService {
 		if (!this.contract) throw new Error('Service not initialized');
 
 		try {
-			return await this.contract.getDelegatedVotes(account);
+			return await this.contractSafe.getDelegatedVotes(account);
 		} catch (error) {
 			console.error('Error getting delegated votes:', error);
 			return 0n;
@@ -275,7 +278,7 @@ export class GNUSDAOService {
 		}
 
 		try {
-			return await this.contract.revokeDelegation();
+			return await this.contractSafe.revokeDelegation();
 		} catch (error) {
 			console.error('Error revoking delegation:', error);
 			throw error;
@@ -289,7 +292,7 @@ export class GNUSDAOService {
 		if (!this.contract) throw new Error('Service not initialized');
 
 		try {
-			return await this.contract.getPastVotingPower(account, blockNumber);
+			return await this.contractSafe.getPastVotingPower(account, blockNumber);
 		} catch (error) {
 			console.error('Error getting past voting power:', error);
 			return 0n;
@@ -304,7 +307,7 @@ export class GNUSDAOService {
 		if (!this.contract) throw new Error('Service not initialized');
 
 		try {
-			return (await this.contract.getProposalCount?.()) || 0n;
+			return (await this.contractSafe.getProposalCount?.()) || 0n;
 		} catch (error) {
 			console.error('Error getting proposal count:', error);
 			return 0n;
@@ -318,7 +321,7 @@ export class GNUSDAOService {
 		if (!this.contract) throw new Error('Service not initialized');
 
 		try {
-			const basicData = await this.contract.getProposalBasic?.(proposalId);
+			const basicData = await this.contractSafe.getProposalBasic?.(proposalId);
 
 			if (!basicData) return null;
 
@@ -328,13 +331,13 @@ export class GNUSDAOService {
 			// Try to get status data, but don't fail if it's not available
 			let statusData = null;
 			try {
-				statusData = await this.contract.getProposalStatus?.(proposalId);
+				statusData = await this.contractSafe.getProposalStatus?.(proposalId);
 			} catch (statusError) {
 				console.warn('Could not fetch proposal status:', statusError);
 			}
 
 			return {
-				id: proposalId, // Use the input ID instead of the returned one
+				id: proposalId,
 				proposer,
 				title,
 				ipfsHash,
@@ -344,6 +347,8 @@ export class GNUSDAOService {
 				totalVoters: statusData?.[3] || 0n,
 				executed: statusData?.[4] || false,
 				cancelled: statusData?.[5] || false,
+				queued: statusData?.[6] || false,
+				queuedTime: statusData?.[7] || 0n,
 				// Legacy fields for compatibility
 				eta: 0n,
 				startBlock: 0n,
@@ -368,15 +373,15 @@ export class GNUSDAOService {
 
 		try {
 			// Get proposal status data
-			const status = await this.contract.getProposalStatus?.(proposalId);
+			const status = await this.contractSafe.getProposalStatus?.(proposalId);
 			if (!status) return ProposalState.Pending;
 
 			const currentTime = Math.floor(Date.now() / 1000);
-			const startTime = Number(status.startTime);
-			const endTime = Number(status.endTime);
-			const executed = status.executed;
-			const cancelled = status.cancelled;
-			const totalVotes = BigInt(status.totalVotes);
+			const startTime = status[0];
+			const endTime = status[1];
+			const executed = status[4];
+			const cancelled = status[5];
+			const totalVotes = status[2];
 
 			// Calculate state based on status
 			// Priority order: Executed > Canceled > Pending > Active > Succeeded/Defeated
@@ -411,7 +416,7 @@ export class GNUSDAOService {
 
 					// Try to use the VotingMechanismsFacet's checkQuorum function
 					try {
-						const meetsQuorum = await this.contract.checkQuorum(
+						const meetsQuorum = await this.contractSafe.checkQuorum(
 							totalVotes,
 							votingConfig.quorumThreshold,
 						);
@@ -469,10 +474,11 @@ export class GNUSDAOService {
 		}
 
 		try {
-			if (!this.contract.propose) {
+			if (!this.contractSafe.propose) {
 				throw new Error('propose function not available on contract');
 			}
-			return await this.contract.propose(title, ipfsHash);
+			// Passing empty arrays for targets, values, calldatas, and descriptions as defaults
+			return await this.contractSafe.propose(title, ipfsHash, [], [], [], []);
 		} catch (error) {
 			logger.error('Error creating proposal:', error as any);
 			throw error;
@@ -524,7 +530,7 @@ export class GNUSDAOService {
 		if (!this.contract) throw new Error('Service not initialized');
 
 		try {
-			const config = await this.contract.getVotingConfig?.();
+			const config = await this.contractSafe.getVotingConfig?.();
 			if (!config) return null;
 
 			return {
@@ -590,7 +596,10 @@ export class GNUSDAOService {
 			}
 
 			// Cast the vote
-			return await this.contract.vote?.(proposalId, votesToCast);
+			if (!this.contractSafe.vote) {
+				throw new Error('vote function not available on contract');
+			}
+			return await this.contractSafe.vote(proposalId, votesToCast);
 		} catch (error) {
 			logger.error('Error casting vote:', error as any);
 			throw error;
@@ -616,7 +625,7 @@ export class GNUSDAOService {
 			}
 
 			// Try to get vote details
-			const voteData = await this.contract.getVote(proposalId, voter).catch(() => 0n);
+			const voteData = await this.contractSafe.getVote(proposalId, voter).catch(() => 0n);
 			const votes = voteData || 0n;
 
 			return {
@@ -639,7 +648,7 @@ export class GNUSDAOService {
 		}
 
 		try {
-			return await this.contract.executeProposal(proposalId);
+			return await this.contractSafe.executeProposal(proposalId);
 		} catch (error) {
 			logger.error('Error executing proposal', { error: error as Error });
 			throw error;
@@ -655,7 +664,7 @@ export class GNUSDAOService {
 		}
 
 		try {
-			return await this.contract.cancelProposal(proposalId);
+			return await this.contractSafe.cancelProposal(proposalId);
 		} catch (error) {
 			logger.error('Error canceling proposal:', error as any);
 			throw error;
@@ -669,7 +678,7 @@ export class GNUSDAOService {
 		if (!this.contract) throw new Error('Service not initialized');
 
 		try {
-			return await this.contract.getProposalStatus(proposalId);
+			return await this.contractSafe.getProposalStatus(proposalId);
 		} catch (error) {
 			console.error('Error getting proposal status:', error);
 			return null;
@@ -687,14 +696,14 @@ export class GNUSDAOService {
 		if (!this.contract) throw new Error('Service not initialized');
 
 		try {
-			const result = await this.contract.validateVote(
+			const result = await this.contractSafe.validateVote(
 				votes,
 				maxVotesPerWallet,
 				tokenBalance,
 			);
 			return {
-				valid: result.valid,
-				cost: result.cost,
+				valid: result[0],
+				cost: result[1],
 			};
 		} catch (error) {
 			console.error('Error validating vote:', error);
@@ -710,7 +719,7 @@ export class GNUSDAOService {
 		if (!this.contract) throw new Error('Service not initialized');
 
 		try {
-			return await this.contract.calculateQuadraticCost(votes);
+			return await this.contractSafe.calculateQuadraticCost(votes);
 		} catch (error) {
 			console.error('Error calculating quadratic cost:', error);
 			// Fallback calculation: votes^2
@@ -725,7 +734,7 @@ export class GNUSDAOService {
 		if (!this.contract) throw new Error('Service not initialized');
 
 		try {
-			return await this.contract.calculateVoteWeight(tokensCost);
+			return await this.contractSafe.calculateVoteWeight(tokensCost);
 		} catch (error) {
 			console.error('Error calculating vote weight:', error);
 			// Fallback calculation: sqrt(cost)
@@ -740,7 +749,7 @@ export class GNUSDAOService {
 		if (!this.contract) throw new Error('Service not initialized');
 
 		try {
-			return await this.contract.calculateMaxVotes(tokenBalance);
+			return await this.contractSafe.calculateMaxVotes(tokenBalance);
 		} catch (error) {
 			console.error('Error calculating max votes:', error);
 			// Fallback calculation: sqrt(balance)
@@ -758,13 +767,13 @@ export class GNUSDAOService {
 		if (!this.contract) throw new Error('Service not initialized');
 
 		try {
-			const result = await this.contract.calculateOptimalVotes(
+			const result = await this.contractSafe.calculateOptimalVotes(
 				tokenBudget,
 				maxVotesPerWallet,
 			);
 			return {
-				optimalVotes: result.optimalVotes,
-				remainingTokens: result.remainingTokens,
+				optimalVotes: result[0],
+				remainingTokens: result[1],
 			};
 		} catch (error) {
 			console.error('Error calculating optimal votes:', error);
@@ -786,7 +795,7 @@ export class GNUSDAOService {
 		if (!this.contract) throw new Error('Service not initialized');
 
 		try {
-			return await this.contract.getVoteEfficiency(votes, tokensCost);
+			return await this.contractSafe.getVoteEfficiency(votes, tokensCost);
 		} catch (error) {
 			console.error('Error getting vote efficiency:', error);
 			// Fallback: efficiency = votes / cost (scaled by 100 for percentage)
@@ -803,7 +812,7 @@ export class GNUSDAOService {
 		if (!this.contract) throw new Error('Service not initialized');
 
 		try {
-			return await this.contract.getTreasuryBalance();
+			return await this.contractSafe.getTreasuryBalance();
 		} catch (error) {
 			console.error('Error getting treasury balance:', error);
 			return 0n;
@@ -817,7 +826,7 @@ export class GNUSDAOService {
 		if (!this.contract) throw new Error('Service not initialized');
 
 		try {
-			return await this.contract.isTreasuryManager(address);
+			return await this.contractSafe.isTreasuryManager(address);
 		} catch (error) {
 			console.error('Error checking treasury manager status:', error);
 			return false;
@@ -833,7 +842,7 @@ export class GNUSDAOService {
 		}
 
 		try {
-			return await this.contract.addTreasuryManager(manager);
+			return await this.contractSafe.addTreasuryManager(manager);
 		} catch (error) {
 			logger.error('Error adding treasury manager:', error as any);
 			throw error;
@@ -851,7 +860,7 @@ export class GNUSDAOService {
 		}
 
 		try {
-			return await this.contract.removeTreasuryManager(manager);
+			return await this.contractSafe.removeTreasuryManager(manager);
 		} catch (error) {
 			logger.error('Error removing treasury manager:', error as any);
 			throw error;
@@ -878,7 +887,7 @@ export class GNUSDAOService {
 				throw new Error('Only treasury managers can withdraw from treasury');
 			}
 
-			return await this.contract.withdrawFromTreasury(to, amount);
+			return await this.contractSafe.withdrawFromTreasury(to, amount);
 		} catch (error) {
 			logger.error('Error withdrawing from treasury:', error as any);
 			throw error;
@@ -894,7 +903,7 @@ export class GNUSDAOService {
 		}
 
 		try {
-			return await this.contract.depositToTreasury({ value });
+			return await this.contractSafe.depositToTreasury({ value });
 		} catch (error) {
 			logger.error('Error depositing to treasury:', error as any);
 			throw error;
@@ -911,7 +920,10 @@ export class GNUSDAOService {
 		}
 
 		try {
-			return await this.contract.transfer(to, amount);
+			if (!this.contractSafe.transfer) {
+				throw new Error('transfer function not available on contract');
+			}
+			return await this.contractSafe.transfer(to, amount);
 		} catch (error) {
 			logger.error('Error transferring tokens', { error: error as Error });
 			throw error;
@@ -930,7 +942,10 @@ export class GNUSDAOService {
 		}
 
 		try {
-			return await this.contract.approve(spender, amount);
+			if (!this.contractSafe.approve) {
+				throw new Error('approve function not available on contract');
+			}
+			return await this.contractSafe.approve(spender, amount);
 		} catch (error) {
 			logger.error('Error approving tokens:', error as any);
 			throw error;
@@ -944,7 +959,7 @@ export class GNUSDAOService {
 		if (!this.contract) throw new Error('Service not initialized');
 
 		try {
-			return await this.contract.allowance(owner, spender);
+			return await this.contractSafe.allowance(owner, spender);
 		} catch (error) {
 			console.error('Error getting allowance:', error);
 			return 0n;
@@ -960,7 +975,7 @@ export class GNUSDAOService {
 		}
 
 		try {
-			return await this.contract.burn(amount);
+			return await this.contractSafe.burn(amount);
 		} catch (error) {
 			logger.error('Error burning tokens:', error as any);
 			throw error;
@@ -975,7 +990,7 @@ export class GNUSDAOService {
 		if (!this.contract) throw new Error('Service not initialized');
 
 		try {
-			return await this.contract.hasRole(role, account);
+			return await this.contractSafe.hasRole(role, account);
 		} catch (error) {
 			console.error('Error checking role:', error);
 			return false;
@@ -989,7 +1004,7 @@ export class GNUSDAOService {
 		if (!this.contract) throw new Error('Service not initialized');
 
 		try {
-			return await this.contract.isMinter(account);
+			return await this.contractSafe.isMinter(account);
 		} catch (error) {
 			console.error('Error checking minter:', error);
 			return false;
@@ -1003,7 +1018,7 @@ export class GNUSDAOService {
 		if (!this.contract) throw new Error('Service not initialized');
 
 		try {
-			return await this.contract.owner();
+			return await this.contractSafe.owner();
 		} catch (error) {
 			console.error('Error getting owner:', error);
 			return ethers.ZeroAddress;
@@ -1017,7 +1032,7 @@ export class GNUSDAOService {
 		if (!this.contract) throw new Error('Service not initialized');
 
 		try {
-			return await this.contract.paused();
+			return await this.contractSafe.paused();
 		} catch (error) {
 			console.error('Error checking paused status:', error);
 			return false;
@@ -1037,13 +1052,13 @@ export class GNUSDAOService {
 		if (!this.contract) throw new Error('Service not initialized');
 
 		try {
-			const config = await this.contract.getVotingConfig();
+			const config = await this.contractSafe.getVotingConfig();
 
 			return {
-				votingDelay: config.votingDelay,
-				votingPeriod: config.votingPeriod,
-				proposalThreshold: config.proposalThreshold,
-				quorumVotes: config.quorumThreshold,
+				votingDelay: config[1],
+				votingPeriod: config[2],
+				proposalThreshold: config[0],
+				quorumVotes: config[3],
 			};
 		} catch (error) {
 			console.error('Error getting governance config:', error);
@@ -1123,8 +1138,8 @@ export class GNUSDAOService {
 	): Promise<void> {
 		if (!this.contract) throw new Error('Service not initialized');
 
-		const filter = this.contract.filters.ProposalCreated();
-		await this.contract.on(filter, callback);
+		const filter = this.contractSafe.filters.ProposalCreated();
+		await this.contractSafe.on(filter, callback);
 	}
 
 	/**
@@ -1140,8 +1155,8 @@ export class GNUSDAOService {
 	): Promise<void> {
 		if (!this.contract) throw new Error('Service not initialized');
 
-		const filter = this.contract.filters.VoteCast();
-		await this.contract.on(filter, callback);
+		const filter = this.contractSafe.filters.VoteCast();
+		await this.contractSafe.on(filter, callback);
 	}
 
 	/**

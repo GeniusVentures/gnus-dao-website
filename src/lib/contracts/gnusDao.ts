@@ -51,12 +51,21 @@ export const GNUS_DAO_CORE_ABI = [
 	'function revokeRole(bytes32 role, address account) external',
 	'function renounceRole(bytes32 role, address account) external',
 
+	// Delegation functions (from GovernanceFacet wrapper)
+	'function delegateVotes(address delegatee) external',
+	'function revokeDelegation() external',
+	'function getDelegatedTo(address account) external view returns (address)',
+	'function getDelegatedVotes(address account) external view returns (uint256)',
+	'function getPastVotingPower(address account, uint256 blockNumber) external view returns (uint256)',
+
 	// Events
 	'event DiamondCut(tuple(address facetAddress, uint8 action, bytes4[] functionSelectors)[] _diamondCut, address _init, bytes _calldata)',
 	'event OwnershipTransferred(address indexed previousOwner, address indexed newOwner)',
 	'event RoleAdminChanged(bytes32 indexed role, bytes32 indexed previousAdminRole, bytes32 indexed newAdminRole)',
 	'event RoleGranted(bytes32 indexed role, address indexed account, address indexed sender)',
 	'event RoleRevoked(bytes32 indexed role, address indexed account, address indexed sender)',
+	'event VoteDelegated(address indexed delegator, address indexed delegatee)',
+	'event VoteDelegationRevoked(address indexed delegator, address indexed delegatee)',
 ] as const;
 
 // Governance Token functions (ERC20-like)
@@ -85,31 +94,33 @@ export const GOVERNANCE_TOKEN_ABI = [
 	'event DelegateVotesChanged(address indexed delegate, uint256 previousBalance, uint256 newBalance)',
 ] as const;
 
-// Governance functions for proposals and voting (ACTUAL DEPLOYED CONTRACT)
+// Governance functions for proposals and voting
 export const GOVERNANCE_ABI = [
-	// Proposal functions - CORRECTED TO MATCH DEPLOYED CONTRACT
-	'function propose(string memory title, string memory ipfsHash) external returns (uint256)',
+	// Proposal functions
+	'function propose(string memory title, string memory ipfsHash, address[] memory targets, uint256[] memory values, bytes[] memory calldatas, string[] memory descriptions) external returns (uint256)',
 	'function getProposalCount() external view returns (uint256)',
-	'function getProposalBasic(uint256 proposalId) external view returns (tuple(uint256,address,string,string))',
-	'function getProposalStatus(uint256 proposalId) external view returns (tuple(uint256 startTime, uint256 endTime, uint256 totalVotes, uint256 totalVoters, bool executed, bool cancelled))',
+	'function getProposalBasic(uint256 proposalId) external view returns (tuple(uint256 id, address proposer, string title, string ipfsHash))',
+	'function getProposalStatus(uint256 proposalId) external view returns (tuple(uint256 startTime, uint256 endTime, uint256 totalVotes, uint256 totalVoters, bool executed, bool cancelled, bool queued, uint256 queuedTime))',
 	'function hasVoted(uint256 proposalId, address voter) external view returns (bool)',
-	'function getVote(uint256 proposalId, address voter) external view returns (tuple(uint256 votes, uint256 tokensCost))',
+	'function getVote(uint256 proposalId, address voter) external view returns (uint256)',
 
-	// Voting functions - CORRECTED TO MATCH DEPLOYED CONTRACT
+	// Voting functions
 	'function vote(uint256 proposalId, uint256 votes) external',
 	'function calculateQuadraticCost(uint256 votes) external view returns (uint256)',
 	'function validateVote(uint256 votes, uint256 maxVotesPerWallet, uint256 tokenBalance) external view returns (tuple(bool valid, uint256 cost))',
 
-	// Execution functions - CORRECTED TO MATCH DEPLOYED CONTRACT
+	// Execution and Queue functions
+	'function queueProposal(uint256 proposalId) external',
 	'function executeProposal(uint256 proposalId) external',
 	'function cancelProposal(uint256 proposalId) external',
 
-	// Configuration functions - CORRECTED TO MATCH DEPLOYED CONTRACT
-	'function getVotingConfig() external view returns (tuple(uint256 proposalThreshold, uint256 votingDelay, uint256 votingPeriod, uint256 quorumThreshold, uint256 maxVotesPerWallet, uint256 proposalCooldown))',
+	// Configuration functions
+	'function getVotingConfig() external view returns (tuple(uint256 proposalThreshold, uint256 votingDelay, uint256 votingPeriod, uint256 quorumThreshold, uint256 maxVotesPerWallet, uint256 proposalCooldown, uint256 timelockDelay, uint256 maxProposalActions))',
 
-	// Events - CORRECTED TO MATCH DEPLOYED CONTRACT
+	// Events
 	'event ProposalCreated(uint256 indexed proposalId, address indexed proposer, string title, string ipfsHash, uint256 startTime, uint256 endTime)',
 	'event VoteCast(uint256 indexed proposalId, address indexed voter, uint256 votes, uint256 tokensCost)',
+	'event ProposalQueued(uint256 indexed proposalId, uint256 executionTime)',
 	'event ProposalCancelled(uint256 indexed proposalId)',
 	'event ProposalExecuted(uint256 indexed proposalId)',
 ] as const;
@@ -215,6 +226,8 @@ export interface Proposal {
 	totalVoters: bigint;
 	executed: boolean;
 	cancelled: boolean;
+	queued: boolean;
+	queuedTime: bigint;
 	// Legacy fields for compatibility
 	eta: bigint;
 	startBlock: bigint;

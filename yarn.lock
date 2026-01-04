@@ -2787,9 +2787,23 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@diamondslab/diamonds@npm:^1.2.1":
-  version: 1.2.1
-  resolution: "@diamondslab/diamonds@npm:1.2.1"
+"@diamondslab/diamonds-monitor@npm:^1.0.4":
+  version: 1.0.4
+  resolution: "@diamondslab/diamonds-monitor@npm:1.0.4"
+  dependencies:
+    ethers: "npm:^6.4.0"
+    winston: "npm:^3.17.0"
+  peerDependencies:
+    "@diamondslab/diamonds": "*"
+    ethers: ^6.0.0
+    hardhat: ^2.0.0
+  checksum: 10/a10b56d04011d740927a882f66d7be5448a74a1acf4e65ef5ce4920ce0dfb424e8933ae745a8506bc007fda3c23a414f692fbe97f3354a0098812b00112d78e7
+  languageName: node
+  linkType: hard
+
+"@diamondslab/diamonds@npm:^1.3.2":
+  version: 1.3.2
+  resolution: "@diamondslab/diamonds@npm:1.3.2"
   dependencies:
     "@ethersproject/abstract-signer": "npm:^5.8.0"
     axios: "npm:^1.12.0"
@@ -2803,20 +2817,20 @@ __metadata:
     typescript: ^5.0.0
   bin:
     diamond-abi: dist/scripts/diamond-abi-cli.js
-  checksum: 10/c56543ff165bc5ee7dd85985c79af40dd7385f4dd45f7b5f727995a8cab5d7339b85b3e2ff5b0c3f23a238bac4a8effe38bdec11997c02cd2903ce7643a29f75
+  checksum: 10/426222a2aeaf46617a2c2793abfe99733a29eedc18a0bcd4b047887508f659ce33a534dbcf2988a082724c706b563a690052044fa7ffce568baec4b78e04c579
   languageName: node
   linkType: hard
 
-"@diamondslab/hardhat-diamonds@npm:^1.1.9":
-  version: 1.1.9
-  resolution: "@diamondslab/hardhat-diamonds@npm:1.1.9"
+"@diamondslab/hardhat-diamonds@npm:^1.1.15":
+  version: 1.1.15
+  resolution: "@diamondslab/hardhat-diamonds@npm:1.1.15"
   dependencies:
     chalk: "npm:^5.6.2"
   peerDependencies:
     "@diamondslab/diamonds": ^1.0.0
     ethers: ^6.0.0
     hardhat: ^2.0.0
-  checksum: 10/3c00441c07ca946f9ffab4065faf2fad65d5c3e61e285676545b11dd57602ed55c66e230a4cfd6443a5734a0fca1464d61d9dbf27c448c563fbc90464865484d
+  checksum: 10/770c55015837285ff8905fe4a4ad1d9e8afc3c001c218d22c7fc98c5330d3f9e9f303fe47e226fa9236a4e4bf2667aeabfd2bbbde02f97f65cbd62661038ff76
   languageName: node
   linkType: hard
 
@@ -17838,8 +17852,9 @@ __metadata:
   dependencies:
     "@commitlint/cli": "npm:^19.8.1"
     "@commitlint/config-conventional": "npm:^19.8.1"
-    "@diamondslab/diamonds": "npm:^1.2.1"
-    "@diamondslab/hardhat-diamonds": "npm:^1.1.9"
+    "@diamondslab/diamonds": "npm:^1.3.2"
+    "@diamondslab/diamonds-monitor": "npm:^1.0.4"
+    "@diamondslab/hardhat-diamonds": "npm:^1.1.15"
     "@ethersproject/sha2": "npm:^5.8.0"
     "@gnus.ai/contracts-upgradeable-diamond": "npm:=4.5.0"
     "@headlessui/react": "npm:^2.2.7"
@@ -17922,7 +17937,7 @@ __metadata:
     hardhat: "npm:^2.26.2"
     hardhat-abi-exporter: "npm:^2.8.0"
     hardhat-gas-reporter: "npm:^1.0.8"
-    hardhat-multichain: "npm:^1.0.5"
+    hardhat-multichain: "npm:^1.0.6"
     helia: "npm:^6.0.8"
     husky: "npm:^9.1.7"
     isomorphic-dompurify: "npm:^2.33.0"
@@ -18105,15 +18120,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"hardhat-multichain@npm:^1.0.5":
-  version: 1.0.5
-  resolution: "hardhat-multichain@npm:1.0.5"
+"hardhat-multichain@npm:^1.0.6":
+  version: 1.0.6
+  resolution: "hardhat-multichain@npm:1.0.6"
   dependencies:
     winston: "npm:^3.8.0"
   peerDependencies:
     ethers: ^6.0.0
     hardhat: ^2.22.1
-  checksum: 10/9d2ea330f5a4dd58872118462656bf6ce95a0cafe744c3f2bedf3b056825f2904cbca1c7cb8a998d993b413c1e4defd9c409640a8a4b241e0837002eac993602
+  checksum: 10/dbcc486d303df68eadc7d5282c65cdb6c505f6e7db111b86343d7f0d8ed3bd2ab83a33e313379aa68881f2223944bf35e4bc7d7dad08856092375393b421436d
   languageName: node
   linkType: hard
 

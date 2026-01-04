@@ -1,3 +1,4 @@
+import { ethers } from 'ethers';
 import diamondAbi from './GNUSDAODiamond.json';
 
 // Export the Diamond ABI
@@ -5,6 +6,12 @@ export const GNUS_DAO_DIAMOND_ABI = diamondAbi.abi;
 
 // Type-safe contract interface
 export interface GNUSDAODiamondInterface {
+	// Base Contract properties
+	target: string | any;
+	filters: any;
+	on(event: any, listener: Function): Promise<any>;
+	removeAllListeners(event?: any): Promise<any>;
+
 	// Diamond Loupe functions
 	facets(): Promise<Array<{ facetAddress: string; functionSelectors: string[] }>>;
 	facetFunctionSelectors(facet: string): Promise<string[]>;
@@ -27,61 +34,64 @@ export interface GNUSDAODiamondInterface {
 	decimals?(): Promise<number>;
 	totalSupply?(): Promise<bigint>;
 	balanceOf?(account: string): Promise<bigint>;
-	transfer?(to: string, amount: bigint): Promise<boolean>;
+	transfer?(to: string, amount: bigint): Promise<ethers.ContractTransactionResponse>;
 	allowance?(owner: string, spender: string): Promise<bigint>;
-	approve?(spender: string, amount: bigint): Promise<boolean>;
-	transferFrom?(from: string, to: string, amount: bigint): Promise<boolean>;
+	approve?(spender: string, amount: bigint): Promise<ethers.ContractTransactionResponse>;
+	transferFrom?(from: string, to: string, amount: bigint): Promise<ethers.ContractTransactionResponse>;
 
-	// Delegation functions (if available)
-	delegate?(delegatee: string): Promise<void>;
+	// Delegation and Voting Power
+	delegate?(delegatee: string): Promise<ethers.ContractTransactionResponse>;
 	delegates?(account: string): Promise<string>;
-	getCurrentVotes?(account: string): Promise<bigint>;
-	getPriorVotes?(account: string, blockNumber: bigint): Promise<bigint>;
+	getVotingPower?(account: string): Promise<bigint>;
+	getPastVotingPower?(account: string, blockNumber: bigint): Promise<bigint>;
+	getDelegatedTo?(account: string): Promise<string>;
+	getDelegatedVotes?(account: string): Promise<bigint>;
 
-	// Governance functions (if available)
+	// Governance functions
 	propose?(
+		title: string,
+		ipfsHash: string,
 		targets: string[],
 		values: bigint[],
 		calldatas: string[],
-		description: string,
-	): Promise<bigint>;
-	proposalCount?(): Promise<bigint>;
-	proposals?(proposalId: bigint): Promise<{
-		id: bigint;
-		proposer: string;
-		eta: bigint;
-		startBlock: bigint;
-		endBlock: bigint;
-		forVotes: bigint;
-		againstVotes: bigint;
-		abstainVotes: bigint;
-		canceled: boolean;
-		executed: boolean;
-	}>;
-	state?(proposalId: bigint): Promise<number>;
-	castVote?(proposalId: bigint, support: number): Promise<bigint>;
-	castVoteWithReason?(proposalId: bigint, support: number, reason: string): Promise<bigint>;
-	execute?(proposalId: bigint): Promise<void>;
-	cancel?(proposalId: bigint): Promise<void>;
-
-	// Quadratic Voting functions (if available)
-	castQuadraticVote?(
+		descriptions: string[],
+	): Promise<ethers.ContractTransactionResponse>;
+	vote?(proposalId: bigint, votes: bigint): Promise<ethers.ContractTransactionResponse>;
+	delegateVotes?(delegatee: string): Promise<ethers.ContractTransactionResponse>;
+	revokeDelegation?(): Promise<ethers.ContractTransactionResponse>;
+	getProposalCount?(): Promise<bigint>;
+	getProposalBasic?(
 		proposalId: bigint,
-		support: number,
-		voteCredits: bigint,
-	): Promise<bigint>;
-	getVoteCredits?(voter: string): Promise<bigint>;
-	getQuadraticVoteWeight?(voteCredits: bigint): Promise<bigint>;
+	): Promise<[bigint, string, string, string]>;
+	getProposalStatus?(
+		proposalId: bigint,
+	): Promise<[bigint, bigint, bigint, bigint, boolean, boolean, boolean, bigint]>;
+	hasVoted?(proposalId: bigint, voter: string): Promise<boolean>;
+	getVote?(proposalId: bigint, voter: string): Promise<bigint>;
+	queueProposal?(proposalId: bigint): Promise<ethers.ContractTransactionResponse>;
+	executeProposal?(proposalId: bigint): Promise<ethers.ContractTransactionResponse>;
+	cancelProposal?(proposalId: bigint): Promise<ethers.ContractTransactionResponse>;
 
-	// Treasury functions (if available)
-	treasuryBalance?(): Promise<bigint>;
-	treasuryTokenBalance?(token: string): Promise<bigint>;
+	// Configuration, Treasury and Utility
+	getVotingConfig?(): Promise<any>; // Use any to allow named property access from Ethers Result
+	getTreasuryBalance?(): Promise<bigint>;
+	isTreasuryManager?(account: string): Promise<boolean>;
+	addTreasuryManager?(manager: string): Promise<ethers.ContractTransactionResponse>;
+	removeTreasuryManager?(manager: string): Promise<ethers.ContractTransactionResponse>;
+	withdrawFromTreasury?(to: string, amount: bigint): Promise<ethers.ContractTransactionResponse>;
+	depositToTreasury?(): Promise<ethers.ContractTransactionResponse>;
+	isMinter?(account: string): Promise<boolean>;
+	burn?(amount: bigint): Promise<ethers.ContractTransactionResponse>;
+	paused?(): Promise<boolean>;
 
-	// Configuration functions (if available)
-	votingDelay?(): Promise<bigint>;
-	votingPeriod?(): Promise<bigint>;
-	proposalThreshold?(): Promise<bigint>;
-	quorumVotes?(): Promise<bigint>;
+	// Utility calculations
+	validateVote?(votes: bigint, maxVotes: bigint, balance: bigint): Promise<[boolean, bigint]>;
+	calculateQuadraticCost?(votes: bigint): Promise<bigint>;
+	calculateVoteWeight?(tokensCost: bigint): Promise<bigint>;
+	calculateMaxVotes?(tokenBalance: bigint): Promise<bigint>;
+	calculateOptimalVotes?(tokenBudget: bigint, maxVotesPerWallet: bigint): Promise<[bigint, bigint]>;
+	getVoteEfficiency?(votes: bigint, tokensCost: bigint): Promise<bigint>;
+	checkQuorum?(totalVotes: bigint, quorumThreshold: bigint): Promise<boolean>;
 }
 
 // Event interfaces

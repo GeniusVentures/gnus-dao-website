@@ -1,6 +1,15 @@
 import { ethers } from 'ethers';
 import { getContractAddress } from '@/lib/config/env';
 
+// Import the generated Diamond ABI
+import GNUSDAODiamondABI from '../../../diamond-abi/GNUSDAODiamond.json';
+
+// Import TypeScript types for the Diamond
+export type { GNUSDAODiamond } from '../../../diamond-typechain-types';
+
+// Export the complete Diamond ABI for use in services
+export const GNUS_DAO_DIAMOND_ABI = GNUSDAODiamondABI.abi;
+
 // GNUS DAO Diamond contract addresses from environment configuration
 export const GNUS_DAO_CONTRACTS = {
 	// Sepolia testnet - deployed Diamond
@@ -30,7 +39,93 @@ export const GNUS_DAO_CONTRACTS = {
 	},
 } as const;
 
-// Core Diamond functions from the deployed contract
+// Helper function to get contract configuration for a specific chain
+export function getGNUSDAOContract(chainId: number) {
+	const config = GNUS_DAO_CONTRACTS[chainId as keyof typeof GNUS_DAO_CONTRACTS];
+	if (!config || config.diamond === '0x0000000000000000000000000000000000000000') {
+		return null;
+	}
+	
+	return {
+		address: config.diamond,
+		deployer: config.deployer,
+		abi: GNUS_DAO_DIAMOND_ABI,
+	};
+}
+
+// Contract instance creation helper
+export function createGNUSDAOContract(
+	chainId: number,
+	signerOrProvider: ethers.Signer | ethers.Provider,
+): ethers.Contract | null {
+	const contractConfig = getGNUSDAOContract(chainId);
+	if (!contractConfig) return null;
+
+	return new ethers.Contract(contractConfig.address, contractConfig.abi, signerOrProvider);
+}
+
+// Proposal states enum
+export enum ProposalState {
+	Pending = 0,
+	Active = 1,
+	Canceled = 2,
+	Defeated = 3,
+	Succeeded = 4,
+	Queued = 5,
+	Expired = 6,
+	Executed = 7,
+}
+
+// Vote support enum
+export enum VoteSupport {
+	Against = 0,
+	For = 1,
+	Abstain = 2,
+}
+
+// TypeScript interfaces for contract data
+export interface Proposal {
+	id: bigint;
+	proposer: string;
+	title: string;
+	ipfsHash: string;
+	startTime: bigint;
+	endTime: bigint;
+	totalVotes: bigint;
+	totalVoters: bigint;
+	executed: boolean;
+	cancelled: boolean;
+	queued: boolean;
+	queuedTime: bigint;
+	// Legacy fields for compatibility
+	eta: bigint;
+	startBlock: bigint;
+	endBlock: bigint;
+	forVotes: bigint;
+	againstVotes: bigint;
+	abstainVotes: bigint;
+	canceled: boolean;
+}
+
+export interface VoteReceipt {
+	hasVoted: boolean;
+	support: VoteSupport;
+	votes: bigint;
+}
+
+export interface QuadraticVoteReceipt {
+	hasVoted: boolean;
+	support: VoteSupport;
+	credits: bigint;
+	weight: bigint;
+}
+
+export interface Facet {
+	facetAddress: string;
+	functionSelectors: string[];
+}
+
+// Legacy ABI exports for backward compatibility
 export const GNUS_DAO_CORE_ABI = [
 	// Diamond Loupe functions
 	'function facets() external view returns (tuple(address facetAddress, bytes4[] functionSelectors)[])',
@@ -51,7 +146,7 @@ export const GNUS_DAO_CORE_ABI = [
 	'function revokeRole(bytes32 role, address account) external',
 	'function renounceRole(bytes32 role, address account) external',
 
-	// Delegation functions (from GovernanceFacet wrapper)
+	// Delegation functions
 	'function delegateVotes(address delegatee) external',
 	'function revokeDelegation() external',
 	'function getDelegatedTo(address account) external view returns (address)',
@@ -157,101 +252,3 @@ export const TREASURY_ABI = [
 	'event TreasuryActionProposed(uint256 indexed actionId, address indexed proposer, address target, uint256 value, string description)',
 	'event TreasuryActionExecuted(uint256 indexed actionId, address target, uint256 value)',
 ] as const;
-
-// Combined ABI for the complete Diamond contract
-export const GNUS_DAO_DIAMOND_ABI = [
-	...GNUS_DAO_CORE_ABI,
-	...GOVERNANCE_TOKEN_ABI,
-	...GOVERNANCE_ABI,
-	...QUADRATIC_VOTING_ABI,
-	...TREASURY_ABI,
-] as const;
-
-export interface GNUSDAOContract {
-	address: string;
-	abi: typeof GNUS_DAO_DIAMOND_ABI;
-}
-
-export function getGNUSDAOContract(chainId: number): GNUSDAOContract | null {
-	const contracts = GNUS_DAO_CONTRACTS[chainId as keyof typeof GNUS_DAO_CONTRACTS];
-	if (!contracts || contracts.diamond === '0x0000000000000000000000000000000000000000') {
-		return null;
-	}
-
-	return {
-		address: contracts.diamond,
-		abi: GNUS_DAO_DIAMOND_ABI,
-	};
-}
-
-// Contract instance creation helper
-export function createGNUSDAOContract(
-	chainId: number,
-	signerOrProvider: ethers.Signer | ethers.Provider,
-): ethers.Contract | null {
-	const contractConfig = getGNUSDAOContract(chainId);
-	if (!contractConfig) return null;
-
-	return new ethers.Contract(contractConfig.address, contractConfig.abi, signerOrProvider);
-}
-
-// Proposal states enum
-export enum ProposalState {
-	Pending = 0,
-	Active = 1,
-	Canceled = 2,
-	Defeated = 3,
-	Succeeded = 4,
-	Queued = 5,
-	Expired = 6,
-	Executed = 7,
-}
-
-// Vote support enum
-export enum VoteSupport {
-	Against = 0,
-	For = 1,
-	Abstain = 2,
-}
-
-// TypeScript interfaces for contract data
-export interface Proposal {
-	id: bigint;
-	proposer: string;
-	title: string;
-	ipfsHash: string;
-	startTime: bigint;
-	endTime: bigint;
-	totalVotes: bigint;
-	totalVoters: bigint;
-	executed: boolean;
-	cancelled: boolean;
-	queued: boolean;
-	queuedTime: bigint;
-	// Legacy fields for compatibility
-	eta: bigint;
-	startBlock: bigint;
-	endBlock: bigint;
-	forVotes: bigint;
-	againstVotes: bigint;
-	abstainVotes: bigint;
-	canceled: boolean;
-}
-
-export interface VoteReceipt {
-	hasVoted: boolean;
-	support: VoteSupport;
-	votes: bigint;
-}
-
-export interface QuadraticVoteReceipt {
-	hasVoted: boolean;
-	support: VoteSupport;
-	credits: bigint;
-	weight: bigint;
-}
-
-export interface Facet {
-	facetAddress: string;
-	functionSelectors: string[];
-}

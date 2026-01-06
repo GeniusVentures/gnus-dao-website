@@ -2,7 +2,7 @@ import { logger } from '@/lib/utils/logger';
 import { ethers } from 'ethers';
 import type { Facet, Proposal, VoteReceipt } from './gnusDao';
 import { getGNUSDAOContract, GNUS_DAO_DIAMOND_ABI, ProposalState, VoteSupport } from './gnusDao';
-import type { GNUSDAODiamondInterface as GNUSDAODiamond } from './abi';
+import type { GNUSDAODiamond } from './gnusDao';
 
 export class GNUSDAOService {
 	private contract: GNUSDAODiamond | null = null;

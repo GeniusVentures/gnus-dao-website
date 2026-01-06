@@ -21,7 +21,7 @@ export const metadata: Metadata = {
     template: "%s | GNUS DAO",
   },
   description:
-    "Enterprise-grade decentralized governance platform with quadratic voting, multi-chain support, and Diamond pattern smart contracts.",
+    "Decentralized governance platform with quadratic voting, multi-chain support, and Diamond pattern smart contracts.",
   keywords: [
     "DAO",
     "governance",
@@ -54,7 +54,7 @@ export const metadata: Metadata = {
     url: "https://dao.gnus.ai",
     title: "GNUS DAO - Decentralized Governance Platform",
     description:
-      "Enterprise-grade decentralized governance platform with quadratic voting and multi-chain support.",
+      "Decentralized governance platform with quadratic voting and multi-chain support.",
     siteName: "GNUS DAO",
     images: [
       {
@@ -69,7 +69,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "GNUS DAO - Decentralized Governance Platform",
     description:
-      "Enterprise-grade decentralized governance platform with quadratic voting and multi-chain support.",
+      "Decentralized governance platform with quadratic voting and multi-chain support.",
     images: ["/og-image.png"],
     creator: "@GeniusVentures",
   },

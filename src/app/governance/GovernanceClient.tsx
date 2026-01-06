@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useWeb3Store } from "@/lib/web3/reduxProvider";
 import { DelegationManager } from "@/components/governance/DelegationManager";
+import { RoleManager } from "@/components/admin/RoleManager";
 import { gnusDaoService } from "@/lib/contracts/gnusDaoService";
 import { Settings, Shield, Pause, User } from "lucide-react";
 
@@ -32,6 +33,7 @@ export default function GovernanceClient() {
     isPaused: false,
   });
   const [isLoading, setIsLoading] = useState(true);
+  const [showRoleManagement, setShowRoleManagement] = useState(false);
 
   useEffect(() => {
     loadGovernanceData();
@@ -182,10 +184,30 @@ export default function GovernanceClient() {
                       No special permissions
                     </p>
                   )}
+
+                {/* Role Management Button for Owners */}
+                {permissions.isOwner && (
+                  <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                    <button
+                      onClick={() => setShowRoleManagement(true)}
+                      className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                    >
+                      <Shield className="w-4 h-4" />
+                      Manage Roles
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           )}
         </div>
+
+        {/* Role Management Modal */}
+        {showRoleManagement && (
+          <RoleManager
+            onClose={() => setShowRoleManagement(false)}
+          />
+        )}
       </div>
     </div>
   );

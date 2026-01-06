@@ -1176,3 +1176,289 @@ export class GNUSDAOService {
 
 // Singleton instance
 export const gnusDaoService = new GNUSDAOService();
+
+	// ============================================================================
+	// PROPOSAL EXECUTION METHODS
+	// ============================================================================
+
+	/**
+	 * Queue a proposal for execution
+	 */
+	async queueProposal(proposalId: bigint): Promise<ethers.ContractTransactionResponse> {
+		if (!this.contract || !this.signer) {
+			throw new Error('Service not initialized or no signer available');
+		}
+
+		try {
+			// Check if proposal can be queued
+			const proposal = await this.getProposal(proposalId);
+			if (!proposal) {
+				throw new Error('Proposal not found');
+			}
+
+			const state = await this.getProposalState(proposalId);
+			if (state !== ProposalState.Succeeded) {
+				throw new Error('Proposal must be in Succeeded state to queue');
+			}
+
+			// Queue the proposal
+			const tx = await this.contractSafe.queueProposal(proposalId);
+			logger.info('Proposal queued successfully:', { proposalId, txHash: tx.hash });
+			return tx;
+		} catch (error) {
+			logger.error('Failed to queue proposal:', { proposalId, error: error as Error });
+			throw error;
+		}
+	}
+
+	/**
+	 * Execute a queued proposal
+	 */
+	async executeProposal(proposalId: bigint): Promise<ethers.ContractTransactionResponse> {
+		if (!this.contract || !this.signer) {
+			throw new Error('Service not initialized or no signer available');
+		}
+
+		try {
+			// Check if proposal can be executed
+			const proposal = await this.getProposal(proposalId);
+			if (!proposal) {
+				throw new Error('Proposal not found');
+			}
+
+			const state = await this.getProposalState(proposalId);
+			if (state !== ProposalState.Queued) {
+				throw new Error('Proposal must be in Queued state to execute');
+			}
+
+			// Check if execution time has passed
+			const now = Math.floor(Date.now() / 1000);
+			if (proposal.eta > 0n && Number(proposal.eta) > now) {
+				const timeRemaining = Number(proposal.eta) - now;
+				throw new Error(`Proposal cannot be executed yet. Time remaining: ${timeRemaining} seconds`);
+			}
+
+			// Execute the proposal
+			const tx = await this.contractSafe.executeProposal(proposalId);
+			logger.info('Proposal executed successfully:', { proposalId, txHash: tx.hash });
+			return tx;
+		} catch (error) {
+			logger.error('Failed to execute proposal:', { proposalId, error: error as Error });
+			throw error;
+		}
+	}
+
+	// ============================================================================
+	// ROLE MANAGEMENT METHODS
+	// ============================================================================
+
+	/**
+	 * Add a treasury manager
+	 */
+	async addTreasuryManager(manager: string): Promise<ethers.ContractTransactionResponse> {
+		if (!this.contract || !this.signer) {
+			throw new Error('Service not initialized or no signer available');
+		}
+
+		try {
+			const tx = await this.contractSafe.addTreasuryManager(manager);
+			logger.info('Treasury manager added:', { manager, txHash: tx.hash });
+			return tx;
+		} catch (error) {
+			logger.error('Failed to add treasury manager:', { manager, error: error as Error });
+			throw error;
+		}
+	}
+
+	/**
+	 * Remove a treasury manager
+	 */
+	async removeTreasuryManager(manager: string): Promise<ethers.ContractTransactionResponse> {
+		if (!this.contract || !this.signer) {
+			throw new Error('Service not initialized or no signer available');
+		}
+
+		try {
+			const tx = await this.contractSafe.removeTreasuryManager(manager);
+			logger.info('Treasury manager removed:', { manager, txHash: tx.hash });
+			return tx;
+		} catch (error) {
+			logger.error('Failed to remove treasury manager:', { manager, error: error as Error });
+			throw error;
+		}
+	}
+
+	/**
+	 * Check if an address has a specific role
+	 */
+	async hasRole(role: string, account: string): Promise<boolean> {
+		if (!this.contract) throw new Error('Service not initialized');
+
+		try {
+			return await this.contractSafe.hasRole(role, account);
+		} catch (error) {
+			logger.error('Error checking role:', { role, account, error: error as Error });
+			return false;
+		}
+	}
+
+	/**
+	 * Grant a role to an account
+	 */
+	async grantRole(role: string, account: string): Promise<ethers.ContractTransactionResponse> {
+		if (!this.contract || !this.signer) {
+			throw new Error('Service not initialized or no signer available');
+		}
+
+		try {
+			const tx = await this.contractSafe.grantRole(role, account);
+			logger.info('Role granted:', { role, account, txHash: tx.hash });
+			return tx;
+		} catch (error) {
+			logger.error('Failed to grant role:', { role, account, error: error as Error });
+			throw error;
+		}
+	}
+
+	/**
+	 * Revoke a role from an account
+	 */
+	async revokeRole(role: string, account: string): Promise<ethers.ContractTransactionResponse> {
+		if (!this.contract || !this.signer) {
+			throw new Error('Service not initialized or no signer available');
+		}
+
+		try {
+			const tx = await this.contractSafe.revokeRole(role, account);
+			logger.info('Role revoked:', { role, account, txHash: tx.hash });
+			return tx;
+		} catch (error) {
+			logger.error('Failed to revoke role:', { role, account, error: error as Error });
+			throw error;
+		}
+	}
+
+	// ============================================================================
+	// ENHANCED VOTING METHODS
+	// ============================================================================
+
+	/**
+	 * Cast vote with reason
+	 */
+	async castVoteWithReason(
+		proposalId: bigint,
+		support: VoteSupport,
+		votes: bigint,
+		reason: string,
+	): Promise<ethers.ContractTransactionResponse> {
+		if (!this.contract || !this.signer) {
+			throw new Error('Service not initialized or no signer available');
+		}
+
+		try {
+			// Check if the contract supports voting with reason
+			const tx = await this.contractSafe.castVoteWithReason(proposalId, support, votes, reason);
+			logger.info('Vote cast with reason:', { proposalId, support, votes, reason, txHash: tx.hash });
+			return tx;
+		} catch (error) {
+			// Fallback to regular vote if castVoteWithReason is not supported
+			logger.warn('castVoteWithReason not supported, falling back to regular vote');
+			return this.castVote(proposalId, support, votes);
+		}
+	}
+
+	/**
+	 * Get vote receipt with additional details
+	 */
+	async getDetailedVoteReceipt(proposalId: bigint, voter: string): Promise<VoteReceipt & {
+		reason?: string;
+		timestamp?: bigint;
+		blockNumber?: bigint;
+	} | null> {
+		if (!this.contract) throw new Error('Service not initialized');
+
+		try {
+			const receipt = await this.getVoteReceipt(proposalId, voter);
+			if (!receipt) return null;
+
+			// Try to get additional details if available
+			try {
+				const detailedReceipt = await this.contractSafe.getDetailedVoteReceipt(proposalId, voter);
+				return {
+					...receipt,
+					reason: detailedReceipt.reason,
+					timestamp: detailedReceipt.timestamp,
+					blockNumber: detailedReceipt.blockNumber,
+				};
+			} catch (error) {
+				// Fallback to basic receipt if detailed version not available
+				return receipt;
+			}
+		} catch (error) {
+			logger.error('Error getting detailed vote receipt:', { proposalId, voter, error: error as Error });
+			return null;
+		}
+	}
+
+	// ============================================================================
+	// UTILITY METHODS
+	// ============================================================================
+
+	/**
+	 * Estimate gas for a transaction
+	 */
+	async estimateGas(method: string, ...args: any[]): Promise<bigint> {
+		if (!this.contract) throw new Error('Service not initialized');
+
+		try {
+			const gasEstimate = await this.contractSafe[method].estimateGas(...args);
+			return gasEstimate;
+		} catch (error) {
+			logger.error('Error estimating gas:', { method, args, error: error as Error });
+			throw error;
+		}
+	}
+
+	/**
+	 * Get current gas price
+	 */
+	async getGasPrice(): Promise<bigint> {
+		if (!this.provider) throw new Error('Provider not available');
+
+		try {
+			const feeData = await this.provider.getFeeData();
+			return feeData.gasPrice || 0n;
+		} catch (error) {
+			logger.error('Error getting gas price:', { error: error as Error });
+			return 0n;
+		}
+	}
+
+	/**
+	 * Check if contract is paused
+	 */
+	async isPaused(): Promise<boolean> {
+		if (!this.contract) throw new Error('Service not initialized');
+
+		try {
+			return await this.contractSafe.paused();
+		} catch (error) {
+			logger.error('Error checking pause status:', { error: error as Error });
+			return false;
+		}
+	}
+
+	/**
+	 * Get contract version (if available)
+	 */
+	async getVersion(): Promise<string> {
+		if (!this.contract) throw new Error('Service not initialized');
+
+		try {
+			return await this.contractSafe.version();
+		} catch (error) {
+			logger.warn('Version method not available on contract');
+			return 'unknown';
+		}
+	}
+}

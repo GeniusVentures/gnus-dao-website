@@ -3,12 +3,14 @@
 import { AuthGuard } from "@/components/auth/AuthButton";
 import { DelegationBanner } from "@/components/governance/DelegationBanner";
 import { CreateProposalModal } from "@/components/proposals/CreateProposalModal";
+import { ExecutionModal } from "@/components/proposals/ExecutionModal";
+import { VotingModal } from "@/components/voting/VotingModal";
 import { Button } from "@/components/ui/Button";
 import type { Proposal } from "@/lib/contracts/gnusDao";
-import { ProposalState, VoteSupport } from "@/lib/contracts/gnusDao";
+import { ProposalState } from "@/lib/contracts/gnusDao";
 import { gnusDaoService } from "@/lib/contracts/gnusDaoService";
+import { ipfsMetadataService, type ProposalMetadata } from "@/lib/services/ipfsMetadataService";
 import { useWeb3Store } from "@/lib/web3/reduxProvider";
-import { checkRateLimit } from "@/lib/utils/clientRateLimiter";
 import {
   Calendar,
   CheckCircle,
@@ -18,7 +20,7 @@ import {
   Search,
   TrendingUp,
   Users,
-  XCircle,
+  Play,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -34,6 +36,7 @@ interface ProposalWithMetadata extends Proposal {
   proposerName?: string;
   votingPeriodDays?: number;
   executionDelayDays?: number;
+  metadata?: ProposalMetadata;
 }
 
 export default function ProposalsPage() {
@@ -43,239 +46,22 @@ export default function ProposalsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterState, setFilterState] = useState<ProposalState | "all">("all");
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showVotingModal, setShowVotingModal] = useState<{
+    proposalId: bigint;
+    title: string;
+  } | null>(null);
+  const [showExecutionModal, setShowExecutionModal] = useState<{
+    proposalId: bigint;
+    title: string;
+    state: ProposalState;
+  } | null>(null);
 
-  // Load proposals
-  useEffect(() => {
-    const loadProposals = async () => {
-      try {
-        setLoading(true);
-
-        // Initialize service with read-only provider if not already initialized
-        if (!gnusDaoService.isInitialized()) {
-          const { ethers } = await import("ethers");
-          const provider = new ethers.JsonRpcProvider(
-            "https://sepolia.infura.io/v3/a9555646b9fb4da6ab4cc08c782f85ee",
-          );
-          await gnusDaoService.initialize(provider, undefined, 11155111); // Sepolia chain ID
-        }
-
-        const proposalCount = await gnusDaoService.getProposalCount();
-
-        // Get voting configuration
-        const votingConfig = await gnusDaoService.getVotingConfig();
-
-        if (proposalCount === 0n) {
-          // Create mock proposals for demonstration when no real proposals exist
-          const mockProposals: ProposalWithMetadata[] = [
-            {
-              id: 1n,
-              proposer: "0x1234567890123456789012345678901234567890",
-              title: "Increase Treasury Allocation for Development",
-              ipfsHash: "QmExample1234567890abcdef",
-              startTime: BigInt(Math.floor(Date.now() / 1000) - 86400), // Started 1 day ago
-              endTime: BigInt(Math.floor(Date.now() / 1000) + 86400 * 6), // Ends in 6 days
-              totalVotes: 150000n,
-              totalVoters: 45n,
-              executed: false,
-              cancelled: false,
-              eta: 0n,
-              startBlock: 0n,
-              endBlock: 0n,
-              forVotes: 120000n,
-              againstVotes: 30000n,
-              abstainVotes: 0n,
-              canceled: false,
-              description:
-                "Proposal to allocate additional funds from treasury for development initiatives",
-              quorumReached: true,
-              timeRemaining: "6 days remaining",
-              state: ProposalState.Active,
-              proposerName: "Core Team",
-              votingPeriodDays: 7,
-              executionDelayDays: 3,
-            },
-            {
-              id: 2n,
-              proposer: "0x2345678901234567890123456789012345678901",
-              title: "Update Governance Parameters",
-              ipfsHash: "QmExample2345678901bcdefg",
-              startTime: BigInt(Math.floor(Date.now() / 1000) - 172800), // Started 2 days ago
-              endTime: BigInt(Math.floor(Date.now() / 1000) + 432000), // Ends in 5 days
-              totalVotes: 80000n,
-              totalVoters: 25n,
-              executed: false,
-              cancelled: false,
-              eta: 0n,
-              startBlock: 0n,
-              endBlock: 0n,
-              forVotes: 60000n,
-              againstVotes: 20000n,
-              abstainVotes: 0n,
-              canceled: false,
-              description:
-                "Proposal to update voting period and quorum requirements",
-              quorumReached: false,
-              timeRemaining: "5 days remaining",
-              state: ProposalState.Active,
-              proposerName: "Community Member",
-              votingPeriodDays: 7,
-              executionDelayDays: 3,
-            },
-            {
-              id: 3n,
-              proposer: "0x3456789012345678901234567890123456789012",
-              title: "Community Grant Program",
-              ipfsHash: "QmExample3456789012cdefgh",
-              startTime: BigInt(Math.floor(Date.now() / 1000) - 604800), // Started 7 days ago
-              endTime: BigInt(Math.floor(Date.now() / 1000) - 86400), // Ended 1 day ago
-              totalVotes: 200000n,
-              totalVoters: 67n,
-              executed: false,
-              cancelled: false,
-              eta: 0n,
-              startBlock: 0n,
-              endBlock: 0n,
-              forVotes: 180000n,
-              againstVotes: 20000n,
-              abstainVotes: 0n,
-              canceled: false,
-              description:
-                "Proposal to establish a community grant program for ecosystem development",
-              quorumReached: true,
-              timeRemaining: "Succeeded",
-              state: ProposalState.Succeeded,
-              proposerName: "DAO Foundation",
-              votingPeriodDays: 7,
-              executionDelayDays: 3,
-            },
-          ];
-          setProposals(mockProposals);
-          setLoading(false);
-          return;
-        }
-
-        const proposalPromises: Promise<ProposalWithMetadata | null>[] = [];
-
-        // Load last 20 proposals or all if less than 20
-        const startId = proposalCount > 20n ? proposalCount - 20n : 1n;
-        if (votingConfig) {
-          for (let i = startId; i <= proposalCount; i++) {
-            proposalPromises.push(loadProposalWithMetadata(i, votingConfig));
-          }
-        }
-
-        const loadedProposals = await Promise.all(proposalPromises);
-        const validProposals = loadedProposals.filter(
-          (p): p is ProposalWithMetadata => p !== null,
-        );
-
-        // Sort by ID descending (newest first)
-        validProposals.sort((a, b) => Number(b.id - a.id));
-        setProposals(validProposals);
-      } catch (error) {
-        console.error("Failed to load proposals:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadProposals();
-  }, []); // Remove dependency on gnusDaoInitialized
-
+  // Helper functions
   const getProposerName = (address: string): string => {
-    // Could be enhanced with ENS lookup or known addresses
     const knownAddresses: Record<string, string> = {
       "0xd446c8Ab1C2765f5185c5A2C2fF5A86d41A1": "Core Team",
-      // Add more known addresses here
     };
-
-    return (
-      knownAddresses[address] || `${address.slice(0, 6)}...${address.slice(-4)}`
-    );
-  };
-
-  interface VotingConfig {
-    quorumThreshold?: string | number | bigint;
-    votingDelay?: string | number | bigint;
-    votingPeriod?: string | number | bigint;
-    proposalThreshold?: string | number | bigint;
-    maxVotesPerWallet?: string | number | bigint;
-    proposalCooldown?: string | number | bigint;
-  }
-
-  const loadProposalWithMetadata = async (
-    proposalId: bigint,
-    votingConfig: VotingConfig,
-  ): Promise<ProposalWithMetadata | null> => {
-    try {
-      const [proposal, state] = await Promise.all([
-        gnusDaoService.getProposal(proposalId),
-        gnusDaoService.getProposalState(proposalId),
-      ]);
-
-      if (!proposal) return null;
-
-      // Calculate metadata
-      const totalVotes = proposal.totalVotes || 0n;
-
-      // Get actual quorum threshold from voting config
-      const quorumThreshold = votingConfig?.quorumThreshold
-        ? BigInt(votingConfig.quorumThreshold)
-        : 0n;
-
-      // Only mark quorum as reached if:
-      // 1. There are actual votes (totalVotes > 0)
-      // 2. The votes meet or exceed the threshold
-      // 3. The proposal is not in Pending state (voting has started)
-      const quorumReached =
-        totalVotes > 0n &&
-        totalVotes >= quorumThreshold &&
-        state !== ProposalState.Pending;
-
-      const timeRemaining =
-        proposal.endTime > 0n
-          ? calculateTimeRemaining(proposal.endTime, state)
-          : "No deadline";
-
-      // Use actual proposal data
-      const title = proposal.title || `Proposal #${proposalId}`;
-
-      // Add voting configuration metadata
-      // If contract returns 0, use reasonable defaults
-      const rawVotingPeriod = votingConfig
-        ? Number(votingConfig.votingPeriod)
-        : 0;
-      const rawVotingDelay = votingConfig
-        ? Number(votingConfig.votingDelay)
-        : 0;
-
-      const votingPeriodDays =
-        rawVotingPeriod > 0 ? rawVotingPeriod / (24 * 60 * 60) : 7; // Convert seconds to days or use default
-      const executionDelayDays =
-        rawVotingDelay > 0 ? rawVotingDelay / (24 * 60 * 60) : 3; // Convert seconds to days or use default
-
-      // Get proposer name (could be enhanced with ENS lookup)
-      const proposerName = getProposerName(proposal.proposer);
-      const description = proposal.ipfsHash
-        ? `IPFS: ${proposal.ipfsHash.slice(0, 20)}... | Submitted by ${proposal.proposer.slice(0, 6)}...${proposal.proposer.slice(-4)}`
-        : `Governance proposal submitted by ${proposal.proposer.slice(0, 6)}...${proposal.proposer.slice(-4)}`;
-
-      return {
-        ...proposal,
-        title,
-        description,
-        totalVotes,
-        quorumReached,
-        timeRemaining,
-        state,
-        proposerName,
-        votingPeriodDays,
-        executionDelayDays,
-      };
-    } catch (error) {
-      console.error(`Failed to load proposal ${proposalId}:`, error);
-      return null;
-    }
+    return knownAddresses[address] || `${address.slice(0, 6)}...${address.slice(-4)}`;
   };
 
   const calculateTimeRemaining = (
@@ -284,16 +70,12 @@ export default function ProposalsPage() {
   ): string => {
     if (!endTime || endTime === 0n) return "Active (no deadline)";
 
-    const endTimestamp =
-      typeof endTime === "bigint" ? Number(endTime) : endTime;
-
-    // If endTime is 0, it means the proposal doesn't have a proper end time set
+    const endTimestamp = typeof endTime === "bigint" ? Number(endTime) : endTime;
     if (endTimestamp === 0) return "Active";
 
-    const now = Math.floor(Date.now() / 1000); // Current timestamp in seconds
+    const now = Math.floor(Date.now() / 1000);
     const secondsRemaining = endTimestamp - now;
 
-    // Use the actual proposal state if provided
     if (state !== undefined) {
       switch (state) {
         case ProposalState.Pending:
@@ -319,7 +101,6 @@ export default function ProposalsPage() {
     if (secondsRemaining <= 0) return "Voting ended";
 
     const hoursRemaining = secondsRemaining / 3600;
-
     if (hoursRemaining < 1) {
       const minutesRemaining = Math.ceil(secondsRemaining / 60);
       return `${minutesRemaining} minutes remaining`;
@@ -331,21 +112,220 @@ export default function ProposalsPage() {
     }
   };
 
+  const loadProposalWithMetadata = async (
+    proposalId: bigint,
+    votingConfig: any,
+  ): Promise<ProposalWithMetadata | null> => {
+    try {
+      const [proposal, state] = await Promise.all([
+        gnusDaoService.getProposal(proposalId),
+        gnusDaoService.getProposalState(proposalId),
+      ]);
+
+      if (!proposal) return null;
+
+      const totalVotes = proposal.totalVotes || 0n;
+      const quorumThreshold = votingConfig?.quorumThreshold ? BigInt(votingConfig.quorumThreshold) : 0n;
+      const quorumReached = totalVotes > 0n && totalVotes >= quorumThreshold && state !== ProposalState.Pending;
+      const timeRemaining = proposal.endTime > 0n ? calculateTimeRemaining(proposal.endTime, state) : "No deadline";
+      const title = proposal.title || `Proposal #${proposalId}`;
+      const proposerName = getProposerName(proposal.proposer);
+      const description = proposal.ipfsHash
+        ? `IPFS: ${proposal.ipfsHash.slice(0, 20)}... | Submitted by ${proposal.proposer.slice(0, 6)}...${proposal.proposer.slice(-4)}`
+        : `Governance proposal submitted by ${proposal.proposer.slice(0, 6)}...${proposal.proposer.slice(-4)}`;
+
+      // Try to load IPFS metadata
+      let metadata: ProposalMetadata | null = null;
+      if (proposal.ipfsHash) {
+        try {
+          metadata = await ipfsMetadataService.fetchProposalMetadata(proposal.ipfsHash);
+        } catch (error) {
+          console.warn(`Failed to load IPFS metadata for proposal ${proposalId}:`, error);
+        }
+      }
+
+      return {
+        ...proposal,
+        title: metadata?.title || title,
+        description: metadata?.description || description,
+        totalVotes,
+        quorumReached,
+        timeRemaining,
+        state,
+        proposerName,
+        votingPeriodDays: 7,
+        executionDelayDays: 3,
+        metadata: metadata || undefined,
+      };
+    } catch (error) {
+      console.error(`Failed to load proposal ${proposalId}:`, error);
+      return null;
+    }
+  };
+
+  // Load proposals function
+  const loadProposals = async () => {
+    try {
+      setLoading(true);
+
+      if (!gnusDaoService.isInitialized()) {
+        const { ethers } = await import("ethers");
+        const provider = new ethers.JsonRpcProvider(
+          "https://sepolia.infura.io/v3/a9555646b9fb4da6ab4cc08c782f85ee",
+        );
+        await gnusDaoService.initialize(provider, undefined, 11155111);
+      }
+
+      const proposalCount = await gnusDaoService.getProposalCount();
+      const votingConfig = await gnusDaoService.getVotingConfig();
+
+      if (proposalCount === 0n) {
+        // Mock proposals for demonstration
+        const mockProposals: ProposalWithMetadata[] = [
+          {
+            id: 1n,
+            proposer: "0x1234567890123456789012345678901234567890",
+            title: "Increase Treasury Allocation for Development",
+            ipfsHash: "QmExample1234567890abcdef",
+            startTime: BigInt(Math.floor(Date.now() / 1000) - 86400),
+            endTime: BigInt(Math.floor(Date.now() / 1000) + 86400 * 6),
+            totalVotes: 150000n,
+            totalVoters: 45n,
+            executed: false,
+            cancelled: false,
+            queued: false,
+            queuedTime: 0n,
+            eta: 0n,
+            startBlock: 0n,
+            endBlock: 0n,
+            forVotes: 120000n,
+            againstVotes: 30000n,
+            abstainVotes: 0n,
+            canceled: false,
+            description: "Proposal to allocate additional funds from treasury for development initiatives",
+            quorumReached: true,
+            timeRemaining: "6 days remaining",
+            state: ProposalState.Active,
+            proposerName: "Core Team",
+            votingPeriodDays: 7,
+            executionDelayDays: 3,
+          },
+          {
+            id: 2n,
+            proposer: "0x2345678901234567890123456789012345678901",
+            title: "Update Governance Parameters",
+            ipfsHash: "QmExample2345678901bcdefg",
+            startTime: BigInt(Math.floor(Date.now() / 1000) - 172800),
+            endTime: BigInt(Math.floor(Date.now() / 1000) + 432000),
+            totalVotes: 80000n,
+            totalVoters: 25n,
+            executed: false,
+            cancelled: false,
+            queued: false,
+            queuedTime: 0n,
+            eta: 0n,
+            startBlock: 0n,
+            endBlock: 0n,
+            forVotes: 60000n,
+            againstVotes: 20000n,
+            abstainVotes: 0n,
+            canceled: false,
+            description: "Proposal to update voting period and quorum requirements",
+            quorumReached: false,
+            timeRemaining: "5 days remaining",
+            state: ProposalState.Active,
+            proposerName: "Community Member",
+            votingPeriodDays: 7,
+            executionDelayDays: 3,
+          },
+          {
+            id: 3n,
+            proposer: "0x3456789012345678901234567890123456789012",
+            title: "Community Grant Program",
+            ipfsHash: "QmExample3456789012cdefgh",
+            startTime: BigInt(Math.floor(Date.now() / 1000) - 604800),
+            endTime: BigInt(Math.floor(Date.now() / 1000) - 86400),
+            totalVotes: 200000n,
+            totalVoters: 67n,
+            executed: false,
+            cancelled: false,
+            queued: false,
+            queuedTime: 0n,
+            eta: 0n,
+            startBlock: 0n,
+            endBlock: 0n,
+            forVotes: 180000n,
+            againstVotes: 20000n,
+            abstainVotes: 0n,
+            canceled: false,
+            description: "Proposal to establish a community grant program for ecosystem development",
+            quorumReached: true,
+            timeRemaining: "Succeeded",
+            state: ProposalState.Succeeded,
+            proposerName: "DAO Foundation",
+            votingPeriodDays: 7,
+            executionDelayDays: 3,
+          },
+        ];
+        setProposals(mockProposals);
+        setLoading(false);
+        return;
+      }
+
+      const proposalPromises: Promise<ProposalWithMetadata | null>[] = [];
+      const startId = proposalCount > 20n ? proposalCount - 20n : 1n;
+      
+      if (votingConfig) {
+        for (let i = startId; i <= proposalCount; i++) {
+          proposalPromises.push(loadProposalWithMetadata(i, votingConfig));
+        }
+      }
+
+      const loadedProposals = await Promise.all(proposalPromises);
+      const validProposals = loadedProposals.filter((p): p is ProposalWithMetadata => p !== null);
+      validProposals.sort((a, b) => Number(b.id - a.id));
+      setProposals(validProposals);
+    } catch (error) {
+      console.error("Failed to load proposals:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Load proposals on mount
+  useEffect(() => {
+    loadProposals();
+  }, []);
+
+  // Event handlers
+  const handleVoteClick = (proposalId: bigint, title: string) => {
+    setShowVotingModal({ proposalId, title });
+  };
+
+  const handleExecuteClick = (proposalId: bigint, title: string, state: ProposalState) => {
+    setShowExecutionModal({ proposalId, title, state });
+  };
+
+  const handleVoteSubmitted = () => {
+    loadProposals();
+  };
+
+  const handleProposalExecuted = () => {
+    loadProposals();
+  };
+
+  // Filter proposals
   const filteredProposals = proposals.filter((proposal) => {
     const matchesSearch =
       proposal.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       proposal.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesFilter =
-      filterState === "all" || proposal.state === filterState;
+    const matchesFilter = filterState === "all" || proposal.state === filterState;
     return matchesSearch && matchesFilter;
   });
-
-  // Show proposals interface even when not initialized (with mock data)
 
   return (
     <AuthGuard requireAuth={false}>
       <div className="container mx-auto px-4 py-8">
-        {/* Delegation Banner */}
         <DelegationBanner />
 
         {/* Header */}
@@ -359,7 +339,6 @@ export default function ProposalsPage() {
           <Button
             onClick={() => setShowCreateModal(true)}
             className="mt-4 sm:mt-0 flex items-center gap-2"
-            data-testid="create-proposal-button"
           >
             <Plus className="h-4 w-4" />
             Create Proposal
@@ -372,9 +351,7 @@ export default function ProposalsPage() {
             <div className="flex items-center">
               <Calendar className="h-8 w-8 text-blue-500" />
               <div className="ml-4">
-                <p className="text-sm font-medium text-muted-foreground">
-                  Total Proposals
-                </p>
+                <p className="text-sm font-medium text-muted-foreground">Total Proposals</p>
                 <p className="text-2xl font-bold">{proposals.length}</p>
               </div>
             </div>
@@ -383,14 +360,9 @@ export default function ProposalsPage() {
             <div className="flex items-center">
               <Users className="h-8 w-8 text-green-500" />
               <div className="ml-4">
-                <p className="text-sm font-medium text-muted-foreground">
-                  Active
-                </p>
+                <p className="text-sm font-medium text-muted-foreground">Active</p>
                 <p className="text-2xl font-bold">
-                  {
-                    proposals.filter((p) => p.state === ProposalState.Active)
-                      .length
-                  }
+                  {proposals.filter((p) => p.state === ProposalState.Active).length}
                 </p>
               </div>
             </div>
@@ -399,14 +371,9 @@ export default function ProposalsPage() {
             <div className="flex items-center">
               <TrendingUp className="h-8 w-8 text-purple-500" />
               <div className="ml-4">
-                <p className="text-sm font-medium text-muted-foreground">
-                  Executed
-                </p>
+                <p className="text-sm font-medium text-muted-foreground">Executed</p>
                 <p className="text-2xl font-bold">
-                  {
-                    proposals.filter((p) => p.state === ProposalState.Executed)
-                      .length
-                  }
+                  {proposals.filter((p) => p.state === ProposalState.Executed).length}
                 </p>
               </div>
             </div>
@@ -415,14 +382,9 @@ export default function ProposalsPage() {
             <div className="flex items-center">
               <Clock className="h-8 w-8 text-orange-500" />
               <div className="ml-4">
-                <p className="text-sm font-medium text-muted-foreground">
-                  Pending
-                </p>
+                <p className="text-sm font-medium text-muted-foreground">Pending</p>
                 <p className="text-2xl font-bold">
-                  {
-                    proposals.filter((p) => p.state === ProposalState.Pending)
-                      .length
-                  }
+                  {proposals.filter((p) => p.state === ProposalState.Pending).length}
                 </p>
               </div>
             </div>
@@ -439,16 +401,13 @@ export default function ProposalsPage() {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-2 border border-input bg-background rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
-              data-testid="search-input"
             />
           </div>
           <div className="flex items-center gap-2">
             <Filter className="h-4 w-4 text-muted-foreground" />
             <select
               value={filterState}
-              onChange={(e) =>
-                setFilterState(e.target.value as ProposalState | "all")
-              }
+              onChange={(e) => setFilterState(e.target.value as ProposalState | "all")}
               className="px-3 py-2 border border-input bg-background rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
             >
               <option value="all">All States</option>
@@ -478,9 +437,7 @@ export default function ProposalsPage() {
                 : "Be the first to create a proposal for the DAO."}
             </p>
             {!searchTerm && filterState === "all" && (
-              <Button onClick={() => setShowCreateModal(true)}>
-                Create First Proposal
-              </Button>
+              <Button onClick={() => setShowCreateModal(true)}>Create First Proposal</Button>
             )}
           </div>
         ) : (
@@ -490,20 +447,40 @@ export default function ProposalsPage() {
                 key={proposal.id.toString()}
                 proposal={proposal}
                 router={router}
+                onVoteClick={handleVoteClick}
+                onExecuteClick={handleExecuteClick}
               />
             ))}
           </div>
         )}
 
-        {/* Create Proposal Modal */}
+        {/* Modals */}
         {showCreateModal && (
           <CreateProposalModal
             onClose={() => setShowCreateModal(false)}
             onProposalCreated={() => {
               setShowCreateModal(false);
-              // Reload proposals
-              window.location.reload();
+              loadProposals();
             }}
+          />
+        )}
+
+        {showVotingModal && (
+          <VotingModal
+            proposalId={showVotingModal.proposalId}
+            proposalTitle={showVotingModal.title}
+            onClose={() => setShowVotingModal(null)}
+            onVoteSubmitted={handleVoteSubmitted}
+          />
+        )}
+
+        {showExecutionModal && (
+          <ExecutionModal
+            proposalId={showExecutionModal.proposalId}
+            proposalTitle={showExecutionModal.title}
+            proposalState={showExecutionModal.state}
+            onClose={() => setShowExecutionModal(null)}
+            onExecuted={handleProposalExecuted}
           />
         )}
       </div>
@@ -514,11 +491,12 @@ export default function ProposalsPage() {
 interface ProposalCardProps {
   proposal: ProposalWithMetadata;
   router: ReturnType<typeof useRouter>;
+  onVoteClick: (proposalId: bigint, title: string) => void;
+  onExecuteClick: (proposalId: bigint, title: string, state: ProposalState) => void;
 }
 
-function ProposalCard({ proposal, router }: ProposalCardProps) {
+function ProposalCard({ proposal, router, onVoteClick, onExecuteClick }: ProposalCardProps) {
   const { wallet } = useWeb3Store();
-  const [voting, setVoting] = useState(false);
 
   const getStateColor = (state: ProposalState): string => {
     switch (state) {
@@ -558,78 +536,28 @@ function ProposalCard({ proposal, router }: ProposalCardProps) {
     }
   };
 
-  const handleVote = async (support: VoteSupport) => {
-    if (!wallet.isConnected || !wallet.address) {
-      toast.error("Please connect your wallet to vote");
-      return;
-    }
-
-    // Check rate limit before voting
-    const rateLimitCheck = checkRateLimit('VOTE_CAST');
-    if (!rateLimitCheck.allowed) {
-      toast.error(
-        `Too many votes. Please wait ${rateLimitCheck.resetIn} seconds before voting again.`
-      );
-      return;
-    }
-
-    setVoting(true);
-    try {
-      const tx = await gnusDaoService.castVote(proposal.id, support);
-      toast.success("Vote submitted! Waiting for confirmation...");
-
-      await tx.wait();
-      toast.success("Vote confirmed!");
-
-      // Refresh the page to show updated vote counts
-      window.location.reload();
-    } catch (error) {
-      console.error("Vote failed:", error);
-      toast.error("Failed to submit vote");
-    } finally {
-      setVoting(false);
-    }
-  };
-
   return (
-    <div
-      className="bg-card border rounded-lg p-6 hover:shadow-md transition-shadow"
-      data-testid="proposal-card"
-    >
+    <div className="bg-card border rounded-lg p-6 hover:shadow-md transition-shadow">
       <div className="flex flex-col sm:flex-row justify-between items-start mb-4">
         <div className="flex-1">
           <div className="flex items-center gap-3 mb-2">
             <h3 className="text-lg font-semibold">{proposal.title}</h3>
-            <span
-              className={`px-2 py-1 rounded-full text-xs font-medium ${getStateColor(proposal.state)}`}
-              data-testid="proposal-state"
-            >
+            <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStateColor(proposal.state)}`}>
               {getStateName(proposal.state)}
             </span>
           </div>
-          <p className="text-muted-foreground text-sm mb-2">
-            Proposal #{proposal.id.toString()}
-          </p>
+          <p className="text-muted-foreground text-sm mb-2">Proposal #{proposal.id.toString()}</p>
           <div className="flex items-center gap-4 text-xs text-muted-foreground mb-2">
             <span>👤 {proposal.proposerName || "Unknown"}</span>
-            <span>
-              📅 {Math.round(proposal.votingPeriodDays || 7)} day voting period
-            </span>
-            <span>
-              ⏱️ {Math.round(proposal.executionDelayDays || 3)} day execution
-              delay
-            </span>
+            <span>📅 {Math.round(proposal.votingPeriodDays || 7)} day voting period</span>
+            <span>⏱️ {Math.round(proposal.executionDelayDays || 3)} day execution delay</span>
           </div>
           <p className="text-sm line-clamp-2">{proposal.description}</p>
         </div>
         <div className="text-right mt-4 sm:mt-0">
-          <p className="text-sm text-muted-foreground">
-            {proposal.timeRemaining}
-          </p>
+          <p className="text-sm text-muted-foreground">{proposal.timeRemaining}</p>
           {proposal.quorumReached && (
-            <p className="text-xs text-green-600 dark:text-green-400">
-              Quorum reached
-            </p>
+            <p className="text-xs text-green-600 dark:text-green-400">Quorum reached</p>
           )}
         </div>
       </div>
@@ -640,9 +568,6 @@ function ProposalCard({ proposal, router }: ProposalCardProps) {
           <span>For: {proposal.forVotes.toString()}</span>
           <span>Against: {proposal.againstVotes.toString()}</span>
           <span>Abstain: {proposal.abstainVotes.toString()}</span>
-          <span data-testid="total-votes" className="hidden">
-            {proposal.totalVotes.toString()}
-          </span>
         </div>
         <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
           <div
@@ -667,28 +592,29 @@ function ProposalCard({ proposal, router }: ProposalCardProps) {
         >
           View Details
         </Button>
+        
         {proposal.state === ProposalState.Active && wallet.isConnected && (
-          <>
-            <Button
-              size="sm"
-              onClick={() => handleVote(VoteSupport.For)}
-              disabled={voting}
-              className="bg-green-600 hover:bg-green-700 text-white"
-            >
-              <CheckCircle className="w-4 h-4 mr-1" />
-              Vote For
-            </Button>
-            <Button
-              size="sm"
-              onClick={() => handleVote(VoteSupport.Against)}
-              disabled={voting}
-              className="bg-red-600 hover:bg-red-700 text-white"
-            >
-              <XCircle className="w-4 h-4 mr-1" />
-              Vote Against
-            </Button>
-          </>
+          <Button
+            size="sm"
+            onClick={() => onVoteClick(proposal.id, proposal.title)}
+            className="bg-blue-600 hover:bg-blue-700 text-white"
+          >
+            <CheckCircle className="w-4 h-4 mr-1" />
+            Vote
+          </Button>
         )}
+        
+        {(proposal.state === ProposalState.Succeeded || proposal.state === ProposalState.Queued) && wallet.isConnected && (
+          <Button
+            size="sm"
+            onClick={() => onExecuteClick(proposal.id, proposal.title, proposal.state)}
+            className="bg-purple-600 hover:bg-purple-700 text-white"
+          >
+            <Play className="w-4 h-4 mr-1" />
+            {proposal.state === ProposalState.Succeeded ? "Queue" : "Execute"}
+          </Button>
+        )}
+        
         {proposal.state === ProposalState.Active && !wallet.isConnected && (
           <Button
             size="sm"

@@ -1,8 +1,13 @@
 import { logger } from '@/lib/utils/logger';
 import { ethers } from 'ethers';
 import type { Facet, Proposal, VoteReceipt } from './gnusDao';
-import { getGNUSDAOContract, GNUS_DAO_DIAMOND_ABI, ProposalState, VoteSupport } from './gnusDao';
-import type { GNUSDAODiamond } from './gnusDao';
+import {
+	getGNUSDAOContract,
+	GNUS_DAO_DIAMOND_ABI,
+	ProposalState,
+	VoteSupport,
+} from './gnusDao';
+import type { GNUSDAODiamondInterface as GNUSDAODiamond } from './abi';
 
 export class GNUSDAOService {
 	private contract: GNUSDAODiamond | null = null;
@@ -10,7 +15,7 @@ export class GNUSDAOService {
 	private signer: ethers.Signer | null = null;
 	private chainId: number | null = null;
 
-	constructor() { }
+	constructor() {}
 
 	/**
 	 * Initialize the service with a provider and optional signer
@@ -237,7 +242,7 @@ export class GNUSDAOService {
 	async delegateToSelf(): Promise<ethers.ContractTransactionResponse> {
 		throw new Error(
 			'This contract does not support self-delegation. Voting power comes directly from your token balance. ' +
-			'You already have voting power if you hold GNUS tokens.',
+				'You already have voting power if you hold GNUS tokens.',
 		);
 	}
 

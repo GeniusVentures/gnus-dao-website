@@ -2,7 +2,6 @@ import '@diamondslab/hardhat-diamonds';
 import '@nomicfoundation/hardhat-toolbox';
 import '@nomicfoundation/hardhat-web3-v4';
 import '@typechain/hardhat';
-import * as fs from 'fs';
 import 'hardhat-abi-exporter';
 import 'hardhat-gas-reporter';
 import 'hardhat-multichain';
@@ -85,15 +84,6 @@ if (process.argv.includes('coverage')) {
 	multichainTestHardhat = 'http://localhost:8555';
 }
 export const multichainHardhat = multichainTestHardhat;
-
-const elementSeenSet = new Set<string>();
-// filter out duplicate function signatures
-function genSignature(name: string, inputs: Array<unknown>, type: string): string {
-	return `${type} ${name}(${inputs.reduce((previous: string, key) => {
-		const comma = previous.length ? ',' : '';
-		return previous + comma + (key as { internalType: string }).internalType;
-	}, '')})`;
-}
 
 const MOCK_CHAIN_ID = HH_CHAIN_ID ? parseInt(HH_CHAIN_ID) : 31337;
 
@@ -347,7 +337,7 @@ const config: HardhatUserConfig = {
 				deploymentsPath: 'diamonds',
 				// It is recommended but not required to create a separate contracts repo and
 				// include it as a git submodule.
-				contractsPath: 'contracts',
+				contractsPath: 'contracts/gnus-dao',
 			},
 		},
 	},

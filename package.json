@@ -207,6 +207,7 @@
     "@typescript-eslint/parser": "^8.18.1",
     "abi2oas": "^0.1.4",
     "autoprefixer": "^10.4.20",
+    "baseline-browser-mapping": "^2.9.12",
     "chai": "^4.2.0",
     "chai-as-promised": "^7.1.1",
     "contracts-starter": "https://github.com/mudgen/diamond-2-hardhat.git",

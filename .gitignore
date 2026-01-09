@@ -22,7 +22,8 @@ notes
 
 diamond-abi/
 
-config/
+# Hardhat config directory (but not src/lib/config)
+/config/
 test-diamonds
 deployments
 test-output

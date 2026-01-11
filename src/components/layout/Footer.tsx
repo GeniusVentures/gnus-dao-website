@@ -69,7 +69,7 @@ export function Footer() {
               </span>
             </Link>
             <p className="text-sm text-muted-foreground mb-4 max-w-sm">
-              Enterprise-grade decentralized governance platform with quadratic
+              Decentralized governance platform with quadratic
               voting, multi-chain support, and Diamond pattern smart contracts.
             </p>
             <div className="flex space-x-4">

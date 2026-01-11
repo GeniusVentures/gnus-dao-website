@@ -2,7 +2,7 @@
 
 # 🗳️ GNUS DAO Governance Platform
 
-A modern, enterprise-grade decentralized autonomous organization (DAO) governance platform built with Next.js 14, featuring quadratic voting, multi-chain support, and Diamond pattern smart contract integration.
+A modern, decentralized autonomous organization (DAO) governance platform built with Next.js 14, featuring quadratic voting, multi-chain support, and Diamond pattern smart contract integration.
 
 ## 🌟 Features
 

@@ -2,23 +2,11 @@ import '@diamondslab/hardhat-diamonds';
 import '@nomicfoundation/hardhat-toolbox';
 import '@nomicfoundation/hardhat-web3-v4';
 import '@typechain/hardhat';
-import * as fs from 'fs';
 import 'hardhat-abi-exporter';
 import 'hardhat-gas-reporter';
 import 'hardhat-multichain';
 import { HardhatUserConfig } from 'hardhat/config';
 import 'solidity-coverage';
-
-// Load .env file if it exists and is a file (not a directory)
-try {
-	const envPath = '.env';
-	if (fs.existsSync(envPath) && fs.statSync(envPath).isFile()) {
-		process.loadEnvFile(envPath);
-	}
-} catch (error) {
-	// Silently ignore if .env doesn't exist or can't be loaded
-	console.warn('Warning: Could not load .env file');
-}
 
 /*
  * Destructuring environment variables required for the configuration.
@@ -97,15 +85,6 @@ if (process.argv.includes('coverage')) {
 }
 export const multichainHardhat = multichainTestHardhat;
 
-const elementSeenSet = new Set<string>();
-// filter out duplicate function signatures
-function genSignature(name: string, inputs: Array<unknown>, type: string): string {
-	return `${type} ${name}(${inputs.reduce((previous: string, key) => {
-		const comma = previous.length ? ',' : '';
-		return previous + comma + (key as { internalType: string }).internalType;
-	}, '')})`;
-}
-
 const MOCK_CHAIN_ID = HH_CHAIN_ID ? parseInt(HH_CHAIN_ID) : 31337;
 
 const config: HardhatUserConfig = {
@@ -176,11 +155,11 @@ const config: HardhatUserConfig = {
 		hardhat: {
 			forking: process.env.FORK_URL
 				? {
-						url: process.env.FORK_URL,
-						blockNumber: process.env.FORK_BLOCK_NUMBER
-							? parseInt(process.env.FORK_BLOCK_NUMBER)
-							: undefined,
-					}
+					url: process.env.FORK_URL,
+					blockNumber: process.env.FORK_BLOCK_NUMBER
+						? parseInt(process.env.FORK_BLOCK_NUMBER)
+						: undefined,
+				}
 				: undefined,
 			/* hardhat-multichain config  */
 			chainId: MOCK_CHAIN_ID, // Sets the chain ID for the Hardhat network

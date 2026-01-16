@@ -4,36 +4,80 @@
 
 A modern, decentralized autonomous organization (DAO) governance platform built with Next.js 14, featuring quadratic voting, multi-chain support, and Diamond pattern smart contract integration.
 
+## 📚 Documentation
+
+### User Guides
+- **[📖 Complete Usage Guide](USAGE_GUIDE.md)** - Comprehensive user manual for all features
+- **[⚡ Quick Reference](QUICK_REFERENCE.md)** - Essential commands and troubleshooting
+- **[🔧 Technical Documentation](TECHNICAL_DOCS.md)** - Developer and architecture guide
+
+### Getting Started
+1. **New Users**: Start with the [Usage Guide](USAGE_GUIDE.md)
+2. **Quick Help**: Check the [Quick Reference](QUICK_REFERENCE.md)
+3. **Developers**: Read the [Technical Docs](TECHNICAL_DOCS.md)
+
 ## 🌟 Features
 
 ### Core Governance Features
 - **✅ Proposal Creation**: Create and submit governance proposals with IPFS metadata storage
-- **✅ Voting System**: Vote For/Against proposals directly from the interface
-- **✅ Proposal States**: Real-time proposal status (Active, Pending, Succeeded, Defeated, Executed)
-- **✅ Vote Tracking**: View voting history and user vote receipts
-- **✅ Quadratic Voting**: Advanced voting mechanism for democratic decision-making
-- **✅ Time-based Voting**: Configurable voting periods and execution delays
-
-### Technical Features
-- **✅ Multi-Chain Support**: Compatible with Ethereum, Base, Polygon, and SKALE networks
-- **✅ Diamond Pattern Integration**: Upgradeable smart contracts using EIP-2535
-- **✅ WalletConnect v2**: Seamless wallet integration with MetaMask and WalletConnect
-- **✅ IPFS Integration**: Decentralized storage via Pinata for proposal metadata
+- **✅ Quadratic Voting System**: Advanced voting mechanism with cost = votes² formula
+- **✅ Proposal Management**: Complete lifecycle from creation to execution
+- **✅ Vote Tracking**: Comprehensive voting history and receipts
+- **✅ Treasury Operations**: Decentralized fund management
+- **✅ Role Management**: Admin controls for treasury managers and permissions
 - **✅ Real-time Updates**: Live proposal status and voting results
-- **✅ Mobile Responsive**: Optimized for all device sizes
-- **✅ Dark/Light Theme**: User preference-based theming
+
+### Advanced Features
+- **✅ Diamond Pattern Integration**: Upgradeable smart contracts using EIP-2535
+- **✅ IPFS Integration**: Decentralized metadata storage with multiple gateway fallback
+- **✅ Multi-Wallet Support**: MetaMask, WalletConnect, and other Web3 wallets
+- **✅ Mobile Responsive**: Optimized interface for all devices
+- **✅ Error Handling**: Comprehensive error tracking and user feedback
+- **✅ Security Features**: Input validation, rate limiting, and safe transactions
+
+### Technical Stack
+- **Frontend**: Next.js 14.2.35 with TypeScript
+- **Styling**: Tailwind CSS with custom components
+- **State Management**: Redux Toolkit
+- **Web3**: ethers.js v6 with TypeChain
+- **Smart Contracts**: Diamond pattern (7 facets)
+- **Network**: Ethereum Sepolia Testnet
 
 ## 🚀 Quick Start
 
 ### Prerequisites
-
 - Node.js 18+ and yarn
 - MetaMask or compatible Web3 wallet
+
+### Development
+```bash
+# Install dependencies
+yarn install
+
+# Start development server
+yarn dev
+
+# Open http://localhost:3000
+```
+
+### Deployment
+```bash
+# Build and deploy to Cloudflare Pages
+yarn deploy:pages
+
+# Or build only
+yarn build:pages
+```
+
+📋 **For detailed deployment instructions, see [DEPLOYMENT.md](DEPLOYMENT.md)**
 - Access to Sepolia testnet (for development)
 
 ### Installation
 
 ```bash
+# Clone the repository
+git clone <repository-url>
+cd gnus-dao-website
 
 # Install dependencies
 yarn install
@@ -45,6 +89,14 @@ cp .env.example .env.local
 # Start development server
 yarn dev
 ```
+
+### First Time Setup
+1. **Connect Wallet**: Use MetaMask on Sepolia testnet
+2. **Get Test Tokens**: Acquire GNUS tokens for voting
+3. **Explore Interface**: Check out proposals and treasury
+4. **Cast First Vote**: Participate in governance
+
+For detailed setup instructions, see the [Usage Guide](USAGE_GUIDE.md#getting-started).
 
 ### Environment Configuration
 

@@ -37,23 +37,32 @@ export async function preloadRuntimeEnv(): Promise<Partial<RuntimeEnvConfig>> {
 	}
 
 	try {
-		const response = await fetch('/api/config/runtime-env', {
-			method: 'GET',
-			headers: {
-				'Content-Type': 'application/json',
-			},
-		});
+		// Check if we're in a static export environment (Cloudflare Pages)
+		const isStaticExport = process.env.STATIC_EXPORT === 'true' || 
+							  process.env.CLOUDFLARE_PAGES === 'true' ||
+							  typeof window !== 'undefined';
 
-		if (response.ok) {
-			const data = await response.json();
-			cachedRuntimeEnv = data;
-			isLoaded = true;
-			return data;
+		if (isStaticExport && typeof window !== 'undefined') {
+			// In browser environment, fetch from Cloudflare Functions
+			const response = await fetch('/api/config/runtime-env', {
+				method: 'GET',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+			});
+
+			if (response.ok) {
+				const data = await response.json();
+				cachedRuntimeEnv = data;
+				isLoaded = true;
+				return data;
+			}
 		}
 	} catch (error) {
 		console.warn('Failed to load runtime environment from API:', error);
 	}
 
+	// Fallback to environment variables (build time or server-side)
 	cachedRuntimeEnv = {
 		NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID:
 			process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || 'test-fallback-project-id',

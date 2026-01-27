@@ -3,8 +3,6 @@
  * Provides error logging and tracking for API endpoints with Sentry integration
  */
 
-import * as Sentry from '@sentry/nextjs';
-
 export interface ErrorContext {
 	[key: string]: any;
 }
@@ -16,7 +14,7 @@ export interface ErrorTrackingConfig {
 }
 
 /**
- * Log error to Sentry (Enhanced with @sentry/nextjs integration)
+ * Log error to Sentry (Cloudflare Workers compatible)
  */
 export async function captureException(
 	error: Error,
@@ -29,21 +27,6 @@ export async function captureException(
 	console.error('Error:', error.message, context);
 
 	try {
-		// Use Sentry SDK if available (preferred method)
-		if (typeof Sentry !== 'undefined' && Sentry.captureException) {
-			Sentry.captureException(error, {
-				contexts: {
-					cloudflareWorker: context || {},
-				},
-				tags: {
-					runtime: 'cloudflare-workers',
-					environment,
-					...(release && { release }),
-				},
-			});
-			return;
-		}
-
 		// Fallback to direct Sentry API for Cloudflare Workers
 		if (!sentryDsn) {
 			return;
@@ -58,9 +41,12 @@ export async function captureException(
 
 		const [, key, host, projectId] = dsnMatch;
 
+		// Generate a simple UUID for Cloudflare Workers
+		const eventId = crypto.randomUUID().replace(/-/g, '');
+
 		// Create Sentry event
 		const event = {
-			event_id: crypto.randomUUID().replace(/-/g, ''),
+			event_id: eventId,
 			timestamp: Date.now() / 1000,
 			platform: 'javascript',
 			environment,
@@ -111,10 +97,10 @@ function parseStackTrace(stack: string): any[] {
 			if (match) {
 				const [, func, filename, lineno, colno] = match;
 				return {
-					function: func,
-					filename,
-					lineno: parseInt(lineno),
-					colno: parseInt(colno),
+					function: func || 'unknown',
+					filename: filename || 'unknown',
+					lineno: parseInt(lineno || '0', 10),
+					colno: parseInt(colno || '0', 10),
 				};
 			}
 			return null;
@@ -131,23 +117,6 @@ export function withErrorTracking<Env = any>(
 ): PagesFunction<Env> {
 	return async (context) => {
 		try {
-			// Set Sentry context for this request
-			if (typeof Sentry !== 'undefined') {
-				Sentry.setContext('request', {
-					url: context.request.url,
-					method: context.request.method,
-					headers: Object.fromEntries(context.request.headers.entries()),
-					userAgent: context.request.headers.get('user-agent'),
-				});
-
-				// Add breadcrumb for request
-				Sentry.addBreadcrumb({
-					message: `${context.request.method} ${context.request.url}`,
-					category: 'http',
-					level: 'info',
-				});
-			}
-
 			return await handler(context);
 		} catch (error) {
 			// Enhanced error context
@@ -199,7 +168,7 @@ export function logInfo(message: string, context?: ErrorContext): void {
 }
 
 /**
- * Capture message to Sentry
+ * Capture message to Sentry (Cloudflare Workers compatible)
  */
 export function captureMessage(
 	message: string,
@@ -207,17 +176,10 @@ export function captureMessage(
 	context?: ErrorContext,
 ): void {
 	console.log(`[${level.toUpperCase()}] ${message}`, context || {});
-
-	if (typeof Sentry !== 'undefined' && Sentry.captureMessage) {
-		Sentry.captureMessage(message, level);
-		if (context) {
-			Sentry.setContext('message', context);
-		}
-	}
 }
 
 /**
- * Set user context for Sentry in Cloudflare Workers
+ * Set user context (Cloudflare Workers compatible)
  */
 export function setUser(user: {
 	id?: string;
@@ -225,25 +187,17 @@ export function setUser(user: {
 	username?: string;
 	address?: string;
 }): void {
-	if (typeof Sentry !== 'undefined' && Sentry.setUser) {
-		Sentry.setUser(user);
-	}
+	// In Cloudflare Workers, we can only log user context
+	console.log('User context:', user);
 }
 
 /**
- * Add breadcrumb for Sentry in Cloudflare Workers
+ * Add breadcrumb (Cloudflare Workers compatible)
  */
 export function addBreadcrumb(
 	message: string,
 	category?: string,
 	level?: 'debug' | 'info' | 'warning' | 'error',
 ): void {
-	if (typeof Sentry !== 'undefined' && Sentry.addBreadcrumb) {
-		Sentry.addBreadcrumb({
-			message,
-			category: category || 'custom',
-			level: level || 'info',
-			timestamp: Date.now() / 1000,
-		});
-	}
+	console.log(`[BREADCRUMB] ${category || 'custom'}: ${message}`, { level: level || 'info' });
 }

@@ -1,11 +1,10 @@
 import React from "react";
 import ProposalDetailClient from "./ProposalDetailClient";
 
-// Generate static params for static export
+// Dynamic rendering — proposal IDs come from on-chain data
 export async function generateStaticParams() {
-  // For static export, we'll generate a few example proposal IDs
-  // In a real app, you'd fetch this from your API or contract
-  return [{ id: "1" }, { id: "2" }, { id: "3" }, { id: "4" }, { id: "5" }];
+  // Return empty array so all proposal detail pages are dynamically rendered
+  return [];
 }
 
 export default function ProposalDetailPage() {

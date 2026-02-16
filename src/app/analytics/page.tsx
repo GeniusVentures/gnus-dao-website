@@ -92,19 +92,19 @@ export default function AnalyticsPage() {
             ? 90
             : 365;
 
+    // Produce a deterministic cumulative growth curve from real totals
     for (let i = days - 1; i >= 0; i--) {
       const date = new Date();
       date.setDate(date.getDate() - i);
+      const progress = 1 - i / days;
       data.push({
         date: date.toLocaleDateString("en-US", {
           month: "short",
           day: "numeric",
         }),
-        proposals: Math.floor(total * (1 - i / days)),
-        // Math.random() is acceptable here for demo/mock data (non-security context)
-        // nosemgrep: insecure-random
-        active: Math.floor(active * Math.random()),
-        executed: Math.floor(executed * (1 - i / days)),
+        proposals: Math.floor(total * progress),
+        active: i === 0 ? active : 0, // Only show active count for today
+        executed: Math.floor(executed * progress),
       });
     }
     return data;
@@ -121,27 +121,25 @@ export default function AnalyticsPage() {
             ? 90
             : 365;
 
+    // Distribute total votes evenly across the period (deterministic)
+    const avgVotesPerDay = days > 0 ? Math.ceil(totalVotes / days) : 0;
     for (let i = days - 1; i >= 0; i--) {
       const date = new Date();
       date.setDate(date.getDate() - i);
-      // Math.random() is acceptable here for demo/mock data (non-security context)
-      // nosemgrep: insecure-random
-      const votes = Math.floor(totalVotes / days + Math.random() * 10);
       data.push({
         date: date.toLocaleDateString("en-US", {
           month: "short",
           day: "numeric",
         }),
-        votes,
-        voters: Math.floor(votes * 0.7),
-        // nosemgrep: insecure-random
-        participation: Math.random() * 100,
+        votes: avgVotesPerDay,
+        voters: Math.max(1, Math.floor(avgVotesPerDay * 0.7)),
+        participation: totalVotes > 0 ? Math.min(100, avgVotesPerDay * 10) : 0,
       });
     }
     return data;
   };
 
-  const generateTreasuryData = (): TreasuryHistoryData[] => {
+  const generateTreasuryData = (currentBalance: number): TreasuryHistoryData[] => {
     const data: TreasuryHistoryData[] = [];
     const days =
       timeRange === "7d"
@@ -151,45 +149,42 @@ export default function AnalyticsPage() {
           : timeRange === "90d"
             ? 90
             : 365;
-    let balance = 100;
 
+    // Without an indexer, we can only show the current balance as a flat line
     for (let i = days - 1; i >= 0; i--) {
       const date = new Date();
       date.setDate(date.getDate() - i);
-      // Math.random() is acceptable here for demo/mock data (non-security context)
-      // nosemgrep: insecure-random
-      const deposits = Math.random() * 10;
-      // nosemgrep: insecure-random
-      const withdrawals = Math.random() * 5;
-      balance += deposits - withdrawals;
-
       data.push({
         date: date.toLocaleDateString("en-US", {
           month: "short",
           day: "numeric",
         }),
-        balance: Math.max(0, balance),
-        deposits,
-        withdrawals,
+        balance: currentBalance,
+        deposits: 0,
+        withdrawals: 0,
       });
     }
     return data;
   };
 
   const generateParticipationData = (
-    metrics: GovernanceMetrics,
+    metricsData: GovernanceMetrics,
   ): ParticipationData[] => {
+    // Use real on-chain totals for the participation breakdown
+    const totalVoters = metricsData.uniqueVoters || 0;
+    const activeVoters = Math.max(1, totalVoters);
+    // Rough heuristic: assume delegated is 0 until we have delegation events
     return [
-      { name: "Active Voters", value: metrics.uniqueVoters, color: "#3b82f6" },
+      { name: "Active Voters", value: activeVoters, color: "#3b82f6" },
       {
         name: "Delegated",
-        value: Math.floor(metrics.uniqueVoters * 0.3),
+        value: 0, // Need delegation event data for accurate count
         color: "#10b981",
       },
       {
-        name: "Inactive",
-        value: Math.floor(metrics.uniqueVoters * 0.5),
-        color: "#6b7280",
+        name: "Total Proposals",
+        value: metricsData.totalProposals,
+        color: "#8b5cf6",
       },
     ];
   };
@@ -269,7 +264,16 @@ export default function AnalyticsPage() {
         executedProposals,
       );
       const votingTrendsData = generateVotingTrendsData(totalVotes);
-      const treasuryData = generateTreasuryData();
+
+      // Get real treasury balance for the chart
+      let treasuryBalance = 0;
+      try {
+        const rawBalance = await gnusDaoService.getTreasuryBalance();
+        treasuryBalance = Number(rawBalance) / 1e18;
+      } catch {
+        // Treasury balance not available
+      }
+      const treasuryData = generateTreasuryData(treasuryBalance);
       const participationData = generateParticipationData(metrics);
 
       // For trends and top voters, we'll use simplified data since we don't have event history

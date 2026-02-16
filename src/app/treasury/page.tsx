@@ -82,8 +82,8 @@ export default function TreasuryPage() {
           name: currentNetwork?.nativeCurrency.name || "Ethereum",
           balance: nativeBalance,
           decimals: 18,
-          usdValue: (Number(nativeBalance) * 2000) / 1e18, // Mock ETH price for USD calculation
-          change24h: 0, // Would need price API for real change data
+          usdValue: 0, // No price oracle available — show raw balance only
+          change24h: 0, // Price change data requires an external price API
         },
       ];
 
@@ -351,8 +351,8 @@ export default function TreasuryPage() {
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-medium">
-                            {formatUSD(asset.usdValue)}
+                          <div className="text-sm font-medium text-muted-foreground">
+                            {asset.usdValue > 0 ? formatUSD(asset.usdValue) : <span className="italic">N/A</span>}
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
@@ -416,13 +416,13 @@ export default function TreasuryPage() {
 
                 <Button
                   variant="outline"
-                  className="h-20 flex-col items-center gap-2"
-                  onClick={() => toast("Add asset tracking coming soon")}
+                  className="h-20 flex-col items-center gap-2 opacity-60 cursor-not-allowed"
+                  disabled
                 >
                   <Plus className="h-6 w-6" />
                   <span className="font-medium">Add Asset</span>
                   <span className="text-xs text-muted-foreground">
-                    Track new token
+                    Coming soon
                   </span>
                 </Button>
 

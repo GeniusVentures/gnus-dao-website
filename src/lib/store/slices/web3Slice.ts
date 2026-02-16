@@ -167,6 +167,15 @@ const web3Slice = createSlice({
 				(state, action: PayloadAction<{ network: NetworkConfig }>) => {
 					state.currentNetwork = action.payload.network;
 				},
+			)
+			// Handle chain changed from MetaMask (user switches network externally)
+			.addMatcher(
+				(action) => action.type === 'wallet/handleChainChanged',
+				(state, action: PayloadAction<string>) => {
+					const chainId = parseInt(action.payload, 16);
+					const network = getNetworkConfig(chainId);
+					state.currentNetwork = network; // undefined if unsupported chain
+				},
 			);
 	},
 });

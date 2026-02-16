@@ -27,6 +27,7 @@ export const SUPPORTED_NETWORKS: Record<string, NetworkConfig> = {
 	sepolia: {
 		id: 11155111,
 		name: 'Sepolia',
+		displayName: 'Ethereum Sepolia',
 		chainId: 11155111,
 		rpcUrl: 'https://sepolia.infura.io/v3/YOUR_INFURA_KEY',
 		blockExplorerUrl: 'https://sepolia.etherscan.io',
@@ -37,10 +38,13 @@ export const SUPPORTED_NETWORKS: Record<string, NetworkConfig> = {
 		},
 		contractAddress: process.env.NEXT_PUBLIC_SEPOLIA_GNUS_DAO_ADDRESS,
 		isTestnet: true,
+		testnet: true,
+		features: ['Governance', 'Voting', 'Treasury'],
 	},
 	polygon_amoy: {
 		id: 80002,
 		name: 'Polygon Amoy',
+		displayName: 'Polygon Amoy Testnet',
 		chainId: 80002,
 		rpcUrl: 'https://rpc-amoy.polygon.technology',
 		blockExplorerUrl: 'https://amoy.polygonscan.com',
@@ -51,10 +55,13 @@ export const SUPPORTED_NETWORKS: Record<string, NetworkConfig> = {
 		},
 		contractAddress: process.env.NEXT_PUBLIC_POLYGON_AMOY_GNUS_DAO_ADDRESS,
 		isTestnet: true,
+		testnet: true,
+		features: ['Governance', 'Low Fees'],
 	},
 	base_sepolia: {
 		id: 84532,
 		name: 'Base Sepolia',
+		displayName: 'Base Sepolia Testnet',
 		chainId: 84532,
 		rpcUrl: 'https://sepolia.base.org',
 		blockExplorerUrl: 'https://sepolia.basescan.org',
@@ -65,10 +72,13 @@ export const SUPPORTED_NETWORKS: Record<string, NetworkConfig> = {
 		},
 		contractAddress: process.env.NEXT_PUBLIC_BASE_SEPOLIA_GNUS_DAO_ADDRESS,
 		isTestnet: true,
+		testnet: true,
+		features: ['Governance', 'L2'],
 	},
 	arbitrum_sepolia: {
 		id: 421614,
 		name: 'Arbitrum Sepolia',
+		displayName: 'Arbitrum Sepolia Testnet',
 		chainId: 421614,
 		rpcUrl: 'https://sepolia-rpc.arbitrum.io/rpc',
 		blockExplorerUrl: 'https://sepolia.arbiscan.io',
@@ -79,6 +89,8 @@ export const SUPPORTED_NETWORKS: Record<string, NetworkConfig> = {
 		},
 		contractAddress: process.env.NEXT_PUBLIC_ARBITRUM_SEPOLIA_GNUS_DAO_ADDRESS,
 		isTestnet: true,
+		testnet: true,
+		features: ['Governance', 'L2'],
 	},
 };
 

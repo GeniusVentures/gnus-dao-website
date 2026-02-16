@@ -43,8 +43,20 @@ export const metaMaskConnector: WalletConnector = {
 	},
 
 	disconnect: async () => {
-		// MetaMask doesn't have a programmatic disconnect
-		// Users need to disconnect manually from the extension
+		// Revoke MetaMask's site permission so next connect prompts approval
+		try {
+			if ((window as any).ethereum?.isMetaMask) {
+				await (window as any).ethereum.request({
+					method: 'wallet_revokePermissions',
+					params: [{ eth_accounts: {} }],
+				});
+			}
+		} catch (error) {
+			// wallet_revokePermissions may not be supported on older MetaMask versions
+			if (process.env.NODE_ENV === 'development') {
+				console.warn('wallet_revokePermissions not supported:', error);
+			}
+		}
 	},
 };
 

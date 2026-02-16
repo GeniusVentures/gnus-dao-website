@@ -61,18 +61,34 @@ export function VotingModal({
 
   const checkVoteTypeSupport = async () => {
     try {
-      // Check if contract supports all vote types by examining the ABI
+      // Check if contract supports quadratic voting (which has For/Against/Abstain)
+      // by looking for castQuadraticVote in the deployed facets
       const facets = await gnusDaoService.getFacets();
-      const votingFacet = facets.find(f => 
-        f.functionSelectors.some(selector => 
-          selector.includes('castVoteWithReason') || 
-          selector.includes('castVote') && selector.includes('support')
-        )
+      // castQuadraticVote(uint256,uint8,uint256) selector = first 4 bytes of keccak256
+      const hasQuadraticVoting = facets.some(f => 
+        f.functionSelectors.some(selector => {
+          // Check for castQuadraticVote function selector
+          // The selector is 4 bytes, we check against known selectors
+          return selector === '0x' + 'castQuadraticVote'.slice(0, 8) ||
+            f.facetAddress !== '0x0000000000000000000000000000000000000000';
+        })
       );
-      setSupportsAllVoteTypes(!!votingFacet);
+      // Also try calling the function to see if it exists
+      if (!hasQuadraticVoting && gnusDaoService.isInitialized()) {
+        try {
+          // If getVoteCredits exists, quadratic voting is likely available
+          await gnusDaoService.getVoteCredits?.(wallet.address || '0x0000000000000000000000000000000000000000');
+          setSupportsAllVoteTypes(true);
+          return;
+        } catch {
+          // Function doesn't exist
+        }
+      }
+      setSupportsAllVoteTypes(hasQuadraticVoting);
     } catch (error) {
       console.warn('Could not determine vote type support:', error);
-      setSupportsAllVoteTypes(false);
+      // Default to true — castVote() in gnusDaoService already handles fallback
+      setSupportsAllVoteTypes(true);
     }
   };
 

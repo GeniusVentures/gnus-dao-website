@@ -8,7 +8,7 @@ import {
   handleChainChanged,
   refreshBalance,
 } from "@/lib/store/slices/walletSlice";
-import { initializeGnusDao } from "@/lib/store/slices/gnusDaoSlice";
+import { initializeGnusDao, refreshGnusDaoData } from "@/lib/store/slices/gnusDaoSlice";
 
 interface Web3ReduxProviderProps {
   children: React.ReactNode;
@@ -77,6 +77,58 @@ export function Web3ReduxProvider({ children }: Web3ReduxProviderProps) {
       dispatch(initializeGnusDao());
     }
   }, [dispatch, isConnected, address]);
+
+  // Subscribe to contract events for real-time updates
+  useEffect(() => {
+    if (!isConnected) return;
+
+    let cleanupFns: (() => void)[] = [];
+
+    const subscribeToEvents = async () => {
+      try {
+        const { gnusDaoService } = await import('@/lib/contracts/gnusDaoService');
+        if (!gnusDaoService.isInitialized()) return;
+
+        const contract = (gnusDaoService as any).contract;
+        if (!contract) return;
+
+        // Define event handlers that refresh DAO data
+        const handleProposalEvent = () => {
+          dispatch(refreshGnusDaoData());
+        };
+
+        // Subscribe to governance events
+        const events = [
+          'ProposalCreated',
+          'VoteCast',
+          'ProposalExecuted',
+          'ProposalCancelled',
+          'QuadraticVoteCast',
+        ];
+
+        for (const eventName of events) {
+          try {
+            contract.on(eventName, handleProposalEvent);
+            cleanupFns.push(() => {
+              try { contract.off(eventName, handleProposalEvent); } catch { /* ignore */ }
+            });
+          } catch {
+            // Event not available on this contract version
+          }
+        }
+      } catch (error) {
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('Could not subscribe to contract events:', error);
+        }
+      }
+    };
+
+    subscribeToEvents();
+
+    return () => {
+      cleanupFns.forEach(fn => fn());
+    };
+  }, [dispatch, isConnected]);
 
   return <>{children}</>;
 }

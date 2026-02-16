@@ -492,7 +492,7 @@ export class GNUSDAOService {
 
 	/**
 	 * Legacy createProposal function for backward compatibility
-	 * Converts old format to new format
+	 * Converts old format to new format, uploading metadata to IPFS
 	 */
 	async createProposalLegacy(
 		targets: string[],
@@ -505,18 +505,34 @@ export class GNUSDAOService {
 		const title = lines[0] || 'Untitled Proposal';
 
 		// Create IPFS metadata with the full proposal data
-		// const metadata = {
-		// 	title,
-		// 	description,
-		// 	targets,
-		// 	values: values.map((v) => v.toString()),
-		// 	calldatas,
-		// 	created: Date.now(),
-		// };
+		const metadata = {
+			title,
+			description,
+			targets,
+			values: values.map((v) => v.toString()),
+			calldatas,
+			created: Date.now(),
+		};
 
-		// For now, use a placeholder IPFS hash
-		// In production, this should upload to IPFS first
-		const ipfsHash = `QmPlaceholder${Date.now()}`;
+		let ipfsHash: string;
+		try {
+			// Upload metadata to IPFS via SecureIPFSService
+			const { SecureIPFSService } = await import('@/lib/ipfs/secureUpload');
+			const result = await SecureIPFSService.uploadProposalMetadata({
+				title,
+				description,
+			});
+			if (!result.success || !result.ipfsHash) {
+				throw new Error(result.error || 'IPFS upload returned no hash');
+			}
+			ipfsHash = result.ipfsHash;
+			logger.info('Proposal metadata uploaded to IPFS:', { ipfsHash });
+		} catch (error) {
+			logger.error('Failed to upload proposal metadata to IPFS:', error as any);
+			throw new Error(
+				'Failed to upload proposal metadata to IPFS. Please check your IPFS configuration and try again.',
+			);
+		}
 
 		return this.createProposal(title, ipfsHash);
 	}
@@ -553,9 +569,9 @@ export class GNUSDAOService {
 	}
 
 	/**
-	 * Cast a vote on a proposal using quadratic voting
-	 * The contract uses quadratic voting where cost = votes^2
-	 * Note: The deployed contract only supports FOR votes
+	 * Cast a vote on a proposal
+	 * Attempts to use castQuadraticVote (supports For/Against/Abstain) first,
+	 * falls back to vote() which only supports FOR votes.
 	 */
 	async castVote(
 		proposalId: bigint,
@@ -567,14 +583,6 @@ export class GNUSDAOService {
 		}
 
 		try {
-			// The deployed contract signature: vote(uint256 proposalId, uint256 votes)
-			// It only supports FOR votes - there's no support parameter
-			if (support !== VoteSupport.For) {
-				throw new Error(
-					'This contract only supports FOR votes. Against and Abstain are not implemented.',
-				);
-			}
-
 			// Ensure votes is at least 1
 			const votesToCast = votes > 0n ? votes : 1n;
 
@@ -600,7 +608,32 @@ export class GNUSDAOService {
 				}
 			}
 
-			// Cast the vote
+			// Try castQuadraticVote first (supports For/Against/Abstain)
+			if (this.contractSafe.castQuadraticVote) {
+				try {
+					return await this.contractSafe.castQuadraticVote(
+						proposalId,
+						support,
+						votesToCast,
+					);
+				} catch (quadraticError: any) {
+					// If it fails because the function doesn't exist on-chain, fall through
+					const msg = quadraticError?.message || '';
+					if (msg.includes('not a function') || msg.includes('CALL_EXCEPTION')) {
+						logger.warn('castQuadraticVote not available, falling back to vote()');
+					} else {
+						throw quadraticError;
+					}
+				}
+			}
+
+			// Fallback: use vote(proposalId, votes) which only supports FOR
+			if (support !== VoteSupport.For) {
+				throw new Error(
+					'This contract version only supports FOR votes. Against and Abstain require the quadratic voting facet.',
+				);
+			}
+
 			if (!this.contractSafe.vote) {
 				throw new Error('vote function not available on contract');
 			}

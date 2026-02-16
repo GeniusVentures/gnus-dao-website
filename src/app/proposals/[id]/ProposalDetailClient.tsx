@@ -37,7 +37,7 @@ interface ProposalWithMetadata extends Proposal {
 export default function ProposalDetailClient() {
   const params = useParams();
   const router = useRouter();
-  const { wallet, provider, signer, gnusDaoInitialized } = useWeb3Store();
+  const { wallet, provider, signer, gnusDaoInitialized, votingPower } = useWeb3Store();
 
   const [proposal, setProposal] = useState<ProposalWithMetadata | null>(null);
   const [loading, setLoading] = useState(true);
@@ -51,18 +51,22 @@ export default function ProposalDetailClient() {
 
   const proposalId = params.id as string;
 
-  const calculateTimeRemaining = (endBlock: bigint): string => {
-    // Simplified calculation using estimated current Sepolia block
-    const currentBlock = 9241000; // Approximate current Sepolia block
-    const blocksRemaining = Number(endBlock) - currentBlock;
-    if (blocksRemaining <= 0) return "Voting ended";
+  const calculateTimeRemaining = async (endBlock: bigint): Promise<string> => {
+    try {
+      // Get real current block from provider
+      const currentBlock = provider ? await provider.getBlockNumber() : 0;
+      const blocksRemaining = Number(endBlock) - currentBlock;
+      if (blocksRemaining <= 0) return "Voting ended";
 
-    const secondsRemaining = blocksRemaining * 12; // 12 second blocks on Sepolia
-    const hoursRemaining = Math.floor(secondsRemaining / 3600);
-    if (hoursRemaining < 24) return `${hoursRemaining} hours remaining`;
+      const secondsRemaining = blocksRemaining * 12; // ~12 second blocks
+      const hoursRemaining = Math.floor(secondsRemaining / 3600);
+      if (hoursRemaining < 24) return `${hoursRemaining} hours remaining`;
 
-    const daysRemaining = Math.floor(hoursRemaining / 24);
-    return `${daysRemaining} days remaining`;
+      const daysRemaining = Math.floor(hoursRemaining / 24);
+      return `${daysRemaining} days remaining`;
+    } catch {
+      return "Time remaining unknown";
+    }
   };
 
   // Load proposal data function
@@ -126,41 +130,26 @@ export default function ProposalDetailClient() {
           totalVotes >= quorumThreshold &&
           state !== ProposalState.Pending;
 
-        const timeRemaining = calculateTimeRemaining(proposalData.endBlock);
+        const timeRemaining = await calculateTimeRemaining(proposalData.endBlock);
 
-        // Create meaningful title and description based on proposal data
-        // Try to get real data from the proposal, fallback to generated content
-        let title = proposalData.title || `Proposal #${id}`;
-        let description = proposalData.ipfsHash
-          ? `Proposal with IPFS metadata: ${proposalData.ipfsHash}`
-          : `Governance proposal submitted by ${proposalData.proposer.slice(0, 6)}...${proposalData.proposer.slice(-4)}`;
+        // Use real proposal data — title from contract, description from IPFS
+        const title = proposalData.title || `Proposal #${id}`;
+        let description = `Governance proposal submitted by ${proposalData.proposer.slice(0, 6)}...${proposalData.proposer.slice(-4)}`;
 
-        // If we have sample data, use it
-        const sampleProposals = [
-          {
-            id: 1,
-            title: "Increase GPU Provider Rewards",
-            description:
-              "Proposal to increase rewards for GPU providers to incentivize more participation in the network.",
-          },
-          {
-            id: 2,
-            title: "Mobile GPU Integration Program",
-            description:
-              "Initiative to integrate mobile GPU resources into the GNUS network for distributed computing.",
-          },
-          {
-            id: 3,
-            title: "IPFS Storage Optimization",
-            description:
-              "Optimize IPFS storage mechanisms to improve data retrieval speeds and reduce costs.",
-          },
-        ];
-
-        const sampleProposal = sampleProposals.find((p) => p.id === Number(id));
-        if (sampleProposal) {
-          title = sampleProposal.title;
-          description = sampleProposal.description;
+        // Try to fetch description from IPFS if hash is available and not a placeholder
+        if (proposalData.ipfsHash && !proposalData.ipfsHash.startsWith('QmPlaceholder')) {
+          try {
+            const { SecureIPFSService } = await import('@/lib/ipfs/secureUpload');
+            const metadata = await SecureIPFSService.fetchFromIPFS(proposalData.ipfsHash);
+            if (metadata?.description) {
+              description = metadata.description;
+            }
+          } catch {
+            // IPFS fetch failed, use fallback description
+            description = proposalData.ipfsHash
+              ? `Proposal with IPFS metadata: ${proposalData.ipfsHash}`
+              : description;
+          }
         }
 
         const proposalWithMetadata: ProposalWithMetadata = {
@@ -572,7 +561,7 @@ export default function ProposalDetailClient() {
           )}
 
           {/* Voting Actions */}
-          {(wallet.isConnected || true) &&
+          {wallet.isConnected &&
             proposal.state === ProposalState.Active && (
               <div className="p-8 border-t border-gray-200 dark:border-gray-700">
                 <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">
@@ -640,7 +629,7 @@ export default function ProposalDetailClient() {
                     </div>
 
                     <p className="text-sm text-gray-600 dark:text-gray-400">
-                      Your voting power: {/* Add voting power display here */}
+                      Your voting power: {votingPower.toString()} votes
                     </p>
                   </div>
                 )}

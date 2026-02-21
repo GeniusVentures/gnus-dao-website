@@ -93,7 +93,7 @@ export function RuntimeEnvProvider({ children }: RuntimeEnvProviderProps) {
 
         // Set fallback values
         setWalletConnectProjectId("805f6520f2f2934352c65fe6bd70d15d");
-        setContractAddress("0x57AE78C65F7Dd6d158DE9F4cA9CCeaA98C988199");
+        setContractAddress("0x84Ba28d277ded98b3488C906E90B6435B116D5b4");
         setIsLoaded(true);
 
         // Set global indicators for debugging (fallback)

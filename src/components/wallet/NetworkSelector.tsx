@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/Button";
 import { getAllNetworks, NetworkConfig } from "@/lib/config/networks";
 import { useWeb3Store } from "@/lib/web3/reduxProvider";
-import { AlertCircle, Check, ChevronDown, Zap } from "lucide-react";
+import { AlertCircle, AlertTriangle, Check, ChevronDown, Zap } from "lucide-react";
 import { useState } from "react";
 
 interface NetworkSelectorProps {
@@ -66,6 +66,8 @@ export function NetworkSelector({
     return null;
   };
 
+  const isUnsupportedNetwork = wallet.isConnected && !currentNetwork;
+
   if (!wallet.isConnected) {
     return null;
   }
@@ -77,13 +79,23 @@ export function NetworkSelector({
         size={size === "md" ? "default" : size}
         onClick={() => setIsOpen(!isOpen)}
         disabled={isSwitching}
-        className={`flex items-center gap-2 ${className || ""}`}
+        className={`flex items-center gap-2 ${
+          isUnsupportedNetwork
+            ? "border-orange-500 text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/20 hover:bg-orange-100"
+            : ""
+        } ${className || ""}`}
       >
-        {showIcon && currentNetwork && getNetworkIcon(currentNetwork)}
+        {isUnsupportedNetwork ? (
+          <AlertTriangle className="h-4 w-4 text-orange-500" />
+        ) : (
+          showIcon && currentNetwork && getNetworkIcon(currentNetwork)
+        )}
         <span className="text-sm">
           {isSwitching
             ? "Switching..."
-            : currentNetwork?.displayName || "Unknown Network"}
+            : isUnsupportedNetwork
+              ? `Wrong Network (${wallet.chainId})`
+              : currentNetwork?.displayName || currentNetwork?.name || "Unknown"}
         </span>
         <ChevronDown
           className={`h-4 w-4 transition-transform ${isOpen ? "rotate-180" : ""}`}
@@ -108,6 +120,18 @@ export function NetworkSelector({
                 Choose a blockchain network to connect to
               </p>
             </div>
+
+            {isUnsupportedNetwork && (
+              <div className="p-3 bg-orange-50 dark:bg-orange-900/20 border-b border-orange-200 dark:border-orange-800">
+                <div className="flex items-center gap-2 text-orange-700 dark:text-orange-300">
+                  <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+                  <div>
+                    <p className="text-sm font-medium">Unsupported Network</p>
+                    <p className="text-xs mt-0.5">Your wallet is on chain {wallet.chainId}. Please switch to a supported network below.</p>
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div className="max-h-64 overflow-y-auto">
               {allNetworks.map((network) => {

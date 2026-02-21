@@ -14,7 +14,7 @@ export const GNUS_DAO_DIAMOND_ABI = GNUSDAODiamondABI.abi;
 export const GNUS_DAO_CONTRACTS = {
 	// Sepolia testnet - deployed Diamond
 	11155111: {
-		diamond: getContractAddress('sepolia') || '0x57AE78C65F7Dd6d158DE9F4cA9CCeaA98C988199',
+		diamond: getContractAddress('sepolia') || '0x84Ba28d277ded98b3488C906E90B6435B116D5b4',
 		deployer: '0x6Ec7f5dFb77c7CAbAB4Ed722660b1d8bA1605B43',
 	},
 	// Base mainnet

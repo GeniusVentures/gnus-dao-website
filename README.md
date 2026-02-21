@@ -100,11 +100,16 @@ src/
 ```bash
 # Development
 yarn dev                    # Start development server (port 3000)
+                           # Note: Runs SSR mode for development convenience
+                           # Production uses static export (SPA) architecture
 yarn dev:turbo             # Start development server with Turbopack
 
 # Building
-yarn build                 # Standard Next.js build
-yarn build:production      # Production build with optimizations for Cloudflare Pages
+yarn build                 # Build for production (static export to out/)
+                           # Produces SPA for Cloudflare Pages deployment
+
+# Preview
+yarn preview:local         # Preview production build locally with Wrangler
 
 # Testing
 yarn test                  # Run unit tests
@@ -121,10 +126,11 @@ yarn format               # Format code with Prettier
 
 # Deployment
 yarn deploy:prepare        # Build for production
-yarn deploy:cloudflare     # Deploy to Cloudflare Pages
+yarn deploy:cloudflare     # Build and deploy to Cloudflare Pages
+yarn deploy:static         # Alias for deploy:cloudflare
 
 # Maintenance
-yarn clean                 # Clean build artifacts
+yarn clean                 # Clean build artifacts (.next, out, dist)
 yarn clean:all            # Clean everything including node_modules
 ```
 
@@ -140,25 +146,31 @@ The project includes comprehensive testing:
 
 ### Development Workflow
 
-1. **Local Development**: `yarn dev` starts the development server
+1. **Local Development**: `yarn dev` starts the development server (SSR mode for convenience)
 2. **Code Quality**: `yarn validate` runs all quality checks
 3. **Testing**: `yarn test:coverage` ensures >80% test coverage
-4. **Building**: `yarn build:hybrid` creates production-ready build
-5. **Deployment**: Automatic deployment via GitHub Actions
+4. **Building**: `yarn build` creates static export for production
+5. **Preview**: `yarn preview:local` tests production build locally
+6. **Deployment**: Automatic deployment via GitHub Actions
 
 ## 🌐 Deployment
 
 ### Cloudflare Pages (Production)
 
-The project is optimized for Cloudflare Pages deployment:
+The project is deployed as a Single Page Application (SPA) with Cloudflare Workers:
 
 ```bash
-# Build for production
-yarn build:production
+# Build static export
+yarn build
 
-# Deploy using Wrangler CLI
+# Preview locally with Wrangler
+yarn preview:local
+
+# Deploy to Cloudflare Pages
 yarn deploy:cloudflare
 ```
+
+**Architecture**: Static HTML/CSS/JS served from `out/` directory with serverless functions in `functions/` directory running as Cloudflare Workers.
 
 **Live Deployment**: https://gnus-dao-web.pages.dev
 

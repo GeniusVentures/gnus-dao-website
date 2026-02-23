@@ -96,7 +96,7 @@ export async function initializeWalletConnect() {
 		const currentDomain =
 			typeof window !== 'undefined'
 				? window.location.origin
-				: 'https://gnus-dao-web.pages.dev';
+				: '';
 
 		// Use appropriate metadata based on environment
 		const metadata = {

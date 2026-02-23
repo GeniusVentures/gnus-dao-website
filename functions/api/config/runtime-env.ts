@@ -10,13 +10,7 @@ interface Env {
   NEXT_PUBLIC_POLYGON_AMOY_GNUS_DAO_ADDRESS?: string;
   NEXT_PUBLIC_BASE_SEPOLIA_GNUS_DAO_ADDRESS?: string;
   NEXT_PUBLIC_ARBITRUM_SEPOLIA_GNUS_DAO_ADDRESS?: string;
-  NEXT_PUBLIC_PINATA_API_KEY?: string;
-  NEXT_PUBLIC_PINATA_SECRET_KEY?: string;
-  NEXT_PUBLIC_PINATA_JWT?: string;
   NEXT_PUBLIC_IPFS_GATEWAY?: string;
-  NEXT_PUBLIC_IPFS_API_URL?: string;
-  NEXT_PUBLIC_IPFS_API_KEY?: string;
-  NEXT_PUBLIC_IPFS_API_SECRET?: string;
   NEXT_PUBLIC_ANALYTICS_ID?: string;
   NEXT_PUBLIC_API_BASE_URL?: string;
 }
@@ -24,6 +18,9 @@ interface Env {
 export const onRequestGet: PagesFunction<Env> = async (context) => {
   const { env } = context;
 
+  // SECURITY: Only expose non-sensitive, public configuration variables.
+  // Sensitive keys (PINATA_JWT, PINATA_SECRET_KEY, IPFS_API_KEY, etc.)
+  // are kept server-side and used by worker functions like /api/ipfs/upload.
   const runtimeEnv = {
     NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID:
       env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || '',
@@ -35,14 +32,8 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       env.NEXT_PUBLIC_BASE_SEPOLIA_GNUS_DAO_ADDRESS || '',
     NEXT_PUBLIC_ARBITRUM_SEPOLIA_GNUS_DAO_ADDRESS:
       env.NEXT_PUBLIC_ARBITRUM_SEPOLIA_GNUS_DAO_ADDRESS || '',
-    NEXT_PUBLIC_PINATA_API_KEY: env.NEXT_PUBLIC_PINATA_API_KEY || '',
-    NEXT_PUBLIC_PINATA_SECRET_KEY: env.NEXT_PUBLIC_PINATA_SECRET_KEY || '',
-    NEXT_PUBLIC_PINATA_JWT: env.NEXT_PUBLIC_PINATA_JWT || '',
     NEXT_PUBLIC_IPFS_GATEWAY:
       env.NEXT_PUBLIC_IPFS_GATEWAY || 'https://ipfs.io/ipfs/',
-    NEXT_PUBLIC_IPFS_API_URL: env.NEXT_PUBLIC_IPFS_API_URL || '',
-    NEXT_PUBLIC_IPFS_API_KEY: env.NEXT_PUBLIC_IPFS_API_KEY || '',
-    NEXT_PUBLIC_IPFS_API_SECRET: env.NEXT_PUBLIC_IPFS_API_SECRET || '',
     NEXT_PUBLIC_ANALYTICS_ID: env.NEXT_PUBLIC_ANALYTICS_ID || '',
     NEXT_PUBLIC_API_BASE_URL: env.NEXT_PUBLIC_API_BASE_URL || '',
   };

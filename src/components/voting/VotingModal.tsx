@@ -1,5 +1,7 @@
 "use client";
 
+import { useSiweProtectedAction } from "@/components/auth/SiweGuard";
+import { useSiwe } from "@/lib/auth/useSiwe";
 import { Button } from "@/components/ui/Button";
 import { VoteSupport } from "@/lib/contracts/gnusDao";
 import { gnusDaoService } from "@/lib/contracts/gnusDaoService";
@@ -33,7 +35,9 @@ export function VotingModal({
   onClose,
   onVoteSubmitted,
 }: VotingModalProps) {
-  const { wallet } = useWeb3Store();
+  const { wallet, provider, signer } = useWeb3Store();
+  const { executeProtected, isAuthenticated } = useSiweProtectedAction();
+  const { signIn } = useSiwe();
   const [selectedSupport, setSelectedSupport] = useState<VoteSupport | null>(null);
   const [creditsToSpend, setCreditsToSpend] = useState<number>(1);
   const [votingPower, setVotingPower] = useState<number>(1);
@@ -47,11 +51,38 @@ export function VotingModal({
   } | null>(null);
   const [isValidating, setIsValidating] = useState(false);
   const [supportsAllVoteTypes, setSupportsAllVoteTypes] = useState(false);
+  const [serviceReady, setServiceReady] = useState(false);
+
+  // Initialize DAO service and prompt SIWE when modal opens
+  useEffect(() => {
+    const initService = async () => {
+      try {
+        if (provider && signer) {
+          const network = await provider.getNetwork();
+          await gnusDaoService.initialize(provider, signer, Number(network.chainId));
+        }
+        setServiceReady(true);
+      } catch (error) {
+        console.error('Failed to initialize DAO service for voting:', error);
+        setServiceReady(true); // Still allow — ensureInitialized will handle fallback
+      }
+    };
+    initService();
+
+    // Auto-prompt SIWE if not authenticated
+    if (!isAuthenticated && signer) {
+      signIn().catch((error) => {
+        console.error('Auto SIWE sign-in failed:', error);
+      });
+    }
+  }, []); // Run once on mount
 
   useEffect(() => {
-    loadUserCredits();
-    checkVoteTypeSupport();
-  }, [wallet.address]);
+    if (serviceReady) {
+      loadUserCredits();
+      checkVoteTypeSupport();
+    }
+  }, [wallet.address, serviceReady]);
 
   useEffect(() => {
     if (creditsToSpend > 0) {
@@ -165,14 +196,23 @@ export function VotingModal({
 
     setLoading(true);
     try {
-      const votes = BigInt(votingPower);
-      
-      // Cast the vote
-      const tx = await gnusDaoService.castVote(proposalId, selectedSupport, votes);
-      
-      toast.success("Vote submitted successfully!");
-      onVoteSubmitted();
-      onClose();
+      // Execute with SIWE protection — voting requires authentication
+      await executeProtected(
+        async () => {
+          const votes = BigInt(votingPower);
+          
+          // Cast the vote
+          const tx = await gnusDaoService.castVote(proposalId, selectedSupport!, votes);
+          
+          toast.success("Vote submitted successfully!");
+          onVoteSubmitted();
+          onClose();
+        },
+        {
+          requireAuth: true,
+          errorMessage: "You must sign in with Ethereum to vote",
+        }
+      );
     } catch (error: any) {
       console.error("Voting error:", error);
       

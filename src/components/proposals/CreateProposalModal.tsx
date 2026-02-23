@@ -1,6 +1,7 @@
 "use client";
 
 import { useSiweProtectedAction } from "@/components/auth/SiweGuard";
+import { useSiwe } from "@/lib/auth/useSiwe";
 import { FileUpload } from "@/components/ipfs/FileUpload";
 import { Button } from "@/components/ui/Button";
 import { gnusDaoService } from "@/lib/contracts/gnusDaoService";
@@ -46,7 +47,8 @@ export function CreateProposalModal({
   onProposalCreated,
 }: CreateProposalModalProps) {
   const { wallet, provider, signer } = useWeb3Store();
-  const { executeProtected } = useSiweProtectedAction();
+  const { executeProtected, isAuthenticated } = useSiweProtectedAction();
+  const { signIn } = useSiwe();
   const { 
     trackModalAction, 
     trackFormSubmit, 
@@ -63,6 +65,23 @@ export function CreateProposalModal({
   useEffect(() => {
     trackModalAction('open', 'CreateProposalModal');
   }, [trackModalAction]);
+
+  // Upfront: prompt for wallet connection and SIWE auth when modal opens
+  useEffect(() => {
+    if (!wallet.isConnected || !wallet.address) {
+      toast.error("Please connect your wallet first to create a proposal");
+      onClose();
+      return;
+    }
+
+    // Auto-prompt SIWE sign-in if wallet is connected but not authenticated
+    if (!isAuthenticated && signer) {
+      signIn().catch((error) => {
+        console.error("Auto SIWE sign-in failed:", error);
+        toast.error("Authentication is required to create proposals. Please sign in with Ethereum.");
+      });
+    }
+  }, []); // Run once on mount
 
   // Basic proposal info
   const [title, setTitle] = useState("");

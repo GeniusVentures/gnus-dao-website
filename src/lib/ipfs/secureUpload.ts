@@ -29,7 +29,7 @@ export class SecureIPFSService {
 	private static readonly API_BASE_URL =
 		typeof window !== 'undefined'
 			? window.location.origin
-			: 'https://gnus-dao-web.pages.dev';
+			: '';
 
 	/**
 	 * Upload file to IPFS using secure backend

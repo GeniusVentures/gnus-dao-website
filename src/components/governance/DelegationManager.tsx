@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useSiweProtectedAction } from "@/components/auth/SiweGuard";
 import { useWeb3Store } from "@/lib/web3/reduxProvider";
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/hooks/useToast";
@@ -16,8 +17,9 @@ interface DelegationInfo {
 }
 
 export function DelegationManager() {
-  const { wallet } = useWeb3Store();
+  const { wallet, provider, signer } = useWeb3Store();
   const { address, isConnected } = wallet;
+  const { executeProtected } = useSiweProtectedAction();
   const toast = useToast();
 
   const [delegationInfo, setDelegationInfo] = useState<DelegationInfo>({
@@ -32,11 +34,22 @@ export function DelegationManager() {
   const [isDelegating, setIsDelegating] = useState(false);
   const [isRevoking, setIsRevoking] = useState(false);
 
-  // Load delegation info
+  // Initialize DAO service and load delegation info when wallet connects
   useEffect(() => {
-    if (isConnected && address) {
-      loadDelegationInfo();
-    }
+    const init = async () => {
+      if (isConnected && address) {
+        try {
+          if (provider && signer) {
+            const network = await provider.getNetwork();
+            await gnusDaoService.initialize(provider, signer, Number(network.chainId));
+          }
+        } catch (error) {
+          console.error('Failed to initialize DAO service for delegation:', error);
+        }
+        loadDelegationInfo();
+      }
+    };
+    init();
   }, [isConnected, address]);
 
   const loadDelegationInfo = async () => {
@@ -84,20 +97,29 @@ export function DelegationManager() {
 
     setIsDelegating(true);
     try {
-      const tx = await gnusDaoService.delegate(delegateAddress);
+      // Execute with SIWE protection — delegation requires authentication
+      await executeProtected(
+        async () => {
+          const tx = await gnusDaoService.delegate(delegateAddress);
 
-      toast.info("Transaction Submitted", "Delegating voting power...");
+          toast.info("Transaction Submitted", "Delegating voting power...");
 
-      await tx.wait();
+          await tx.wait();
 
-      toast.success(
-        "Delegation Successful!",
-        `You have delegated your voting power to ${delegateAddress.slice(0, 6)}...${delegateAddress.slice(-4)}`,
+          toast.success(
+            "Delegation Successful!",
+            `You have delegated your voting power to ${delegateAddress.slice(0, 6)}...${delegateAddress.slice(-4)}`,
+          );
+
+          // Reload delegation info
+          await loadDelegationInfo();
+          setDelegateAddress("");
+        },
+        {
+          requireAuth: true,
+          errorMessage: "You must sign in with Ethereum to delegate",
+        }
       );
-
-      // Reload delegation info
-      await loadDelegationInfo();
-      setDelegateAddress("");
     } catch (error: any) {
       console.error("Error delegating:", error);
       toast.error(
@@ -112,19 +134,28 @@ export function DelegationManager() {
   const handleRevoke = async () => {
     setIsRevoking(true);
     try {
-      const tx = await gnusDaoService.revokeDelegation();
+      // Execute with SIWE protection — revoking delegation requires authentication
+      await executeProtected(
+        async () => {
+          const tx = await gnusDaoService.revokeDelegation();
 
-      toast.info("Transaction Submitted", "Revoking delegation...");
+          toast.info("Transaction Submitted", "Revoking delegation...");
 
-      await tx.wait();
+          await tx.wait();
 
-      toast.success(
-        "Delegation Revoked!",
-        "Your voting power has been returned to you",
+          toast.success(
+            "Delegation Revoked!",
+            "Your voting power has been returned to you",
+          );
+
+          // Reload delegation info
+          await loadDelegationInfo();
+        },
+        {
+          requireAuth: true,
+          errorMessage: "You must sign in with Ethereum to revoke delegation",
+        }
       );
-
-      // Reload delegation info
-      await loadDelegationInfo();
     } catch (error: any) {
       console.error("Error revoking delegation:", error);
       toast.error(

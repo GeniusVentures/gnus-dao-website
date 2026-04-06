@@ -25,13 +25,13 @@ export const initializeWeb3 = createAsyncThunk(
 		const state = getState() as { web3: Web3SliceState };
 		if (state.web3.isInitialized) return;
 
-		// Try to restore previous connection
+		// Try to restore previous connection SILENTLY (no MetaMask popup)
 		const savedConnectorId = localStorage.getItem('gnus-dao-wallet-connector');
 		if (savedConnectorId) {
 			try {
-				// This will be handled by the wallet slice
-				const { connectWallet } = await import('../slices/walletSlice');
-				dispatch(connectWallet(savedConnectorId));
+				// Use silentReconnectWallet: uses eth_accounts (no popup) not eth_requestAccounts
+				const { silentReconnectWallet } = await import('../slices/walletSlice');
+				dispatch(silentReconnectWallet(savedConnectorId));
 			} catch (error) {
 				if (process.env.NODE_ENV === 'development') {
 					console.warn('Failed to restore wallet connection:', error);

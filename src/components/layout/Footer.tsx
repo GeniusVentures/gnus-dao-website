@@ -8,25 +8,25 @@ const navigation = {
     { name: "Proposals", href: "/proposals" },
     { name: "Treasury", href: "/treasury" },
     { name: "Analytics", href: "/analytics" },
-    { name: "Voting History", href: "/voting-history" },
+    { name: "Voting History", href: "/history" },
   ],
   resources: [
     { name: "Documentation", href: "/docs" },
-    { name: "API Reference", href: "/api" },
-    { name: "Tutorials", href: "/tutorials" },
-    { name: "FAQ", href: "/faq" },
+    { name: "API Reference", href: "https://github.com/GeniusVentures/gnus-dao", external: true },
+    { name: "Tutorials", href: "https://github.com/GeniusVentures/gnus-dao/wiki", external: true },
+    { name: "FAQ", href: "/docs" },
   ],
   community: [
-    { name: "Discord", href: "https://discord.gg" },
-    { name: "Twitter", href: "https://twitter.com/gnusdao" },
-    { name: "GitHub", href: "https://github.com/GeniusVentures/gnus-dao" },
-    { name: "Forum", href: "https://forum.gnus.ai" },
+    { name: "Discord", href: "https://discord.gg", external: true },
+    { name: "Twitter", href: "https://twitter.com/gnusdao", external: true },
+    { name: "GitHub", href: "https://github.com/GeniusVentures/gnus-dao", external: true },
+    { name: "Forum", href: "https://forum.gnus.ai", external: true },
   ],
   legal: [
-    { name: "Privacy Policy", href: "/privacy" },
-    { name: "Terms of Service", href: "/terms" },
-    { name: "Cookie Policy", href: "/cookies" },
-    { name: "Security", href: "/security" },
+    { name: "Privacy Policy", href: "https://gnus.ai/privacy", external: true },
+    { name: "Terms of Service", href: "https://gnus.ai/terms", external: true },
+    { name: "Cookie Policy", href: "https://gnus.ai/cookies", external: true },
+    { name: "Security", href: "https://github.com/GeniusVentures/gnus-dao/security", external: true },
   ],
 };
 
@@ -114,12 +114,23 @@ export function Footer() {
             <ul className="space-y-3">
               {navigation.resources.map((item) => (
                 <li key={item.name}>
-                  <Link
-                    href={item.href}
-                    className="text-sm text-muted-foreground hover:text-primary transition-colors"
-                  >
-                    {item.name}
-                  </Link>
+                  {item.external ? (
+                    <a
+                      href={item.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm text-muted-foreground hover:text-primary transition-colors"
+                    >
+                      {item.name}
+                    </a>
+                  ) : (
+                    <Link
+                      href={item.href}
+                      className="text-sm text-muted-foreground hover:text-primary transition-colors"
+                    >
+                      {item.name}
+                    </Link>
+                  )}
                 </li>
               ))}
             </ul>
@@ -150,12 +161,14 @@ export function Footer() {
             <ul className="space-y-3">
               {navigation.legal.map((item) => (
                 <li key={item.name}>
-                  <Link
+                  <a
                     href={item.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="text-sm text-muted-foreground hover:text-primary transition-colors"
                   >
                     {item.name}
-                  </Link>
+                  </a>
                 </li>
               ))}
             </ul>

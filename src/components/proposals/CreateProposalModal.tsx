@@ -314,16 +314,8 @@ export function CreateProposalModal({
     }
 
     try {
-      // Execute with SIWE protection
-      await executeProtected(
-        async () => {
-          await submitProposal(titleValidation.sanitized!, descriptionValidation.sanitized!);
-        },
-        {
-          requireAuth: true,
-          errorMessage: "You must sign in with Ethereum to create proposals",
-        },
-      );
+      // Execute directly, bypassing SIWE protection for on-chain TX
+      await submitProposal(titleValidation.sanitized!, descriptionValidation.sanitized!, validActions);
     } catch (error) {
       console.error("Error in handleSubmit:", error);
       toast.error(
@@ -332,7 +324,7 @@ export function CreateProposalModal({
     }
   };
 
-  const submitProposal = async (sanitizedTitle: string, sanitizedDescription: string) => {
+  const submitProposal = async (sanitizedTitle: string, sanitizedDescription: string, validActions: ProposalAction[]) => {
     try {
       setLoading(true);
 
@@ -412,10 +404,27 @@ export function CreateProposalModal({
       const ipfsHashForContract = metadataHash || `QmPlaceholder${Date.now()}`;
 
       try {
+        // Extract actions
+        const targets = validActions.map(a => a.target);
+        const values = validActions.map(a => {
+          try {
+            return ethers.parseEther(a.value || "0");
+          } catch {
+            return 0n;
+          }
+        });
+        const calldatas = validActions.map(a => a.calldata || "0x");
+        const descriptions = new Array(validActions.length).fill("");
+
         const tx = await gnusDaoService.createProposal(
           sanitizedTitle,
           ipfsHashForContract,
+          targets,
+          values,
+          calldatas,
+          descriptions
         );
+        console.log("Transaction created:", tx);
 
         toast.success("Proposal submitted! Waiting for confirmation...");
 
@@ -437,8 +446,16 @@ export function CreateProposalModal({
 
         onProposalCreated();
         onClose();
-      } catch (txError) {
-        console.error("Blockchain transaction failed:", txError);
+      } catch (txError: any) {
+        console.error("Blockchain transaction failed FULL ERROR:", JSON.stringify(txError, null, 2), txError);
+        
+        // Extract inner error message if present (e.g. gas estimation failure from contract revert)
+        let errMsg = txError.reason || txError.data?.message || txError.message || "Failed to create proposal.";
+        if (errMsg.includes("proposer votes below proposal threshold") || txError.data === "0xf1b7e15e" || errMsg.includes("0xf1b7e15e") || errMsg.includes("InsufficientTokens")) {
+          errMsg = "You don't have enough voting power to create a proposal. Please delegate GNUS to yourself first.";
+        }
+        
+        toast.error(`Transaction failed: ${errMsg}`);
         throw txError;
       }
     } catch (error) {
@@ -452,7 +469,7 @@ export function CreateProposalModal({
       });
       
       toast.error(
-        error instanceof Error ? error.message : "Failed to create proposal",
+        error instanceof Error ? error.message : "Failed to create proposal. Check console for details.",
       );
     } finally {
       setLoading(false);

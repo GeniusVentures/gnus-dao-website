@@ -58,8 +58,9 @@ export default function ProposalsPage() {
 
   // Helper functions
   const getProposerName = (address: string): string => {
+    // TODO: Confirm this matches the actual deployer address in gnusDao.ts (GNUS_DAO_CONTRACTS[11155111].deployer)
     const knownAddresses: Record<string, string> = {
-      "0xd446c8Ab1C2765f5185c5A2C2fF5A86d41A1": "Core Team",
+      "0x6Ec7f5dFb77c7CAbAB4Ed722660b1d8bA1605B43": "Core Team",
     };
     return knownAddresses[address] || `${address.slice(0, 6)}...${address.slice(-4)}`;
   };
@@ -170,115 +171,53 @@ export default function ProposalsPage() {
 
       if (!gnusDaoService.isInitialized()) {
         const { ethers } = await import("ethers");
-        const provider = new ethers.JsonRpcProvider(
-          "https://sepolia.infura.io/v3/a9555646b9fb4da6ab4cc08c782f85ee",
-        );
-        await gnusDaoService.initialize(provider, undefined, 11155111);
+        // Try multiple public Sepolia RPCs in order
+        const sepoliaRpcs = [
+          "https://ethereum-sepolia-rpc.publicnode.com",
+          "https://1rpc.io/sepolia",
+          "https://sepolia.drpc.org",
+          "https://rpc.ankr.com/eth_sepolia",
+        ];
+        let initialized = false;
+        for (const rpc of sepoliaRpcs) {
+          try {
+            const p = new ethers.JsonRpcProvider(rpc);
+            // Quick check: getBlockNumber with 5s timeout
+            await Promise.race([
+              p.getBlockNumber(),
+              new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), 5000)),
+            ]);
+            await gnusDaoService.initialize(p, undefined, 11155111);
+            initialized = true;
+            break;
+          } catch {
+            console.warn(`RPC ${rpc} failed, trying next...`);
+          }
+        }
+        if (!initialized) {
+          toast.error("Could not connect to Sepolia network. Please connect your wallet.");
+          setLoading(false);
+          return;
+        }
       }
 
-      const proposalCount = await gnusDaoService.getProposalCount();
-      const votingConfig = await gnusDaoService.getVotingConfig();
+      const [proposalCount, votingConfig] = await Promise.all([
+        gnusDaoService.getProposalCount(),
+        gnusDaoService.getVotingConfig(),
+      ]);
 
       if (proposalCount === 0n) {
-        // Mock proposals for demonstration
-        const mockProposals: ProposalWithMetadata[] = [
-          {
-            id: 1n,
-            proposer: "0x1234567890123456789012345678901234567890",
-            title: "Increase Treasury Allocation for Development",
-            ipfsHash: "QmExample1234567890abcdef",
-            startTime: BigInt(Math.floor(Date.now() / 1000) - 86400),
-            endTime: BigInt(Math.floor(Date.now() / 1000) + 86400 * 6),
-            totalVotes: 150000n,
-            totalVoters: 45n,
-            executed: false,
-            cancelled: false,
-            queued: false,
-            queuedTime: 0n,
-            eta: 0n,
-            startBlock: 0n,
-            endBlock: 0n,
-            forVotes: 120000n,
-            againstVotes: 30000n,
-            abstainVotes: 0n,
-            canceled: false,
-            description: "Proposal to allocate additional funds from treasury for development initiatives",
-            quorumReached: true,
-            timeRemaining: "6 days remaining",
-            state: ProposalState.Active,
-            proposerName: "Core Team",
-            votingPeriodDays: 7,
-            executionDelayDays: 3,
-          },
-          {
-            id: 2n,
-            proposer: "0x2345678901234567890123456789012345678901",
-            title: "Update Governance Parameters",
-            ipfsHash: "QmExample2345678901bcdefg",
-            startTime: BigInt(Math.floor(Date.now() / 1000) - 172800),
-            endTime: BigInt(Math.floor(Date.now() / 1000) + 432000),
-            totalVotes: 80000n,
-            totalVoters: 25n,
-            executed: false,
-            cancelled: false,
-            queued: false,
-            queuedTime: 0n,
-            eta: 0n,
-            startBlock: 0n,
-            endBlock: 0n,
-            forVotes: 60000n,
-            againstVotes: 20000n,
-            abstainVotes: 0n,
-            canceled: false,
-            description: "Proposal to update voting period and quorum requirements",
-            quorumReached: false,
-            timeRemaining: "5 days remaining",
-            state: ProposalState.Active,
-            proposerName: "Community Member",
-            votingPeriodDays: 7,
-            executionDelayDays: 3,
-          },
-          {
-            id: 3n,
-            proposer: "0x3456789012345678901234567890123456789012",
-            title: "Community Grant Program",
-            ipfsHash: "QmExample3456789012cdefgh",
-            startTime: BigInt(Math.floor(Date.now() / 1000) - 604800),
-            endTime: BigInt(Math.floor(Date.now() / 1000) - 86400),
-            totalVotes: 200000n,
-            totalVoters: 67n,
-            executed: false,
-            cancelled: false,
-            queued: false,
-            queuedTime: 0n,
-            eta: 0n,
-            startBlock: 0n,
-            endBlock: 0n,
-            forVotes: 180000n,
-            againstVotes: 20000n,
-            abstainVotes: 0n,
-            canceled: false,
-            description: "Proposal to establish a community grant program for ecosystem development",
-            quorumReached: true,
-            timeRemaining: "Succeeded",
-            state: ProposalState.Succeeded,
-            proposerName: "DAO Foundation",
-            votingPeriodDays: 7,
-            executionDelayDays: 3,
-          },
-        ];
-        setProposals(mockProposals);
+        // No proposals yet — show empty state (not mock data)
+        setProposals([]);
         setLoading(false);
         return;
       }
 
       const proposalPromises: Promise<ProposalWithMetadata | null>[] = [];
       const startId = proposalCount > 20n ? proposalCount - 20n : 1n;
-      
-      if (votingConfig) {
-        for (let i = startId; i <= proposalCount; i++) {
-          proposalPromises.push(loadProposalWithMetadata(i, votingConfig));
-        }
+
+      for (let i = startId; i <= proposalCount; i++) {
+        proposalPromises.push(loadProposalWithMetadata(i, votingConfig));
       }
 
       const loadedProposals = await Promise.all(proposalPromises);
@@ -287,6 +226,7 @@ export default function ProposalsPage() {
       setProposals(validProposals);
     } catch (error) {
       console.error("Failed to load proposals:", error);
+      toast.error("Failed to load proposals from the blockchain.");
     } finally {
       setLoading(false);
     }

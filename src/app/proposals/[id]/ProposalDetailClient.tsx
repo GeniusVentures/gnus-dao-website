@@ -1,5 +1,6 @@
 "use client";
 
+import { useSiweProtectedAction } from "@/components/auth/SiweGuard";
 import { AuthGuard } from "@/components/auth/AuthButton";
 import { Button } from "@/components/ui/Button";
 import { QuadraticVotingModal } from "@/components/voting/QuadraticVotingModal";
@@ -38,6 +39,7 @@ export default function ProposalDetailClient() {
   const params = useParams();
   const router = useRouter();
   const { wallet, provider, signer, gnusDaoInitialized, votingPower } = useWeb3Store();
+  const { executeProtected } = useSiweProtectedAction();
 
   const [proposal, setProposal] = useState<ProposalWithMetadata | null>(null);
   const [loading, setLoading] = useState(true);
@@ -76,7 +78,7 @@ export default function ProposalDetailClient() {
       return;
     }
 
-    // Initialize service if not already done
+    // Initialize service if not already done (best effort — service.ensureInitialized() handles fallback)
     if (!gnusDaoInitialized && provider && signer) {
       try {
         const network = await provider.getNetwork();
@@ -86,18 +88,8 @@ export default function ProposalDetailClient() {
           Number(network.chainId),
         );
       } catch (error) {
-        console.error("Failed to initialize DAO service:", error);
-        
-        // Enhanced error tracking
-        if (typeof window !== 'undefined') {
-          const { captureWeb3Error } = await import('@/lib/utils/sentry');
-          captureWeb3Error(error as Error, {
-            action: 'initializeDAOService',
-            chainId: provider ? Number((await provider.getNetwork()).chainId) : undefined,
-          });
-        }
-        setLoading(false);
-        return;
+        console.warn("DAO service pre-init failed, ensureInitialized will handle it:", error);
+        // Do NOT return early — ensureInitialized() inside service methods will auto-recover
       }
     }
 
@@ -279,15 +271,23 @@ export default function ProposalDetailClient() {
 
     setVoting(true);
     try {
-      await gnusDaoService.castVote(BigInt(proposalId), support);
-      toast.success("Vote submitted successfully!");
+      await executeProtected(
+        async () => {
+          await gnusDaoService.castVote(BigInt(proposalId), support);
+          toast.success("Vote submitted successfully!");
 
-      // Refresh vote receipt
-      const voteReceipt = await gnusDaoService.getVoteReceipt(
-        BigInt(proposalId),
-        wallet.address,
+          // Refresh vote receipt
+          const voteReceipt = await gnusDaoService.getVoteReceipt(
+            BigInt(proposalId),
+            wallet.address!,
+          );
+          setUserVote(voteReceipt);
+        },
+        {
+          requireAuth: true,
+          errorMessage: "You must sign in with Ethereum to vote",
+        }
       );
-      setUserVote(voteReceipt);
     } catch (error) {
       console.error("Vote failed:", error);
       toast.error("Failed to submit vote");

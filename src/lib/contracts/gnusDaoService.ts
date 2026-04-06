@@ -97,7 +97,9 @@ export class GNUSDAOService {
 
 			const success = await this.initPromise;
 			if (!success) {
-				throw new Error('Failed to auto-initialize GNUS DAO service. Please connect your wallet to a supported network.');
+				throw new Error(
+					'Failed to auto-initialize GNUS DAO service. Please connect your wallet to a supported network.',
+				);
 			}
 		} else {
 			throw new Error('No wallet provider available. Please connect your wallet.');
@@ -222,16 +224,25 @@ export class GNUSDAOService {
 	}
 
 	/**
-	 * Get voting power for an address
+	 * Get voting power for an address.
+	 * Tries getVotingPower first, falls back to getCurrentVotes (confirmed in Diamond ABI).
 	 */
 	async getVotingPower(address: string): Promise<bigint> {
 		await this.ensureInitialized();
 
 		try {
-			return await this.contractSafe.getVotingPower(address);
+			if (typeof this.contractSafe.getVotingPower === 'function') {
+				return await this.contractSafe.getVotingPower(address);
+			}
+			// Fallback: getCurrentVotes is always in the deployed Diamond ABI
+			return await this.contractSafe.getCurrentVotes(address);
 		} catch (error) {
 			console.error('Error getting voting power:', error);
-			return 0n;
+			try {
+				return await this.contractSafe.getCurrentVotes(address);
+			} catch {
+				return 0n;
+			}
 		}
 	}
 
@@ -253,36 +264,15 @@ export class GNUSDAOService {
 	}
 
 	/**
-	 * Check if user has delegated voting power to themselves
-	 * NOTE: This contract PREVENTS self-delegation (CannotDelegateToSelf error)
-	 * Voting power comes directly from token balance, not delegation
-	 * Returns true if user has NOT delegated (meaning they have their own voting power)
-	 */
-	async isDelegatedToSelf(address: string): Promise<boolean> {
-		await this.ensureInitialized();
-
-		try {
-			const delegatedTo = await this.getDelegatedTo(address);
-
-			// If not delegated to anyone (ZeroAddress), user has their own voting power
-			// If delegated to someone else, they've given away their voting power
-			return delegatedTo === ethers.ZeroAddress;
-		} catch (error) {
-			console.error('Error checking delegation status:', error);
-			// Default to true - assume user has their own voting power
-			return true;
-		}
-	}
-
-	/**
-	 * Delegate voting power to self (activate voting power)
-	 * NOTE: This contract does NOT support self-delegation
-	 * This method is kept for API compatibility but will throw an error
+	 * Delegate voting power to self — not supported by this contract.
+	 * The on-chain GovernanceFacet reverts with CannotDelegateToSelf.
+	 * Voting power comes directly from your GNUS token balance.
+	 * This method is kept for API compatibility but will always throw.
 	 */
 	async delegateToSelf(): Promise<ethers.ContractTransactionResponse> {
 		throw new Error(
-			'This contract does not support self-delegation. Voting power comes directly from your token balance. ' +
-				'You already have voting power if you hold GNUS tokens.',
+			'Self-delegation is not supported by this contract (CannotDelegateToSelf). ' +
+				'Your voting power is derived directly from your GNUS token balance.',
 		);
 	}
 
@@ -301,13 +291,16 @@ export class GNUSDAOService {
 	}
 
 	/**
-	 * Get the total delegated votes for an account
+	 * Get the total delegated/voting power for an account.
+	 * NOTE: getDelegatedVotes is NOT in the deployed Diamond ABI.
+	 * Uses getCurrentVotes which IS confirmed in the ABI.
 	 */
 	async getDelegatedVotes(account: string): Promise<bigint> {
 		await this.ensureInitialized();
 
 		try {
-			return await this.contractSafe.getDelegatedVotes(account);
+			// getCurrentVotes is confirmed in the deployed Diamond ABI
+			return await this.contractSafe.getCurrentVotes(account);
 		} catch (error) {
 			console.error('Error getting delegated votes:', error);
 			return 0n;
@@ -514,6 +507,10 @@ export class GNUSDAOService {
 	async createProposal(
 		title: string,
 		ipfsHash: string,
+		targets: string[] = [],
+		values: bigint[] = [],
+		calldatas: string[] = [],
+		descriptions: string[] = [],
 	): Promise<ethers.ContractTransactionResponse> {
 		await this.ensureInitialized();
 		if (!this.signer) {
@@ -524,8 +521,14 @@ export class GNUSDAOService {
 			if (!this.contractSafe.propose) {
 				throw new Error('propose function not available on contract');
 			}
-			// Passing empty arrays for targets, values, calldatas, and descriptions as defaults
-			return await this.contractSafe.propose(title, ipfsHash, [], [], [], []);
+			return await this.contractSafe.propose(
+				title,
+				ipfsHash,
+				targets,
+				values,
+				calldatas,
+				descriptions,
+			);
 		} catch (error) {
 			logger.error('Error creating proposal:', error as any);
 			throw error;
@@ -589,6 +592,8 @@ export class GNUSDAOService {
 		quorumThreshold: bigint;
 		maxVotesPerWallet: bigint;
 		proposalCooldown: bigint;
+		timelockDelay: bigint;
+		maxProposalActions: bigint;
 	} | null> {
 		await this.ensureInitialized();
 
@@ -603,6 +608,8 @@ export class GNUSDAOService {
 				quorumThreshold: config[3] || 0n,
 				maxVotesPerWallet: config[4] || 0n,
 				proposalCooldown: config[5] || 0n,
+				timelockDelay: config[6] || 0n,
+				maxProposalActions: config[7] || 0n,
 			};
 		} catch (error) {
 			console.error('Error getting voting config:', error);
@@ -611,9 +618,29 @@ export class GNUSDAOService {
 	}
 
 	/**
-	 * Cast a vote on a proposal
-	 * Attempts to use castQuadraticVote (supports For/Against/Abstain) first,
-	 * falls back to vote() which only supports FOR votes.
+	 * Check if a user has delegated their voting power internally instead of outwardly
+	 */
+	async isDelegatedToSelf(account: string, chainId?: number): Promise<boolean> {
+		await this.ensureInitialized();
+		try {
+			const delegatee = await this.getDelegatedTo(account);
+			// Either un-delegated (0x00) or explicitly self-delegated
+			return (
+				delegatee === ethers.ZeroAddress ||
+				delegatee.toLowerCase() === account.toLowerCase()
+			);
+		} catch (error) {
+			console.error('Error checking if delegated to self:', error);
+			// Assume true to prevent aggressive popups if RPC errors out
+			return true;
+		}
+	}
+
+	/**
+	 * Cast a vote on a proposal.
+	 * Uses vote(proposalId, votes) — the function confirmed in the Diamond ABI.
+	 * NOTE: castQuadraticVote is NOT in the deployed Diamond ABI.
+	 * The deployed vote() function uses quadratic cost internally.
 	 */
 	async castVote(
 		proposalId: bigint,
@@ -651,32 +678,8 @@ export class GNUSDAOService {
 				}
 			}
 
-			// Try castQuadraticVote first (supports For/Against/Abstain)
-			if (this.contractSafe.castQuadraticVote) {
-				try {
-					return await this.contractSafe.castQuadraticVote(
-						proposalId,
-						support,
-						votesToCast,
-					);
-				} catch (quadraticError: any) {
-					// If it fails because the function doesn't exist on-chain, fall through
-					const msg = quadraticError?.message || '';
-					if (msg.includes('not a function') || msg.includes('CALL_EXCEPTION')) {
-						logger.warn('castQuadraticVote not available, falling back to vote()');
-					} else {
-						throw quadraticError;
-					}
-				}
-			}
-
-			// Fallback: use vote(proposalId, votes) which only supports FOR
-			if (support !== VoteSupport.For) {
-				throw new Error(
-					'This contract version only supports FOR votes. Against and Abstain require the quadratic voting facet.',
-				);
-			}
-
+			// Use vote(proposalId, votes) — confirmed in deployed Diamond ABI
+			// The on-chain vote() handles quadratic cost calculation internally
 			if (!this.contractSafe.vote) {
 				throw new Error('vote function not available on contract');
 			}
@@ -1186,8 +1189,9 @@ export class GNUSDAOService {
 	}
 
 	/**
-	 * Propose a treasury action
-	 * Note: This creates a proposal for treasury operations
+	 * Propose a treasury action.
+	 * Uploads proposal metadata to IPFS first, then calls createProposal
+	 * with the resulting IPFS CID as the ipfsHash argument.
 	 */
 	async proposeTreasuryAction(
 		recipient: string,
@@ -1200,15 +1204,33 @@ export class GNUSDAOService {
 			throw new Error('No signer available. Please connect your wallet.');
 		}
 
-		try {
-			// Create a proposal with treasury action details
-			const title = `Treasury Action: ${ethers.formatEther(amount)} ETH to ${recipient.slice(0, 6)}...${recipient.slice(-4)}`;
-			const fullDescription = `${description}\n\nRecipient: ${recipient}\nAmount: ${ethers.formatEther(amount)} ETH\nCalldata: ${calldata}`;
+		const title = `Treasury Action: ${ethers.formatEther(amount)} ETH to ${recipient.slice(0, 6)}...${recipient.slice(-4)}`;
+		const fullDescription = `${description}\n\nRecipient: ${recipient}\nAmount: ${ethers.formatEther(amount)} ETH\nCalldata: ${calldata}`;
 
-			// Use createProposal to create a treasury action proposal
-			return await this.createProposal(title, fullDescription);
+		// Upload metadata to IPFS — createProposal requires a real IPFS hash, not plain text
+		let ipfsHash: string;
+		try {
+			const { SecureIPFSService } = await import('@/lib/ipfs/secureUpload');
+			const result = await SecureIPFSService.uploadProposalMetadata({
+				title,
+				description: fullDescription,
+			});
+			if (!result.success || !result.ipfsHash) {
+				throw new Error(result.error || 'IPFS upload returned no hash');
+			}
+			ipfsHash = result.ipfsHash;
+			logger.info('Treasury proposal metadata uploaded to IPFS:', { ipfsHash });
 		} catch (error) {
-			console.error('Error proposing treasury action:', error);
+			logger.error('Failed to upload treasury proposal metadata to IPFS:', error as any);
+			throw new Error(
+				'Failed to upload treasury proposal metadata to IPFS. Please check your IPFS configuration and try again.',
+			);
+		}
+
+		try {
+			return await this.createProposal(title, ipfsHash);
+		} catch (error) {
+			logger.error('Error proposing treasury action:', error as any);
 			throw error;
 		}
 	}

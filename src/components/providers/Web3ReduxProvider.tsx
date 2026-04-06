@@ -97,13 +97,13 @@ export function Web3ReduxProvider({ children }: Web3ReduxProviderProps) {
           dispatch(refreshGnusDaoData());
         };
 
-        // Subscribe to governance events
+        // Subscribe to governance events (only events confirmed in the deployed Diamond ABI)
         const events = [
           'ProposalCreated',
           'VoteCast',
           'ProposalExecuted',
           'ProposalCancelled',
-          'QuadraticVoteCast',
+          // NOTE: QuadraticVoteCast is NOT in the deployed Diamond ABI — do not add it here
         ];
 
         for (const eventName of events) {

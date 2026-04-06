@@ -45,7 +45,7 @@ export function getGNUSDAOContract(chainId: number) {
 	if (!config || config.diamond === '0x0000000000000000000000000000000000000000') {
 		return null;
 	}
-	
+
 	return {
 		address: config.diamond,
 		deployer: config.deployer,
@@ -150,6 +150,8 @@ export const GNUS_DAO_CORE_ABI = [
 	'function delegateVotes(address delegatee) external',
 	'function revokeDelegation() external',
 	'function getDelegatedTo(address account) external view returns (address)',
+	// NOTE: getDelegatedVotes is NOT in the deployed Diamond ABI.
+	// Use getCurrentVotes instead. Kept here for reference only.
 	'function getDelegatedVotes(address account) external view returns (uint256)',
 	'function getPastVotingPower(address account, uint256 blockNumber) external view returns (uint256)',
 
@@ -221,6 +223,8 @@ export const GOVERNANCE_ABI = [
 ] as const;
 
 // Quadratic Voting Mechanism functions
+// WARNING: These functions are NOT in the deployed Diamond ABI on Sepolia.
+// The deployed contract uses vote(proposalId, votes) with internal quadratic cost.
 export const QUADRATIC_VOTING_ABI = [
 	// Quadratic voting functions
 	'function castQuadraticVote(uint256 proposalId, uint8 support, uint256 voteCredits) external returns (uint256)',

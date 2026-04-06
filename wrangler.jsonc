@@ -43,16 +43,22 @@
     // }
   ],
   
-  // Global environment variables
+  // Global environment variables (non-sensitive public vars only)
+  // ⚠️  NEVER put secrets here — use Cloudflare Dashboard or `wrangler secret put <KEY>`
   "vars": {
     "CLOUDFLARE_PAGES": "true",
     "NODE_ENV": "production",
-    "NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID": "805f6520f2f2934352c65fe6bd70d15d",
+    // Set via Cloudflare Dashboard > Workers & Pages > Your Project > Settings > Variables
+    // "NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID": "<set in Cloudflare Dashboard>",
     "NEXT_PUBLIC_SEPOLIA_GNUS_DAO_ADDRESS": "0x84Ba28d277ded98b3488C906E90B6435B116D5b4",
     "NEXT_PUBLIC_BASE_GNUS_DAO_ADDRESS": "0x0000000000000000000000000000000000000000",
     "NEXT_PUBLIC_POLYGON_GNUS_DAO_ADDRESS": "0x0000000000000000000000000000000000000000",
     "NEXT_PUBLIC_SKALE_GNUS_DAO_ADDRESS": "0x0000000000000000000000000000000000000000",
-    "NEXT_PUBLIC_IPFS_GATEWAY": "https://ipfs.io/ipfs/"
+    "NEXT_PUBLIC_IPFS_GATEWAY": "https://ipfs.io/ipfs/",
+    "NEXT_PUBLIC_SEPOLIA_RPC_URL": "https://rpc.sepolia.org"
+    // Secrets below must be set via Cloudflare Dashboard or wrangler secret put:
+    // - JWT_SECRET          → wrangler secret put JWT_SECRET
+    // - NEXT_PUBLIC_PINATA_JWT → wrangler secret put NEXT_PUBLIC_PINATA_JWT
   },
   
   // Note: Sensitive environment variables should be set via:

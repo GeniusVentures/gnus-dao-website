@@ -50,7 +50,7 @@ export function DelegationManager() {
       }
     };
     init();
-  }, [isConnected, address]);
+  }, [isConnected, address, provider, signer]);
 
   const loadDelegationInfo = async () => {
     if (!address) return;
@@ -90,42 +90,32 @@ export function DelegationManager() {
       return;
     }
 
-    if (delegateAddress.toLowerCase() === address?.toLowerCase()) {
-      toast.error("Error", "Cannot delegate to yourself");
-      return;
-    }
-
     setIsDelegating(true);
     try {
-      // Execute with SIWE protection — delegation requires authentication
-      await executeProtected(
-        async () => {
-          const tx = await gnusDaoService.delegate(delegateAddress);
+      // Re-initialize with current signer to ensure write access
+      if (provider && signer) {
+        const network = await provider.getNetwork();
+        await gnusDaoService.initialize(provider, signer, Number(network.chainId));
+      }
 
-          toast.info("Transaction Submitted", "Delegating voting power...");
+      const tx = await gnusDaoService.delegate(delegateAddress);
 
-          await tx.wait();
+      toast.info("Transaction Submitted", "Delegating voting power...");
 
-          toast.success(
-            "Delegation Successful!",
-            `You have delegated your voting power to ${delegateAddress.slice(0, 6)}...${delegateAddress.slice(-4)}`,
-          );
+      await tx.wait();
 
-          // Reload delegation info
-          await loadDelegationInfo();
-          setDelegateAddress("");
-        },
-        {
-          requireAuth: true,
-          errorMessage: "You must sign in with Ethereum to delegate",
-        }
+      toast.success(
+        "Delegation Successful!",
+        `You have delegated your voting power to ${delegateAddress.slice(0, 6)}...${delegateAddress.slice(-4)}`,
       );
+
+      // Reload delegation info
+      await loadDelegationInfo();
+      setDelegateAddress("");
     } catch (error: any) {
       console.error("Error delegating:", error);
-      toast.error(
-        "Delegation Failed",
-        error.message || "Failed to delegate voting power",
-      );
+      const msg = error?.reason || error?.message || "Failed to delegate voting power";
+      toast.error("Delegation Failed", msg);
     } finally {
       setIsDelegating(false);
     }
@@ -134,34 +124,34 @@ export function DelegationManager() {
   const handleRevoke = async () => {
     setIsRevoking(true);
     try {
-      // Execute with SIWE protection — revoking delegation requires authentication
-      await executeProtected(
-        async () => {
-          const tx = await gnusDaoService.revokeDelegation();
+      // Re-initialize with current signer to ensure write access
+      if (provider && signer) {
+        const network = await provider.getNetwork();
+        await gnusDaoService.initialize(provider, signer, Number(network.chainId));
+      }
 
-          toast.info("Transaction Submitted", "Revoking delegation...");
+      const tx = await gnusDaoService.revokeDelegation();
 
-          await tx.wait();
+      toast.info("Transaction Submitted", "Revoking delegation...");
 
-          toast.success(
-            "Delegation Revoked!",
-            "Your voting power has been returned to you",
-          );
+      await tx.wait();
 
-          // Reload delegation info
-          await loadDelegationInfo();
-        },
-        {
-          requireAuth: true,
-          errorMessage: "You must sign in with Ethereum to revoke delegation",
-        }
+      toast.success(
+        "Delegation Revoked!",
+        "Your voting power has been returned to you",
       );
+
+      // Reload delegation info
+      await loadDelegationInfo();
     } catch (error: any) {
       console.error("Error revoking delegation:", error);
-      toast.error(
-        "Revocation Failed",
-        error.message || "Failed to revoke delegation",
-      );
+      // Parse on-chain revert reasons
+      let reason = error?.reason || error?.data?.message || error?.message || "Failed to revoke delegation";
+      // Match the custom error NoActiveDelegation (selector 0xba970e57)
+      if (reason.includes("NoActiveDelegation") || error?.data === "0xba970e57" || reason.includes("0xba970e57")) {
+        reason = "You have not delegated your voting power to anyone, so there is nothing to revoke.";
+      }
+      toast.error("Revocation Failed", reason);
     } finally {
       setIsRevoking(false);
     }

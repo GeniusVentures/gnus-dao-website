@@ -1,4 +1,4 @@
-import { ethers } from 'ethers';
+import { ethers, keccak256, toUtf8Bytes } from 'ethers';
 import diamondAbi from './GNUSDAODiamond.json';
 
 // Export the Diamond ABI
@@ -37,7 +37,11 @@ export interface GNUSDAODiamondInterface {
 	transfer?(to: string, amount: bigint): Promise<ethers.ContractTransactionResponse>;
 	allowance?(owner: string, spender: string): Promise<bigint>;
 	approve?(spender: string, amount: bigint): Promise<ethers.ContractTransactionResponse>;
-	transferFrom?(from: string, to: string, amount: bigint): Promise<ethers.ContractTransactionResponse>;
+	transferFrom?(
+		from: string,
+		to: string,
+		amount: bigint,
+	): Promise<ethers.ContractTransactionResponse>;
 
 	// Delegation and Voting Power
 	delegate?(delegatee: string): Promise<ethers.ContractTransactionResponse>;
@@ -45,7 +49,8 @@ export interface GNUSDAODiamondInterface {
 	getVotingPower?(account: string): Promise<bigint>;
 	getPastVotingPower?(account: string, blockNumber: bigint): Promise<bigint>;
 	getDelegatedTo?(account: string): Promise<string>;
-	getDelegatedVotes?(account: string): Promise<bigint>;
+	getCurrentVotes?(account: string): Promise<bigint>;
+	getDelegates?(account: string): Promise<string>;
 
 	// Governance functions
 	propose?(
@@ -60,9 +65,7 @@ export interface GNUSDAODiamondInterface {
 	delegateVotes?(delegatee: string): Promise<ethers.ContractTransactionResponse>;
 	revokeDelegation?(): Promise<ethers.ContractTransactionResponse>;
 	getProposalCount?(): Promise<bigint>;
-	getProposalBasic?(
-		proposalId: bigint,
-	): Promise<[bigint, string, string, string]>;
+	getProposalBasic?(proposalId: bigint): Promise<[bigint, string, string, string]>;
 	getProposalStatus?(
 		proposalId: bigint,
 	): Promise<[bigint, bigint, bigint, bigint, boolean, boolean, boolean, bigint]>;
@@ -78,18 +81,28 @@ export interface GNUSDAODiamondInterface {
 	isTreasuryManager?(account: string): Promise<boolean>;
 	addTreasuryManager?(manager: string): Promise<ethers.ContractTransactionResponse>;
 	removeTreasuryManager?(manager: string): Promise<ethers.ContractTransactionResponse>;
-	withdrawFromTreasury?(to: string, amount: bigint): Promise<ethers.ContractTransactionResponse>;
+	withdrawFromTreasury?(
+		to: string,
+		amount: bigint,
+	): Promise<ethers.ContractTransactionResponse>;
 	depositToTreasury?(): Promise<ethers.ContractTransactionResponse>;
 	isMinter?(account: string): Promise<boolean>;
 	burn?(amount: bigint): Promise<ethers.ContractTransactionResponse>;
 	paused?(): Promise<boolean>;
 
 	// Utility calculations
-	validateVote?(votes: bigint, maxVotes: bigint, balance: bigint): Promise<[boolean, bigint]>;
+	validateVote?(
+		votes: bigint,
+		maxVotes: bigint,
+		balance: bigint,
+	): Promise<[boolean, bigint]>;
 	calculateQuadraticCost?(votes: bigint): Promise<bigint>;
 	calculateVoteWeight?(tokensCost: bigint): Promise<bigint>;
 	calculateMaxVotes?(tokenBalance: bigint): Promise<bigint>;
-	calculateOptimalVotes?(tokenBudget: bigint, maxVotesPerWallet: bigint): Promise<[bigint, bigint]>;
+	calculateOptimalVotes?(
+		tokenBudget: bigint,
+		maxVotesPerWallet: bigint,
+	): Promise<[bigint, bigint]>;
 	getVoteEfficiency?(votes: bigint, tokensCost: bigint): Promise<bigint>;
 	checkQuorum?(totalVotes: bigint, quorumThreshold: bigint): Promise<boolean>;
 }
@@ -147,12 +160,11 @@ export interface DelegateVotesChangedEvent {
 	newBalance: bigint;
 }
 
-// Contract event filters
+// Contract event filters (only events confirmed in the deployed Diamond ABI)
 export const CONTRACT_EVENTS = {
 	ProposalCreated: 'ProposalCreated',
 	VoteCast: 'VoteCast',
-	QuadraticVoteCast: 'QuadraticVoteCast',
-	ProposalCanceled: 'ProposalCanceled',
+	ProposalCancelled: 'ProposalCancelled',
 	ProposalQueued: 'ProposalQueued',
 	ProposalExecuted: 'ProposalExecuted',
 	Transfer: 'Transfer',
@@ -162,6 +174,9 @@ export const CONTRACT_EVENTS = {
 	OwnershipTransferred: 'OwnershipTransferred',
 	RoleGranted: 'RoleGranted',
 	RoleRevoked: 'RoleRevoked',
+	VoteDelegated: 'VoteDelegated',
+	VoteDelegationRevoked: 'VoteDelegationRevoked',
+	// NOTE: QuadraticVoteCast is NOT in the deployed Diamond ABI
 } as const;
 
 // Function selectors for Diamond functions
@@ -190,7 +205,6 @@ export const FUNCTION_SELECTORS = {
 // Note: These are public role identifiers computed from keccak256 hash of role names.
 // They are NOT private keys or secrets. These match OpenZeppelin's AccessControl role pattern.
 // Computed dynamically to avoid git-secrets false positives on hardcoded hex values.
-import { keccak256, toUtf8Bytes } from 'ethers';
 
 export const ROLES = {
 	// DEFAULT_ADMIN_ROLE is bytes32(0) - the default admin role

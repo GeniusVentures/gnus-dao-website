@@ -8,6 +8,43 @@
       "inputs": [
         {
           "indexed": true,
+          "internalType": "uint256",
+          "name": "proposalId",
+          "type": "uint256"
+        },
+        {
+          "indexed": true,
+          "internalType": "uint256",
+          "name": "actionIndex",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "target",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "value",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "bytes",
+          "name": "data",
+          "type": "bytes"
+        }
+      ],
+      "name": "ActionExecuted",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
           "internalType": "address",
           "name": "owner",
           "type": "address"
@@ -26,8 +63,57 @@
         }
       ],
       "name": "Approval",
-      "type": "event",
-      "_diamondFacet": "GNUSDAOGovernanceTokenFacet"
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "delegator",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "fromDelegate",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "toDelegate",
+          "type": "address"
+        }
+      ],
+      "name": "DelegateChanged",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "delegate",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "previousBalance",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "newBalance",
+          "type": "uint256"
+        }
+      ],
+      "name": "DelegateVotesChanged",
+      "type": "event"
     },
     {
       "anonymous": false,
@@ -69,8 +155,33 @@
         }
       ],
       "name": "DiamondCut",
-      "type": "event",
-      "_diamondFacet": "DiamondCutFacet"
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "by",
+          "type": "address"
+        }
+      ],
+      "name": "GovernancePaused",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "by",
+          "type": "address"
+        }
+      ],
+      "name": "GovernanceUnpaused",
+      "type": "event"
     },
     {
       "anonymous": false,
@@ -89,8 +200,26 @@
         }
       ],
       "name": "InitLog",
-      "type": "event",
-      "_diamondFacet": "GNUSDAOInitFacet"
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "oldMax",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "newMax",
+          "type": "uint256"
+        }
+      ],
+      "name": "MaxVotesPerWalletUpdated",
+      "type": "event"
     },
     {
       "anonymous": false,
@@ -103,8 +232,7 @@
         }
       ],
       "name": "MinterAdded",
-      "type": "event",
-      "_diamondFacet": "GNUSDAOGovernanceTokenFacet"
+      "type": "event"
     },
     {
       "anonymous": false,
@@ -117,8 +245,7 @@
         }
       ],
       "name": "MinterRemoved",
-      "type": "event",
-      "_diamondFacet": "GNUSDAOGovernanceTokenFacet"
+      "type": "event"
     },
     {
       "anonymous": false,
@@ -137,15 +264,13 @@
         }
       ],
       "name": "OwnershipTransferred",
-      "type": "event",
-      "_diamondFacet": "GNUSDAOOwnershipFacet"
+      "type": "event"
     },
     {
       "anonymous": false,
       "inputs": [],
       "name": "Paused",
-      "type": "event",
-      "_diamondFacet": "GNUSDAOGovernanceTokenFacet"
+      "type": "event"
     },
     {
       "anonymous": false,
@@ -158,8 +283,7 @@
         }
       ],
       "name": "Paused",
-      "type": "event",
-      "_diamondFacet": "GNUSDAOGovernanceFacet"
+      "type": "event"
     },
     {
       "anonymous": false,
@@ -172,8 +296,7 @@
         }
       ],
       "name": "ProposalCancelled",
-      "type": "event",
-      "_diamondFacet": "GNUSDAOGovernanceFacet"
+      "type": "event"
     },
     {
       "anonymous": false,
@@ -216,8 +339,7 @@
         }
       ],
       "name": "ProposalCreated",
-      "type": "event",
-      "_diamondFacet": "GNUSDAOGovernanceFacet"
+      "type": "event"
     },
     {
       "anonymous": false,
@@ -230,8 +352,64 @@
         }
       ],
       "name": "ProposalExecuted",
-      "type": "event",
-      "_diamondFacet": "GNUSDAOGovernanceFacet"
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "uint256",
+          "name": "proposalId",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "executionTime",
+          "type": "uint256"
+        }
+      ],
+      "name": "ProposalQueued",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "oldThreshold",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "newThreshold",
+          "type": "uint256"
+        }
+      ],
+      "name": "ProposalThresholdUpdated",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "oldThreshold",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "newThreshold",
+          "type": "uint256"
+        }
+      ],
+      "name": "QuorumThresholdUpdated",
+      "type": "event"
     },
     {
       "anonymous": false,
@@ -256,8 +434,7 @@
         }
       ],
       "name": "RoleAdminChanged",
-      "type": "event",
-      "_diamondFacet": "GNUSDAOOwnershipFacet"
+      "type": "event"
     },
     {
       "anonymous": false,
@@ -282,8 +459,7 @@
         }
       ],
       "name": "RoleGranted",
-      "type": "event",
-      "_diamondFacet": "GNUSDAOOwnershipFacet"
+      "type": "event"
     },
     {
       "anonymous": false,
@@ -308,8 +484,26 @@
         }
       ],
       "name": "RoleRevoked",
-      "type": "event",
-      "_diamondFacet": "GNUSDAOOwnershipFacet"
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "oldDelay",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "newDelay",
+          "type": "uint256"
+        }
+      ],
+      "name": "TimelockDelayUpdated",
+      "type": "event"
     },
     {
       "anonymous": false,
@@ -328,8 +522,7 @@
         }
       ],
       "name": "TokensBurned",
-      "type": "event",
-      "_diamondFacet": "GNUSDAOGovernanceTokenFacet"
+      "type": "event"
     },
     {
       "anonymous": false,
@@ -348,8 +541,7 @@
         }
       ],
       "name": "TokensMinted",
-      "type": "event",
-      "_diamondFacet": "GNUSDAOGovernanceTokenFacet"
+      "type": "event"
     },
     {
       "anonymous": false,
@@ -374,8 +566,7 @@
         }
       ],
       "name": "Transfer",
-      "type": "event",
-      "_diamondFacet": "GNUSDAOGovernanceTokenFacet"
+      "type": "event"
     },
     {
       "anonymous": false,
@@ -394,8 +585,58 @@
         }
       ],
       "name": "TreasuryDeposit",
-      "type": "event",
-      "_diamondFacet": "GNUSDAOGovernanceFacet"
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "manager",
+          "type": "address"
+        }
+      ],
+      "name": "TreasuryManagerAdded",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "manager",
+          "type": "address"
+        }
+      ],
+      "name": "TreasuryManagerRemoved",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "oldBalance",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "newBalance",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "int256",
+          "name": "difference",
+          "type": "int256"
+        }
+      ],
+      "name": "TreasuryReconciled",
+      "type": "event"
     },
     {
       "anonymous": false,
@@ -414,15 +655,13 @@
         }
       ],
       "name": "TreasuryWithdrawal",
-      "type": "event",
-      "_diamondFacet": "GNUSDAOGovernanceFacet"
+      "type": "event"
     },
     {
       "anonymous": false,
       "inputs": [],
       "name": "Unpaused",
-      "type": "event",
-      "_diamondFacet": "GNUSDAOGovernanceTokenFacet"
+      "type": "event"
     },
     {
       "anonymous": false,
@@ -435,8 +674,7 @@
         }
       ],
       "name": "Unpaused",
-      "type": "event",
-      "_diamondFacet": "GNUSDAOGovernanceFacet"
+      "type": "event"
     },
     {
       "anonymous": false,
@@ -467,8 +705,7 @@
         }
       ],
       "name": "VoteCast",
-      "type": "event",
-      "_diamondFacet": "GNUSDAOGovernanceFacet"
+      "type": "event"
     },
     {
       "anonymous": false,
@@ -487,8 +724,7 @@
         }
       ],
       "name": "VoteDelegated",
-      "type": "event",
-      "_diamondFacet": "GNUSDAOGovernanceFacet"
+      "type": "event"
     },
     {
       "anonymous": false,
@@ -507,104 +743,151 @@
         }
       ],
       "name": "VoteDelegationRevoked",
-      "type": "event",
-      "_diamondFacet": "GNUSDAOGovernanceFacet"
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "oldDelay",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "newDelay",
+          "type": "uint256"
+        }
+      ],
+      "name": "VotingDelayUpdated",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "oldPeriod",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "newPeriod",
+          "type": "uint256"
+        }
+      ],
+      "name": "VotingPeriodUpdated",
+      "type": "event"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "actionIndex",
+          "type": "uint256"
+        }
+      ],
+      "name": "ActionExecutionFailed",
+      "type": "error"
     },
     {
       "inputs": [],
       "name": "AlreadyCancelled",
-      "type": "error",
-      "_diamondFacet": "GNUSDAOGovernanceFacet"
+      "type": "error"
     },
     {
       "inputs": [],
       "name": "AlreadyExecuted",
-      "type": "error",
-      "_diamondFacet": "GNUSDAOGovernanceFacet"
+      "type": "error"
     },
     {
       "inputs": [],
       "name": "AlreadyInitialized",
-      "type": "error",
-      "_diamondFacet": "GNUSDAOGovernanceTokenFacet"
+      "type": "error"
     },
     {
       "inputs": [],
       "name": "AlreadyMinter",
-      "type": "error",
-      "_diamondFacet": "GNUSDAOGovernanceTokenFacet"
+      "type": "error"
     },
     {
       "inputs": [],
       "name": "AlreadyPaused",
-      "type": "error",
-      "_diamondFacet": "GNUSDAOGovernanceTokenFacet"
+      "type": "error"
     },
     {
       "inputs": [],
       "name": "AlreadyVoted",
-      "type": "error",
-      "_diamondFacet": "GNUSDAOGovernanceFacet"
+      "type": "error"
     },
     {
       "inputs": [],
       "name": "ApproveFromZero",
-      "type": "error",
-      "_diamondFacet": "GNUSDAOGovernanceTokenFacet"
+      "type": "error"
     },
     {
       "inputs": [],
       "name": "ApproveToZero",
-      "type": "error",
-      "_diamondFacet": "GNUSDAOGovernanceTokenFacet"
+      "type": "error"
     },
     {
       "inputs": [],
       "name": "BurnFromZero",
-      "type": "error",
-      "_diamondFacet": "GNUSDAOGovernanceTokenFacet"
+      "type": "error"
     },
     {
       "inputs": [],
       "name": "CannotCancelExecuted",
-      "type": "error",
-      "_diamondFacet": "GNUSDAOGovernanceFacet"
+      "type": "error"
     },
     {
       "inputs": [],
       "name": "CannotDelegateToSelf",
-      "type": "error",
-      "_diamondFacet": "GNUSDAOGovernanceFacet"
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "CannotRenounceAdminRole",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "CannotRevokeAdminRole",
+      "type": "error"
     },
     {
       "inputs": [],
       "name": "CooldownNotMet",
-      "type": "error",
-      "_diamondFacet": "GNUSDAOGovernanceFacet"
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "EmergencyWithdrawalFailed",
+      "type": "error"
     },
     {
       "inputs": [],
       "name": "EmptyIPFS",
-      "type": "error",
-      "_diamondFacet": "GNUSDAOGovernanceFacet"
+      "type": "error"
     },
     {
       "inputs": [],
       "name": "EmptyTitle",
-      "type": "error",
-      "_diamondFacet": "GNUSDAOGovernanceFacet"
+      "type": "error"
     },
     {
       "inputs": [],
       "name": "ExceedsMaxSupply",
-      "type": "error",
-      "_diamondFacet": "GNUSDAOGovernanceTokenFacet"
+      "type": "error"
     },
     {
       "inputs": [],
       "name": "ExceedsMaxVotes",
-      "type": "error",
-      "_diamondFacet": "GNUSDAOGovernanceFacet"
+      "type": "error"
     },
     {
       "inputs": [
@@ -620,164 +903,202 @@
         }
       ],
       "name": "InitializationFunctionReverted",
-      "type": "error",
-      "_diamondFacet": "DiamondCutFacet"
+      "type": "error"
     },
     {
       "inputs": [],
       "name": "InsufficientAllowance",
-      "type": "error",
-      "_diamondFacet": "GNUSDAOGovernanceTokenFacet"
+      "type": "error"
     },
     {
       "inputs": [],
       "name": "InsufficientBalance",
-      "type": "error",
-      "_diamondFacet": "GNUSDAOGovernanceTokenFacet"
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "InsufficientContractBalance",
+      "type": "error"
     },
     {
       "inputs": [],
       "name": "InsufficientTokens",
-      "type": "error",
-      "_diamondFacet": "GNUSDAOGovernanceFacet"
+      "type": "error"
     },
     {
       "inputs": [],
       "name": "InsufficientTreasuryBalance",
-      "type": "error",
-      "_diamondFacet": "GNUSDAOGovernanceFacet"
+      "type": "error"
     },
     {
       "inputs": [],
       "name": "InsufficientVotingPower",
-      "type": "error",
-      "_diamondFacet": "GNUSDAOGovernanceFacet"
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "InvalidActionIndex",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "MaxActionsExceeded",
+      "type": "error"
     },
     {
       "inputs": [],
       "name": "MintToZero",
-      "type": "error",
-      "_diamondFacet": "GNUSDAOGovernanceTokenFacet"
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "NoActions",
+      "type": "error"
     },
     {
       "inputs": [],
       "name": "NoActiveDelegation",
-      "type": "error",
-      "_diamondFacet": "GNUSDAOGovernanceFacet"
+      "type": "error"
     },
     {
       "inputs": [],
       "name": "NotAMinter",
-      "type": "error",
-      "_diamondFacet": "GNUSDAOGovernanceTokenFacet"
+      "type": "error"
     },
     {
       "inputs": [],
       "name": "NotMinter",
-      "type": "error",
-      "_diamondFacet": "GNUSDAOGovernanceTokenFacet"
+      "type": "error"
     },
     {
       "inputs": [],
       "name": "NotPaused",
-      "type": "error",
-      "_diamondFacet": "GNUSDAOGovernanceTokenFacet"
+      "type": "error"
     },
     {
       "inputs": [],
       "name": "NotTreasuryManager",
-      "type": "error",
-      "_diamondFacet": "GNUSDAOGovernanceFacet"
+      "type": "error"
     },
     {
       "inputs": [],
       "name": "OnlyProposerOrOwner",
-      "type": "error",
-      "_diamondFacet": "GNUSDAOGovernanceFacet"
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "OnlySuperAdminAllowed",
+      "type": "error"
     },
     {
       "inputs": [],
       "name": "ProposalAlreadyCancelled",
-      "type": "error",
-      "_diamondFacet": "GNUSDAOGovernanceFacet"
+      "type": "error"
     },
     {
       "inputs": [],
       "name": "ProposalNotActive",
-      "type": "error",
-      "_diamondFacet": "GNUSDAOGovernanceFacet"
+      "type": "error"
     },
     {
       "inputs": [],
       "name": "ProposalNotFound",
-      "type": "error",
-      "_diamondFacet": "GNUSDAOGovernanceFacet"
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "ProposalNotQueued",
+      "type": "error"
     },
     {
       "inputs": [],
       "name": "QuorumNotMet",
-      "type": "error",
-      "_diamondFacet": "GNUSDAOGovernanceFacet"
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "RecipientIsContract",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "TimelockExpired",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "TimelockNotExpired",
+      "type": "error"
     },
     {
       "inputs": [],
       "name": "TokensPaused",
-      "type": "error",
-      "_diamondFacet": "GNUSDAOGovernanceTokenFacet"
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "TooManyActions",
+      "type": "error"
     },
     {
       "inputs": [],
       "name": "TransferFromZero",
-      "type": "error",
-      "_diamondFacet": "GNUSDAOGovernanceTokenFacet"
+      "type": "error"
     },
     {
       "inputs": [],
       "name": "TransferToZero",
-      "type": "error",
-      "_diamondFacet": "GNUSDAOGovernanceTokenFacet"
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "TreasuryWithdrawalFailed",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "VotesOverflowRisk",
+      "type": "error"
     },
     {
       "inputs": [],
       "name": "VotesTooLarge",
-      "type": "error",
-      "_diamondFacet": "GNUSDAOVotingMechanismsFacet"
+      "type": "error"
     },
     {
       "inputs": [],
       "name": "VotingEnded",
-      "type": "error",
-      "_diamondFacet": "GNUSDAOGovernanceFacet"
+      "type": "error"
     },
     {
       "inputs": [],
       "name": "VotingNotStarted",
-      "type": "error",
-      "_diamondFacet": "GNUSDAOGovernanceFacet"
+      "type": "error"
     },
     {
       "inputs": [],
       "name": "VotingStillActive",
-      "type": "error",
-      "_diamondFacet": "GNUSDAOGovernanceFacet"
+      "type": "error"
     },
     {
       "inputs": [],
       "name": "ZeroAddress",
-      "type": "error",
-      "_diamondFacet": "GNUSDAOGovernanceTokenFacet"
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "ZeroAddressOwner",
+      "type": "error"
     },
     {
       "inputs": [],
       "name": "ZeroAmount",
-      "type": "error",
-      "_diamondFacet": "GNUSDAOGovernanceTokenFacet"
+      "type": "error"
     },
     {
       "inputs": [],
       "name": "ZeroVotes",
-      "type": "error",
-      "_diamondFacet": "GNUSDAOGovernanceFacet"
+      "type": "error"
     },
     {
       "inputs": [
@@ -790,9 +1111,7 @@
       "name": "addMinter",
       "outputs": [],
       "stateMutability": "nonpayable",
-      "type": "function",
-      "_diamondFacet": "GNUSDAOGovernanceTokenFacet",
-      "_diamondSelector": "0x983b2d56"
+      "type": "function"
     },
     {
       "inputs": [
@@ -805,9 +1124,7 @@
       "name": "addTreasuryManager",
       "outputs": [],
       "stateMutability": "nonpayable",
-      "type": "function",
-      "_diamondFacet": "GNUSDAOGovernanceFacet",
-      "_diamondSelector": "0xa333658f"
+      "type": "function"
     },
     {
       "inputs": [
@@ -831,9 +1148,7 @@
         }
       ],
       "stateMutability": "view",
-      "type": "function",
-      "_diamondFacet": "GNUSDAOGovernanceTokenFacet",
-      "_diamondSelector": "0xdd62ed3e"
+      "type": "function"
     },
     {
       "inputs": [
@@ -901,9 +1216,7 @@
         }
       ],
       "stateMutability": "pure",
-      "type": "function",
-      "_diamondFacet": "GNUSDAOVotingMechanismsFacet",
-      "_diamondSelector": "0xd88a22cb"
+      "type": "function"
     },
     {
       "inputs": [
@@ -927,9 +1240,7 @@
         }
       ],
       "stateMutability": "nonpayable",
-      "type": "function",
-      "_diamondFacet": "GNUSDAOGovernanceTokenFacet",
-      "_diamondSelector": "0x095ea7b3"
+      "type": "function"
     },
     {
       "inputs": [
@@ -948,9 +1259,7 @@
         }
       ],
       "stateMutability": "view",
-      "type": "function",
-      "_diamondFacet": "GNUSDAOGovernanceTokenFacet",
-      "_diamondSelector": "0x70a08231"
+      "type": "function"
     },
     {
       "inputs": [
@@ -963,9 +1272,7 @@
       "name": "burn",
       "outputs": [],
       "stateMutability": "nonpayable",
-      "type": "function",
-      "_diamondFacet": "GNUSDAOGovernanceTokenFacet",
-      "_diamondSelector": "0x42966c68"
+      "type": "function"
     },
     {
       "inputs": [
@@ -983,9 +1290,7 @@
       "name": "burnFrom",
       "outputs": [],
       "stateMutability": "nonpayable",
-      "type": "function",
-      "_diamondFacet": "GNUSDAOGovernanceTokenFacet",
-      "_diamondSelector": "0x79cc6790"
+      "type": "function"
     },
     {
       "inputs": [
@@ -1004,9 +1309,7 @@
         }
       ],
       "stateMutability": "pure",
-      "type": "function",
-      "_diamondFacet": "GNUSDAOVotingMechanismsFacet",
-      "_diamondSelector": "0x2c3556d6"
+      "type": "function"
     },
     {
       "inputs": [
@@ -1035,9 +1338,7 @@
         }
       ],
       "stateMutability": "pure",
-      "type": "function",
-      "_diamondFacet": "GNUSDAOVotingMechanismsFacet",
-      "_diamondSelector": "0x03ba2316"
+      "type": "function"
     },
     {
       "inputs": [
@@ -1061,9 +1362,7 @@
         }
       ],
       "stateMutability": "pure",
-      "type": "function",
-      "_diamondFacet": "GNUSDAOVotingMechanismsFacet",
-      "_diamondSelector": "0xf103dca0"
+      "type": "function"
     },
     {
       "inputs": [
@@ -1082,9 +1381,7 @@
         }
       ],
       "stateMutability": "pure",
-      "type": "function",
-      "_diamondFacet": "GNUSDAOVotingMechanismsFacet",
-      "_diamondSelector": "0x74dd0fea"
+      "type": "function"
     },
     {
       "inputs": [
@@ -1113,9 +1410,7 @@
         }
       ],
       "stateMutability": "pure",
-      "type": "function",
-      "_diamondFacet": "GNUSDAOVotingMechanismsFacet",
-      "_diamondSelector": "0x43bbcf49"
+      "type": "function"
     },
     {
       "inputs": [
@@ -1134,9 +1429,7 @@
         }
       ],
       "stateMutability": "pure",
-      "type": "function",
-      "_diamondFacet": "GNUSDAOVotingMechanismsFacet",
-      "_diamondSelector": "0x546c9fbc"
+      "type": "function"
     },
     {
       "inputs": [
@@ -1149,9 +1442,7 @@
       "name": "cancelProposal",
       "outputs": [],
       "stateMutability": "nonpayable",
-      "type": "function",
-      "_diamondFacet": "GNUSDAOGovernanceFacet",
-      "_diamondSelector": "0xe0a8f6f5"
+      "type": "function"
     },
     {
       "inputs": [
@@ -1175,9 +1466,7 @@
         }
       ],
       "stateMutability": "pure",
-      "type": "function",
-      "_diamondFacet": "GNUSDAOVotingMechanismsFacet",
-      "_diamondSelector": "0x82397cce"
+      "type": "function"
     },
     {
       "inputs": [],
@@ -1190,9 +1479,7 @@
         }
       ],
       "stateMutability": "view",
-      "type": "function",
-      "_diamondFacet": "GNUSDAOGovernanceTokenFacet",
-      "_diamondSelector": "0x313ce567"
+      "type": "function"
     },
     {
       "inputs": [],
@@ -1205,9 +1492,20 @@
         }
       ],
       "stateMutability": "view",
-      "type": "function",
-      "_diamondFacet": "GNUSDAOOwnershipFacet",
-      "_diamondSelector": "0xa217fddf"
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "delegatee",
+          "type": "address"
+        }
+      ],
+      "name": "delegate",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
     },
     {
       "inputs": [
@@ -1220,18 +1518,14 @@
       "name": "delegateVotes",
       "outputs": [],
       "stateMutability": "nonpayable",
-      "type": "function",
-      "_diamondFacet": "GNUSDAOGovernanceFacet",
-      "_diamondSelector": "0x8c5fcdda"
+      "type": "function"
     },
     {
       "inputs": [],
       "name": "depositToTreasury",
       "outputs": [],
       "stateMutability": "payable",
-      "type": "function",
-      "_diamondFacet": "GNUSDAOGovernanceFacet",
-      "_diamondSelector": "0x718b2058"
+      "type": "function"
     },
     {
       "inputs": [
@@ -1271,18 +1565,43 @@
       "name": "diamondCut",
       "outputs": [],
       "stateMutability": "nonpayable",
-      "type": "function",
-      "_diamondFacet": "DiamondCutFacet",
-      "_diamondSelector": "0x1f931c1c"
+      "type": "function"
     },
     {
-      "inputs": [],
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "tokenName",
+          "type": "string"
+        },
+        {
+          "internalType": "string",
+          "name": "tokenSymbol",
+          "type": "string"
+        }
+      ],
       "name": "diamondInitialize000",
       "outputs": [],
       "stateMutability": "nonpayable",
-      "type": "function",
-      "_diamondFacet": "GNUSDAOInitFacet",
-      "_diamondSelector": "0xc47ea632"
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address payable",
+          "name": "to",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "emergencyWithdraw",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
     },
     {
       "inputs": [
@@ -1294,10 +1613,8 @@
       ],
       "name": "executeProposal",
       "outputs": [],
-      "stateMutability": "nonpayable",
-      "type": "function",
-      "_diamondFacet": "GNUSDAOGovernanceFacet",
-      "_diamondSelector": "0x0d61b519"
+      "stateMutability": "payable",
+      "type": "function"
     },
     {
       "inputs": [
@@ -1316,9 +1633,7 @@
         }
       ],
       "stateMutability": "view",
-      "type": "function",
-      "_diamondFacet": "DiamondLoupeFacet",
-      "_diamondSelector": "0xcdffacc6"
+      "type": "function"
     },
     {
       "inputs": [],
@@ -1331,9 +1646,7 @@
         }
       ],
       "stateMutability": "view",
-      "type": "function",
-      "_diamondFacet": "DiamondLoupeFacet",
-      "_diamondSelector": "0x52ef6b2c"
+      "type": "function"
     },
     {
       "inputs": [
@@ -1352,9 +1665,7 @@
         }
       ],
       "stateMutability": "view",
-      "type": "function",
-      "_diamondFacet": "DiamondLoupeFacet",
-      "_diamondSelector": "0xadfca15e"
+      "type": "function"
     },
     {
       "inputs": [],
@@ -1379,9 +1690,39 @@
         }
       ],
       "stateMutability": "view",
-      "type": "function",
-      "_diamondFacet": "DiamondLoupeFacet",
-      "_diamondSelector": "0x7a0ed627"
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "getContractBalance",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "account",
+          "type": "address"
+        }
+      ],
+      "name": "getCurrentVotes",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
     },
     {
       "inputs": [
@@ -1400,9 +1741,7 @@
         }
       ],
       "stateMutability": "view",
-      "type": "function",
-      "_diamondFacet": "GNUSDAOGovernanceFacet",
-      "_diamondSelector": "0xce5119ee"
+      "type": "function"
     },
     {
       "inputs": [
@@ -1412,18 +1751,16 @@
           "type": "address"
         }
       ],
-      "name": "getDelegatedVotes",
+      "name": "getDelegates",
       "outputs": [
         {
-          "internalType": "uint256",
+          "internalType": "address",
           "name": "",
-          "type": "uint256"
+          "type": "address"
         }
       ],
       "stateMutability": "view",
-      "type": "function",
-      "_diamondFacet": "GNUSDAOGovernanceFacet",
-      "_diamondSelector": "0x011b938f"
+      "type": "function"
     },
     {
       "inputs": [],
@@ -1436,9 +1773,7 @@
         }
       ],
       "stateMutability": "view",
-      "type": "function",
-      "_diamondFacet": "GNUSDAOGovernanceTokenFacet",
-      "_diamondSelector": "0x81a4a6d8"
+      "type": "function"
     },
     {
       "inputs": [],
@@ -1450,14 +1785,12 @@
           "type": "uint256"
         }
       ],
-      "stateMutability": "pure",
-      "type": "function",
-      "_diamondFacet": "GNUSDAOValueFacet",
-      "_diamondSelector": "0x4c0f38c2"
+      "stateMutability": "view",
+      "type": "function"
     },
     {
       "inputs": [],
-      "name": "getNumericValue",
+      "name": "getMaxVotesPerWallet",
       "outputs": [
         {
           "internalType": "uint256",
@@ -1465,10 +1798,8 @@
           "type": "uint256"
         }
       ],
-      "stateMutability": "pure",
-      "type": "function",
-      "_diamondFacet": "GNUSDAOValueFacet",
-      "_diamondSelector": "0xd13d9066"
+      "stateMutability": "view",
+      "type": "function"
     },
     {
       "inputs": [
@@ -1492,9 +1823,84 @@
         }
       ],
       "stateMutability": "view",
-      "type": "function",
-      "_diamondFacet": "GNUSDAOGovernanceTokenFacet",
-      "_diamondSelector": "0xb0ca253e"
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "account",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "blockNumber",
+          "type": "uint256"
+        }
+      ],
+      "name": "getPriorVotes",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "proposalId",
+          "type": "uint256"
+        }
+      ],
+      "name": "getProposalActions",
+      "outputs": [
+        {
+          "internalType": "address[]",
+          "name": "targets",
+          "type": "address[]"
+        },
+        {
+          "internalType": "uint256[]",
+          "name": "values",
+          "type": "uint256[]"
+        },
+        {
+          "internalType": "bytes[]",
+          "name": "calldatas",
+          "type": "bytes[]"
+        },
+        {
+          "internalType": "string[]",
+          "name": "descriptions",
+          "type": "string[]"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "proposalId",
+          "type": "uint256"
+        }
+      ],
+      "name": "getProposalActionsCount",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
     },
     {
       "inputs": [
@@ -1528,9 +1934,7 @@
         }
       ],
       "stateMutability": "view",
-      "type": "function",
-      "_diamondFacet": "GNUSDAOGovernanceFacet",
-      "_diamondSelector": "0x9f83c4b2"
+      "type": "function"
     },
     {
       "inputs": [],
@@ -1543,9 +1947,7 @@
         }
       ],
       "stateMutability": "view",
-      "type": "function",
-      "_diamondFacet": "GNUSDAOGovernanceFacet",
-      "_diamondSelector": "0xc08cc02d"
+      "type": "function"
     },
     {
       "inputs": [
@@ -1586,12 +1988,46 @@
           "internalType": "bool",
           "name": "cancelled",
           "type": "bool"
+        },
+        {
+          "internalType": "bool",
+          "name": "queued",
+          "type": "bool"
+        },
+        {
+          "internalType": "uint256",
+          "name": "queuedTime",
+          "type": "uint256"
         }
       ],
       "stateMutability": "view",
-      "type": "function",
-      "_diamondFacet": "GNUSDAOGovernanceFacet",
-      "_diamondSelector": "0x401853b7"
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "getProposalThreshold",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "getQuorumThreshold",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
     },
     {
       "inputs": [
@@ -1610,9 +2046,7 @@
         }
       ],
       "stateMutability": "view",
-      "type": "function",
-      "_diamondFacet": "GNUSDAOOwnershipFacet",
-      "_diamondSelector": "0x248a9ca3"
+      "type": "function"
     },
     {
       "inputs": [
@@ -1636,9 +2070,7 @@
         }
       ],
       "stateMutability": "view",
-      "type": "function",
-      "_diamondFacet": "GNUSDAOOwnershipFacet",
-      "_diamondSelector": "0x9010d07c"
+      "type": "function"
     },
     {
       "inputs": [
@@ -1657,39 +2089,20 @@
         }
       ],
       "stateMutability": "view",
-      "type": "function",
-      "_diamondFacet": "GNUSDAOOwnershipFacet",
-      "_diamondSelector": "0xca15c873"
+      "type": "function"
     },
     {
       "inputs": [],
-      "name": "getTokenName",
+      "name": "getTimelockDelay",
       "outputs": [
         {
-          "internalType": "string",
+          "internalType": "uint256",
           "name": "",
-          "type": "string"
+          "type": "uint256"
         }
       ],
-      "stateMutability": "pure",
-      "type": "function",
-      "_diamondFacet": "GNUSDAOValueFacet",
-      "_diamondSelector": "0x862b092b"
-    },
-    {
-      "inputs": [],
-      "name": "getTokenSymbol",
-      "outputs": [
-        {
-          "internalType": "string",
-          "name": "",
-          "type": "string"
-        }
-      ],
-      "stateMutability": "pure",
-      "type": "function",
-      "_diamondFacet": "GNUSDAOValueFacet",
-      "_diamondSelector": "0xf1850af8"
+      "stateMutability": "view",
+      "type": "function"
     },
     {
       "inputs": [],
@@ -1702,24 +2115,7 @@
         }
       ],
       "stateMutability": "view",
-      "type": "function",
-      "_diamondFacet": "GNUSDAOGovernanceFacet",
-      "_diamondSelector": "0x9b5655dc"
-    },
-    {
-      "inputs": [],
-      "name": "getValue",
-      "outputs": [
-        {
-          "internalType": "string",
-          "name": "",
-          "type": "string"
-        }
-      ],
-      "stateMutability": "pure",
-      "type": "function",
-      "_diamondFacet": "GNUSDAOValueFacet",
-      "_diamondSelector": "0x20965255"
+      "type": "function"
     },
     {
       "inputs": [
@@ -1743,9 +2139,7 @@
         }
       ],
       "stateMutability": "view",
-      "type": "function",
-      "_diamondFacet": "GNUSDAOGovernanceFacet",
-      "_diamondSelector": "0xbc3f931f"
+      "type": "function"
     },
     {
       "inputs": [
@@ -1769,9 +2163,7 @@
         }
       ],
       "stateMutability": "pure",
-      "type": "function",
-      "_diamondFacet": "GNUSDAOVotingMechanismsFacet",
-      "_diamondSelector": "0x5c623903"
+      "type": "function"
     },
     {
       "inputs": [],
@@ -1808,6 +2200,16 @@
               "internalType": "uint256",
               "name": "proposalCooldown",
               "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "timelockDelay",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "maxProposalActions",
+              "type": "uint256"
             }
           ],
           "internalType": "struct GNUSDAOGovernanceFacet.VotingConfig",
@@ -1816,9 +2218,33 @@
         }
       ],
       "stateMutability": "view",
-      "type": "function",
-      "_diamondFacet": "GNUSDAOGovernanceFacet",
-      "_diamondSelector": "0x721c3c64"
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "getVotingDelay",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "getVotingPeriod",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
     },
     {
       "inputs": [
@@ -1837,9 +2263,7 @@
         }
       ],
       "stateMutability": "view",
-      "type": "function",
-      "_diamondFacet": "GNUSDAOGovernanceTokenFacet",
-      "_diamondSelector": "0xbb4d4436"
+      "type": "function"
     },
     {
       "inputs": [
@@ -1857,9 +2281,7 @@
       "name": "grantRole",
       "outputs": [],
       "stateMutability": "nonpayable",
-      "type": "function",
-      "_diamondFacet": "GNUSDAOOwnershipFacet",
-      "_diamondSelector": "0x2f2ff15d"
+      "type": "function"
     },
     {
       "inputs": [
@@ -1883,9 +2305,7 @@
         }
       ],
       "stateMutability": "view",
-      "type": "function",
-      "_diamondFacet": "GNUSDAOOwnershipFacet",
-      "_diamondSelector": "0x91d14854"
+      "type": "function"
     },
     {
       "inputs": [
@@ -1909,9 +2329,7 @@
         }
       ],
       "stateMutability": "view",
-      "type": "function",
-      "_diamondFacet": "GNUSDAOGovernanceFacet",
-      "_diamondSelector": "0x43859632"
+      "type": "function"
     },
     {
       "inputs": [
@@ -1924,9 +2342,7 @@
       "name": "initializeGovernance",
       "outputs": [],
       "stateMutability": "nonpayable",
-      "type": "function",
-      "_diamondFacet": "GNUSDAOGovernanceFacet",
-      "_diamondSelector": "0x55d202a6"
+      "type": "function"
     },
     {
       "inputs": [
@@ -1949,9 +2365,20 @@
       "name": "initializeGovernanceToken",
       "outputs": [],
       "stateMutability": "nonpayable",
-      "type": "function",
-      "_diamondFacet": "GNUSDAOGovernanceTokenFacet",
-      "_diamondSelector": "0xe8a2bf77"
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "isGovernancePaused",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
     },
     {
       "inputs": [
@@ -1970,9 +2397,7 @@
         }
       ],
       "stateMutability": "view",
-      "type": "function",
-      "_diamondFacet": "GNUSDAOGovernanceTokenFacet",
-      "_diamondSelector": "0xaa271e1a"
+      "type": "function"
     },
     {
       "inputs": [
@@ -1991,9 +2416,7 @@
         }
       ],
       "stateMutability": "view",
-      "type": "function",
-      "_diamondFacet": "GNUSDAOGovernanceFacet",
-      "_diamondSelector": "0x3b665994"
+      "type": "function"
     },
     {
       "inputs": [
@@ -2011,9 +2434,7 @@
       "name": "mint",
       "outputs": [],
       "stateMutability": "nonpayable",
-      "type": "function",
-      "_diamondFacet": "GNUSDAOGovernanceTokenFacet",
-      "_diamondSelector": "0x40c10f19"
+      "type": "function"
     },
     {
       "inputs": [],
@@ -2026,9 +2447,7 @@
         }
       ],
       "stateMutability": "view",
-      "type": "function",
-      "_diamondFacet": "GNUSDAOGovernanceTokenFacet",
-      "_diamondSelector": "0x06fdde03"
+      "type": "function"
     },
     {
       "inputs": [],
@@ -2041,18 +2460,14 @@
         }
       ],
       "stateMutability": "view",
-      "type": "function",
-      "_diamondFacet": "GNUSDAOOwnershipFacet",
-      "_diamondSelector": "0x8da5cb5b"
+      "type": "function"
     },
     {
       "inputs": [],
       "name": "pause",
       "outputs": [],
       "stateMutability": "nonpayable",
-      "type": "function",
-      "_diamondFacet": "GNUSDAOGovernanceTokenFacet",
-      "_diamondSelector": "0x8456cb59"
+      "type": "function"
     },
     {
       "inputs": [],
@@ -2065,9 +2480,14 @@
         }
       ],
       "stateMutability": "view",
-      "type": "function",
-      "_diamondFacet": "GNUSDAOGovernanceFacet",
-      "_diamondSelector": "0x5c975abb"
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "pauseGovernance",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
     },
     {
       "inputs": [
@@ -2080,6 +2500,26 @@
           "internalType": "string",
           "name": "ipfsHash",
           "type": "string"
+        },
+        {
+          "internalType": "address[]",
+          "name": "targets",
+          "type": "address[]"
+        },
+        {
+          "internalType": "uint256[]",
+          "name": "values",
+          "type": "uint256[]"
+        },
+        {
+          "internalType": "bytes[]",
+          "name": "calldatas",
+          "type": "bytes[]"
+        },
+        {
+          "internalType": "string[]",
+          "name": "descriptions",
+          "type": "string[]"
         }
       ],
       "name": "propose",
@@ -2091,9 +2531,27 @@
         }
       ],
       "stateMutability": "nonpayable",
-      "type": "function",
-      "_diamondFacet": "GNUSDAOGovernanceFacet",
-      "_diamondSelector": "0x1c4afc57"
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "proposalId",
+          "type": "uint256"
+        }
+      ],
+      "name": "queueProposal",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "reconcileTreasuryBalance",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
     },
     {
       "inputs": [
@@ -2106,9 +2564,7 @@
       "name": "removeMinter",
       "outputs": [],
       "stateMutability": "nonpayable",
-      "type": "function",
-      "_diamondFacet": "GNUSDAOGovernanceTokenFacet",
-      "_diamondSelector": "0x3092afd5"
+      "type": "function"
     },
     {
       "inputs": [
@@ -2121,18 +2577,7 @@
       "name": "removeTreasuryManager",
       "outputs": [],
       "stateMutability": "nonpayable",
-      "type": "function",
-      "_diamondFacet": "GNUSDAOGovernanceFacet",
-      "_diamondSelector": "0x2c60bbf1"
-    },
-    {
-      "inputs": [],
-      "name": "renounceOwnership",
-      "outputs": [],
-      "stateMutability": "nonpayable",
-      "type": "function",
-      "_diamondFacet": "GNUSDAOGovernanceFacet",
-      "_diamondSelector": "0x715018a6"
+      "type": "function"
     },
     {
       "inputs": [
@@ -2150,18 +2595,14 @@
       "name": "renounceRole",
       "outputs": [],
       "stateMutability": "nonpayable",
-      "type": "function",
-      "_diamondFacet": "GNUSDAOOwnershipFacet",
-      "_diamondSelector": "0x36568abe"
+      "type": "function"
     },
     {
       "inputs": [],
       "name": "revokeDelegation",
       "outputs": [],
       "stateMutability": "nonpayable",
-      "type": "function",
-      "_diamondFacet": "GNUSDAOGovernanceFacet",
-      "_diamondSelector": "0xa4d31805"
+      "type": "function"
     },
     {
       "inputs": [
@@ -2179,9 +2620,43 @@
       "name": "revokeRole",
       "outputs": [],
       "stateMutability": "nonpayable",
-      "type": "function",
-      "_diamondFacet": "GNUSDAOOwnershipFacet",
-      "_diamondSelector": "0xd547741f"
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "role",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "address",
+          "name": "account",
+          "type": "address"
+        }
+      ],
+      "name": "safeRenounceRole",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "role",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "address",
+          "name": "account",
+          "type": "address"
+        }
+      ],
+      "name": "safeRevokeRole",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
     },
     {
       "inputs": [
@@ -2200,9 +2675,7 @@
         }
       ],
       "stateMutability": "view",
-      "type": "function",
-      "_diamondFacet": "DiamondLoupeFacet",
-      "_diamondSelector": "0x01ffc9a7"
+      "type": "function"
     },
     {
       "inputs": [],
@@ -2215,9 +2688,7 @@
         }
       ],
       "stateMutability": "view",
-      "type": "function",
-      "_diamondFacet": "GNUSDAOGovernanceTokenFacet",
-      "_diamondSelector": "0x95d89b41"
+      "type": "function"
     },
     {
       "inputs": [],
@@ -2230,9 +2701,7 @@
         }
       ],
       "stateMutability": "view",
-      "type": "function",
-      "_diamondFacet": "GNUSDAOGovernanceTokenFacet",
-      "_diamondSelector": "0x18160ddd"
+      "type": "function"
     },
     {
       "inputs": [
@@ -2256,9 +2725,7 @@
         }
       ],
       "stateMutability": "nonpayable",
-      "type": "function",
-      "_diamondFacet": "GNUSDAOGovernanceTokenFacet",
-      "_diamondSelector": "0xa9059cbb"
+      "type": "function"
     },
     {
       "inputs": [
@@ -2287,9 +2754,7 @@
         }
       ],
       "stateMutability": "nonpayable",
-      "type": "function",
-      "_diamondFacet": "GNUSDAOGovernanceTokenFacet",
-      "_diamondSelector": "0x23b872dd"
+      "type": "function"
     },
     {
       "inputs": [
@@ -2302,18 +2767,99 @@
       "name": "transferOwnership",
       "outputs": [],
       "stateMutability": "nonpayable",
-      "type": "function",
-      "_diamondFacet": "GNUSDAOOwnershipFacet",
-      "_diamondSelector": "0xf2fde38b"
+      "type": "function"
     },
     {
       "inputs": [],
       "name": "unpause",
       "outputs": [],
       "stateMutability": "nonpayable",
-      "type": "function",
-      "_diamondFacet": "GNUSDAOGovernanceTokenFacet",
-      "_diamondSelector": "0x3f4ba83a"
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "unpauseGovernance",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "newMax",
+          "type": "uint256"
+        }
+      ],
+      "name": "updateMaxVotesPerWallet",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "newThreshold",
+          "type": "uint256"
+        }
+      ],
+      "name": "updateProposalThreshold",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "newThreshold",
+          "type": "uint256"
+        }
+      ],
+      "name": "updateQuorumThreshold",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "newDelay",
+          "type": "uint256"
+        }
+      ],
+      "name": "updateTimelockDelay",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "newDelay",
+          "type": "uint256"
+        }
+      ],
+      "name": "updateVotingDelay",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "newPeriod",
+          "type": "uint256"
+        }
+      ],
+      "name": "updateVotingPeriod",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
     },
     {
       "inputs": [],
@@ -2326,9 +2872,7 @@
         }
       ],
       "stateMutability": "view",
-      "type": "function",
-      "_diamondFacet": "GNUSDAOOwnershipFacet",
-      "_diamondSelector": "0xf72c0d8b"
+      "type": "function"
     },
     {
       "inputs": [
@@ -2362,9 +2906,7 @@
         }
       ],
       "stateMutability": "pure",
-      "type": "function",
-      "_diamondFacet": "GNUSDAOVotingMechanismsFacet",
-      "_diamondSelector": "0xcc951dba"
+      "type": "function"
     },
     {
       "inputs": [
@@ -2382,9 +2924,7 @@
       "name": "vote",
       "outputs": [],
       "stateMutability": "nonpayable",
-      "type": "function",
-      "_diamondFacet": "GNUSDAOGovernanceFacet",
-      "_diamondSelector": "0xb384abef"
+      "type": "function"
     },
     {
       "inputs": [
@@ -2402,9 +2942,7 @@
       "name": "withdrawFromTreasury",
       "outputs": [],
       "stateMutability": "nonpayable",
-      "type": "function",
-      "_diamondFacet": "GNUSDAOGovernanceFacet",
-      "_diamondSelector": "0x0663af08"
+      "type": "function"
     }
   ],
   "bytecode": "",
@@ -2412,10 +2950,10 @@
   "linkReferences": {},
   "deployedLinkReferences": {},
   "_diamondMetadata": {
-    "generatedAt": "2025-10-01T06:50:55.719Z",
+    "generatedAt": "2026-04-07T14:22:53.694Z",
     "diamondName": "GNUSDAODiamond",
     "networkName": "sepolia",
-    "chainId": 11155111,
+    "chainId": 31337,
     "selectorMap": {
       "0x1f931c1c": "DiamondCutFacet",
       "0xcdffacc6": "DiamondLoupeFacet",
@@ -2433,13 +2971,10 @@
       "0x8da5cb5b": "GNUSDAOOwnershipFacet",
       "0x36568abe": "GNUSDAOOwnershipFacet",
       "0xd547741f": "GNUSDAOOwnershipFacet",
+      "0x93e84d3c": "GNUSDAOOwnershipFacet",
+      "0x2cf9af0c": "GNUSDAOOwnershipFacet",
       "0xf2fde38b": "GNUSDAOOwnershipFacet",
-      "0xc47ea632": "GNUSDAOInitFacet",
-      "0x4c0f38c2": "GNUSDAOValueFacet",
-      "0xd13d9066": "GNUSDAOValueFacet",
-      "0x862b092b": "GNUSDAOValueFacet",
-      "0xf1850af8": "GNUSDAOValueFacet",
-      "0x20965255": "GNUSDAOValueFacet",
+      "0x1db0ed12": "GNUSDAOInitFacet",
       "0x983b2d56": "GNUSDAOGovernanceTokenFacet",
       "0xdd62ed3e": "GNUSDAOGovernanceTokenFacet",
       "0x095ea7b3": "GNUSDAOGovernanceTokenFacet",
@@ -2447,7 +2982,10 @@
       "0x42966c68": "GNUSDAOGovernanceTokenFacet",
       "0x79cc6790": "GNUSDAOGovernanceTokenFacet",
       "0x313ce567": "GNUSDAOGovernanceTokenFacet",
+      "0x5c19a95c": "GNUSDAOGovernanceTokenFacet",
+      "0x169db77d": "GNUSDAOGovernanceTokenFacet",
       "0x81a4a6d8": "GNUSDAOGovernanceTokenFacet",
+      "0x4c0f38c2": "GNUSDAOGovernanceTokenFacet",
       "0xb0ca253e": "GNUSDAOGovernanceTokenFacet",
       "0xbb4d4436": "GNUSDAOGovernanceTokenFacet",
       "0xe8a2bf77": "GNUSDAOGovernanceTokenFacet",
@@ -2465,23 +3003,44 @@
       "0xe0a8f6f5": "GNUSDAOGovernanceFacet",
       "0x8c5fcdda": "GNUSDAOGovernanceFacet",
       "0x718b2058": "GNUSDAOGovernanceFacet",
+      "0x95ccea67": "GNUSDAOGovernanceFacet",
       "0x0d61b519": "GNUSDAOGovernanceFacet",
+      "0x6f9fb98a": "GNUSDAOGovernanceFacet",
+      "0xb4b5ea57": "GNUSDAOGovernanceFacet",
       "0xce5119ee": "GNUSDAOGovernanceFacet",
-      "0x011b938f": "GNUSDAOGovernanceFacet",
+      "0x4ea4a50f": "GNUSDAOGovernanceFacet",
+      "0x782d6fe1": "GNUSDAOGovernanceFacet",
+      "0xe26b2bea": "GNUSDAOGovernanceFacet",
+      "0x82442796": "GNUSDAOGovernanceFacet",
       "0x9f83c4b2": "GNUSDAOGovernanceFacet",
       "0xc08cc02d": "GNUSDAOGovernanceFacet",
       "0x401853b7": "GNUSDAOGovernanceFacet",
+      "0x85a21b19": "GNUSDAOGovernanceFacet",
+      "0x4afa71b9": "GNUSDAOGovernanceFacet",
+      "0x481c42a2": "GNUSDAOGovernanceFacet",
       "0x9b5655dc": "GNUSDAOGovernanceFacet",
       "0xbc3f931f": "GNUSDAOGovernanceFacet",
       "0x721c3c64": "GNUSDAOGovernanceFacet",
+      "0xa2b170b0": "GNUSDAOGovernanceFacet",
+      "0x3ecc6a43": "GNUSDAOGovernanceFacet",
       "0x43859632": "GNUSDAOGovernanceFacet",
       "0x55d202a6": "GNUSDAOGovernanceFacet",
+      "0xfd595250": "GNUSDAOGovernanceFacet",
       "0x3b665994": "GNUSDAOGovernanceFacet",
+      "0x1b93a3ee": "GNUSDAOGovernanceFacet",
       "0x5c975abb": "GNUSDAOGovernanceFacet",
-      "0x1c4afc57": "GNUSDAOGovernanceFacet",
+      "0x9834e30e": "GNUSDAOGovernanceFacet",
+      "0x94a14a34": "GNUSDAOGovernanceFacet",
+      "0x8a3839c7": "GNUSDAOGovernanceFacet",
       "0x2c60bbf1": "GNUSDAOGovernanceFacet",
-      "0x715018a6": "GNUSDAOGovernanceFacet",
       "0xa4d31805": "GNUSDAOGovernanceFacet",
+      "0x548a6594": "GNUSDAOGovernanceFacet",
+      "0xd48b9a07": "GNUSDAOGovernanceFacet",
+      "0x57ad6279": "GNUSDAOGovernanceFacet",
+      "0x210a5e87": "GNUSDAOGovernanceFacet",
+      "0x8e52d9d3": "GNUSDAOGovernanceFacet",
+      "0x63d61a19": "GNUSDAOGovernanceFacet",
+      "0xef00ef43": "GNUSDAOGovernanceFacet",
       "0xb384abef": "GNUSDAOGovernanceFacet",
       "0x0663af08": "GNUSDAOGovernanceFacet",
       "0xd88a22cb": "GNUSDAOVotingMechanismsFacet",
@@ -2496,12 +3055,11 @@
       "0xcc951dba": "GNUSDAOVotingMechanismsFacet"
     },
     "stats": {
-      "totalFunctions": 77,
-      "totalEvents": 24,
-      "totalErrors": 43,
-      "facetCount": 8,
+      "totalFunctions": 98,
+      "totalEvents": 39,
+      "totalErrors": 60,
+      "facetCount": 7,
       "duplicateSelectorsSkipped": 0
     }
-  },
-  "metadata": "{\"compiler\":\"diamond-abi-generator\",\"generatedAt\":\"2025-10-01T06:50:55.719Z\",\"networkName\":\"sepolia\",\"chainId\":11155111,\"selectorMap\":{\"0x1f931c1c\":\"DiamondCutFacet\",\"0xcdffacc6\":\"DiamondLoupeFacet\",\"0x52ef6b2c\":\"DiamondLoupeFacet\",\"0xadfca15e\":\"DiamondLoupeFacet\",\"0x7a0ed627\":\"DiamondLoupeFacet\",\"0x01ffc9a7\":\"DiamondLoupeFacet\",\"0xa217fddf\":\"GNUSDAOOwnershipFacet\",\"0xf72c0d8b\":\"GNUSDAOOwnershipFacet\",\"0x248a9ca3\":\"GNUSDAOOwnershipFacet\",\"0x9010d07c\":\"GNUSDAOOwnershipFacet\",\"0xca15c873\":\"GNUSDAOOwnershipFacet\",\"0x2f2ff15d\":\"GNUSDAOOwnershipFacet\",\"0x91d14854\":\"GNUSDAOOwnershipFacet\",\"0x8da5cb5b\":\"GNUSDAOOwnershipFacet\",\"0x36568abe\":\"GNUSDAOOwnershipFacet\",\"0xd547741f\":\"GNUSDAOOwnershipFacet\",\"0xf2fde38b\":\"GNUSDAOOwnershipFacet\",\"0xc47ea632\":\"GNUSDAOInitFacet\",\"0x4c0f38c2\":\"GNUSDAOValueFacet\",\"0xd13d9066\":\"GNUSDAOValueFacet\",\"0x862b092b\":\"GNUSDAOValueFacet\",\"0xf1850af8\":\"GNUSDAOValueFacet\",\"0x20965255\":\"GNUSDAOValueFacet\",\"0x983b2d56\":\"GNUSDAOGovernanceTokenFacet\",\"0xdd62ed3e\":\"GNUSDAOGovernanceTokenFacet\",\"0x095ea7b3\":\"GNUSDAOGovernanceTokenFacet\",\"0x70a08231\":\"GNUSDAOGovernanceTokenFacet\",\"0x42966c68\":\"GNUSDAOGovernanceTokenFacet\",\"0x79cc6790\":\"GNUSDAOGovernanceTokenFacet\",\"0x313ce567\":\"GNUSDAOGovernanceTokenFacet\",\"0x81a4a6d8\":\"GNUSDAOGovernanceTokenFacet\",\"0xb0ca253e\":\"GNUSDAOGovernanceTokenFacet\",\"0xbb4d4436\":\"GNUSDAOGovernanceTokenFacet\",\"0xe8a2bf77\":\"GNUSDAOGovernanceTokenFacet\",\"0xaa271e1a\":\"GNUSDAOGovernanceTokenFacet\",\"0x40c10f19\":\"GNUSDAOGovernanceTokenFacet\",\"0x06fdde03\":\"GNUSDAOGovernanceTokenFacet\",\"0x8456cb59\":\"GNUSDAOGovernanceTokenFacet\",\"0x3092afd5\":\"GNUSDAOGovernanceTokenFacet\",\"0x95d89b41\":\"GNUSDAOGovernanceTokenFacet\",\"0x18160ddd\":\"GNUSDAOGovernanceTokenFacet\",\"0xa9059cbb\":\"GNUSDAOGovernanceTokenFacet\",\"0x23b872dd\":\"GNUSDAOGovernanceTokenFacet\",\"0x3f4ba83a\":\"GNUSDAOGovernanceTokenFacet\",\"0xa333658f\":\"GNUSDAOGovernanceFacet\",\"0xe0a8f6f5\":\"GNUSDAOGovernanceFacet\",\"0x8c5fcdda\":\"GNUSDAOGovernanceFacet\",\"0x718b2058\":\"GNUSDAOGovernanceFacet\",\"0x0d61b519\":\"GNUSDAOGovernanceFacet\",\"0xce5119ee\":\"GNUSDAOGovernanceFacet\",\"0x011b938f\":\"GNUSDAOGovernanceFacet\",\"0x9f83c4b2\":\"GNUSDAOGovernanceFacet\",\"0xc08cc02d\":\"GNUSDAOGovernanceFacet\",\"0x401853b7\":\"GNUSDAOGovernanceFacet\",\"0x9b5655dc\":\"GNUSDAOGovernanceFacet\",\"0xbc3f931f\":\"GNUSDAOGovernanceFacet\",\"0x721c3c64\":\"GNUSDAOGovernanceFacet\",\"0x43859632\":\"GNUSDAOGovernanceFacet\",\"0x55d202a6\":\"GNUSDAOGovernanceFacet\",\"0x3b665994\":\"GNUSDAOGovernanceFacet\",\"0x5c975abb\":\"GNUSDAOGovernanceFacet\",\"0x1c4afc57\":\"GNUSDAOGovernanceFacet\",\"0x2c60bbf1\":\"GNUSDAOGovernanceFacet\",\"0x715018a6\":\"GNUSDAOGovernanceFacet\",\"0xa4d31805\":\"GNUSDAOGovernanceFacet\",\"0xb384abef\":\"GNUSDAOGovernanceFacet\",\"0x0663af08\":\"GNUSDAOGovernanceFacet\",\"0xd88a22cb\":\"GNUSDAOVotingMechanismsFacet\",\"0x2c3556d6\":\"GNUSDAOVotingMechanismsFacet\",\"0x03ba2316\":\"GNUSDAOVotingMechanismsFacet\",\"0xf103dca0\":\"GNUSDAOVotingMechanismsFacet\",\"0x74dd0fea\":\"GNUSDAOVotingMechanismsFacet\",\"0x43bbcf49\":\"GNUSDAOVotingMechanismsFacet\",\"0x546c9fbc\":\"GNUSDAOVotingMechanismsFacet\",\"0x82397cce\":\"GNUSDAOVotingMechanismsFacet\",\"0x5c623903\":\"GNUSDAOVotingMechanismsFacet\",\"0xcc951dba\":\"GNUSDAOVotingMechanismsFacet\"},\"stats\":{\"totalFunctions\":77,\"totalEvents\":24,\"totalErrors\":43,\"facetCount\":8,\"duplicateSelectorsSkipped\":0}}"
+  }
 }

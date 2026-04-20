@@ -35,7 +35,7 @@ export interface VerifyResponse {
 export class SiweAuthService {
 	private static readonly STORAGE_KEY = 'gnus-dao-siwe-session';
 	private static readonly AUTH_TOKEN_KEY = 'gnus-dao-auth-token';
-	private static readonly SESSION_DURATION = 24 * 60 * 60 * 1000; // 24 hours
+	private static readonly SESSION_DURATION = 24 * 60 * 60 * 1000; // 24 hours — SIWE standard is short-lived sessions
 	private static readonly API_BASE_URL =
 		typeof window !== 'undefined'
 			? window.location.origin

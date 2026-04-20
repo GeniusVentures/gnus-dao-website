@@ -129,41 +129,12 @@ export function RuntimeEnvProvider({ children }: RuntimeEnvProviderProps) {
 }
 
 /**
- * Loading component for runtime environment
+ * Loading component for runtime environment.
+ * Renders children immediately — config loads in the background.
+ * Only blocks rendering if config is still loading AND walletConnectProjectId
+ * is not yet available (i.e. nothing useful to show yet).
  */
 export function RuntimeEnvLoader({ children }: { children: React.ReactNode }) {
-  const { isLoading, error } = useRuntimeEnv();
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="flex flex-col items-center gap-4">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-          <p className="text-sm text-muted-foreground">
-            Loading configuration...
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="flex flex-col items-center gap-4 max-w-md text-center">
-          <div className="text-red-500 text-lg">⚠️</div>
-          <h3 className="text-lg font-semibold">Configuration Error</h3>
-          <p className="text-sm text-muted-foreground">{error}</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
-          >
-            Retry
-          </button>
-        </div>
-      </div>
-    );
-  }
-
+  // Don't block rendering — let the app load while config resolves in background
   return <>{children}</>;
 }

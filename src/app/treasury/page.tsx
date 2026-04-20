@@ -6,113 +6,70 @@ import { Button } from "@/components/ui/Button";
 import { gnusDaoService } from "@/lib/contracts/gnusDaoService";
 import { useWeb3Store } from "@/lib/web3/reduxProvider";
 import {
-  BarChart3,
-  DollarSign,
-  Download,
-  ExternalLink,
-  PieChart,
-  Plus,
-  RefreshCw,
-  Send,
-  TrendingDown,
-  TrendingUp,
-  Wallet,
+  BarChart3, DollarSign, Download, ExternalLink,
+  PieChart, Plus, RefreshCw, Send, Wallet, Info,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
+import { ethers } from "ethers";
 
-interface TreasuryAsset {
-  address: string;
-  symbol: string;
-  name: string;
-  balance: bigint;
-  decimals: number;
-  usdValue: number;
-  change24h: number;
-}
+const DIAMOND = "0x84Ba28d277ded98b3488C906E90B6435B116D5b4";
+const SEPOLIA_EXPLORER = "https://sepolia.etherscan.io";
 
 interface TreasuryStats {
-  totalValue: number;
-  change24h: number;
-  nativeBalance: bigint;
-  tokenCount: number;
+  nativeBalance: bigint;       // ETH tracked by contract
+  contractBalance: bigint;     // Actual ETH held by contract
+  gdaoBalance: bigint;         // GDAO tokens held by contract
   lastUpdated: Date;
 }
 
 export default function TreasuryPage() {
-  const { currentNetwork, gnusDaoInitialized } = useWeb3Store();
-  const [treasuryStats, setTreasuryStats] = useState<TreasuryStats | null>(
-    null,
-  );
-  const [assets, setAssets] = useState<TreasuryAsset[]>([]);
+  const { wallet, provider, signer, gnusDaoInitialized } = useWeb3Store();
+  const [stats, setStats] = useState<TreasuryStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [showProposeModal, setShowProposeModal] = useState(false);
+  const [depositing, setDepositing] = useState(false);
+  const [depositAmount, setDepositAmount] = useState("");
+  const [showDepositForm, setShowDepositForm] = useState(false);
 
-  useEffect(() => {
-    loadTreasuryData();
-  }, [gnusDaoInitialized]);
+  useEffect(() => { loadTreasuryData(); }, [gnusDaoInitialized]);
+
+  const ensureService = async () => {
+    if (!gnusDaoService.isInitialized()) {
+      if (provider && signer) {
+        const network = await provider.getNetwork();
+        await gnusDaoService.initialize(provider, signer, Number(network.chainId));
+      } else {
+        // Read-only with public RPC
+        const p = new ethers.JsonRpcProvider("https://ethereum-sepolia-rpc.publicnode.com");
+        await gnusDaoService.initialize(p, undefined, 11155111);
+      }
+    }
+  };
 
   const loadTreasuryData = async () => {
-    if (!gnusDaoInitialized) {
-      // Show empty state when contract is not available
-      setTreasuryStats({
-        totalValue: 0,
-        change24h: 0,
-        nativeBalance: 0n,
-        tokenCount: 0,
-        lastUpdated: new Date(),
-      });
-      setAssets([]);
-      setLoading(false);
-      return;
-    }
-
+    setLoading(true);
     try {
-      setLoading(true);
+      await ensureService();
 
-      // Get real treasury balance from contract
-      const nativeBalance = await gnusDaoService.getTreasuryBalance();
+      const [nativeBalance, contractBalance, gdaoBalance] = await Promise.all([
+        gnusDaoService.getTreasuryBalance(),
+        gnusDaoService.getContractBalance?.() ?? 0n,
+        // GDAO balance of the diamond contract itself
+        (async () => {
+          try {
+            const abi = ["function balanceOf(address) view returns (uint256)"];
+            const rpc = provider ?? new ethers.JsonRpcProvider("https://ethereum-sepolia-rpc.publicnode.com");
+            const token = new ethers.Contract(DIAMOND, abi, rpc);
+            return await token.balanceOf(DIAMOND);
+          } catch { return 0n; }
+        })(),
+      ]);
 
-      // Create assets array with real data
-      const realAssets: TreasuryAsset[] = [
-        {
-          address: "0x0000000000000000000000000000000000000000",
-          symbol: currentNetwork?.nativeCurrency.symbol || "ETH",
-          name: currentNetwork?.nativeCurrency.name || "Ethereum",
-          balance: nativeBalance,
-          decimals: 18,
-          usdValue: 0, // No price oracle available — show raw balance only
-          change24h: 0, // Price change data requires an external price API
-        },
-      ];
-
-      // For Sepolia testnet, we might not have many tokens, so we'll show what we have
-      const totalValue = realAssets.reduce(
-        (sum, asset) => sum + asset.usdValue,
-        0,
-      );
-
-      setAssets(realAssets);
-      setTreasuryStats({
-        totalValue,
-        change24h: 0, // Would need historical data for real change calculation
-        nativeBalance,
-        tokenCount: realAssets.length,
-        lastUpdated: new Date(),
-      });
+      setStats({ nativeBalance, contractBalance, gdaoBalance, lastUpdated: new Date() });
     } catch (error) {
       console.error("Failed to load treasury data:", error);
-      
-      // Enhanced error tracking
-      if (typeof window !== 'undefined') {
-        const { captureError } = await import('@/lib/utils/sentry');
-        captureError(error as Error, {
-          action: 'loadTreasuryData',
-          page: 'treasury',
-        });
-      }
-      
       toast.error("Failed to load treasury data");
     } finally {
       setLoading(false);
@@ -123,333 +80,217 @@ export default function TreasuryPage() {
     setRefreshing(true);
     await loadTreasuryData();
     setRefreshing(false);
-    toast.success("Treasury data refreshed");
+    toast.success("Refreshed");
   };
 
-  const formatBalance = (balance: bigint, decimals: number): string => {
-    const divisor = BigInt(10 ** decimals);
-    const whole = balance / divisor;
-    const fraction = balance % divisor;
-
-    if (fraction === 0n) {
-      return whole.toString();
+  const handleDeposit = async () => {
+    if (!wallet.isConnected || !provider || !signer) {
+      alert("Please connect your wallet to deposit ETH.");
+      return;
     }
-
-    const fractionStr = fraction.toString().padStart(decimals, "0");
-    const trimmed = fractionStr.replace(/0+$/, "");
-    return `${whole}.${trimmed}`;
+    const amount = parseFloat(depositAmount);
+    if (isNaN(amount) || amount <= 0) {
+      alert("Enter a valid ETH amount.");
+      return;
+    }
+    setDepositing(true);
+    try {
+      const network = await provider.getNetwork();
+      await gnusDaoService.initialize(provider, signer, Number(network.chainId));
+      toast.loading("Opening MetaMask...", { id: "deposit" });
+      const tx = await gnusDaoService.depositToTreasury(ethers.parseEther(depositAmount));
+      toast.loading("Waiting for confirmation...", { id: "deposit" });
+      await tx.wait();
+      toast.dismiss("deposit");
+      toast.success(`Deposited ${depositAmount} ETH to treasury`);
+      setDepositAmount("");
+      setShowDepositForm(false);
+      loadTreasuryData();
+    } catch (error: any) {
+      toast.dismiss("deposit");
+      const msg = error?.reason || error?.message || "Deposit failed";
+      alert("Deposit failed: " + msg);
+    } finally {
+      setDepositing(false);
+    }
   };
 
-  const formatUSD = (value: number): string => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(value);
+  const fmt = (val: bigint) => {
+    const n = Number(ethers.formatEther(val));
+    return n === 0 ? "0" : n.toFixed(6).replace(/\.?0+$/, "");
   };
-
-  const formatChange = (change: number): string => {
-    const sign = change >= 0 ? "+" : "";
-    return `${sign}${change.toFixed(2)}%`;
-  };
-
-  // Skip contract check for testing
-  // if (!gnusDaoInitialized) {
-  //   return (
-  //     <div className="container mx-auto px-4 py-8">
-  //       <div className="text-center">
-  //         <h1 className="text-3xl font-bold mb-4">Treasury Dashboard</h1>
-  //         <p className="text-muted-foreground mb-8">
-  //           GNUS DAO contract not available on this network.
-  //         </p>
-  //       </div>
-  //     </div>
-  //   )
-  // }
 
   return (
     <AuthGuard requireAuth={false}>
       <div className="container mx-auto px-4 py-8">
+
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
           <div>
-            <h1 className="text-3xl font-bold mb-2">Treasury Dashboard</h1>
-            <p className="text-muted-foreground">
-              Monitor and manage GNUS DAO treasury assets
+            <h1 className="text-3xl font-bold mb-1">Treasury</h1>
+            <p className="text-muted-foreground text-sm">
+              Contract: <a href={`${SEPOLIA_EXPLORER}/address/${DIAMOND}`} target="_blank" rel="noopener noreferrer" className="font-mono hover:underline text-primary">{DIAMOND.slice(0,10)}...{DIAMOND.slice(-6)}</a>
+              <span className="ml-2 text-xs bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300 px-2 py-0.5 rounded">Sepolia Testnet</span>
             </p>
           </div>
-          <div className="flex gap-2 mt-4 sm:mt-0">
-            <Button
-              variant="outline"
-              onClick={handleRefresh}
-              disabled={refreshing}
-              className="flex items-center gap-2"
-            >
-              <RefreshCw
-                className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`}
-              />
-              Refresh
-            </Button>
-            <Button variant="outline" className="flex items-center gap-2">
-              <Download className="h-4 w-4" />
-              Export
-            </Button>
-          </div>
+          <Button variant="outline" onClick={handleRefresh} disabled={refreshing} className="mt-4 sm:mt-0 flex items-center gap-2">
+            <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
+            Refresh
+          </Button>
         </div>
 
         {loading ? (
-          <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-            <p className="mt-4 text-muted-foreground">
-              Loading treasury data...
-            </p>
+          <div className="flex items-center justify-center py-20">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
           </div>
         ) : (
           <>
-            {/* Treasury Overview */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-              <div className="bg-card border rounded-lg p-6" data-testid="stat">
-                <div className="flex items-center">
-                  <DollarSign className="h-8 w-8 text-green-500" />
-                  <div className="ml-4">
-                    <p className="text-sm font-medium text-muted-foreground">
-                      Total Value
-                    </p>
-                    <p className="text-2xl font-bold">
-                      {treasuryStats
-                        ? formatUSD(treasuryStats.totalValue)
-                        : "$0"}
-                    </p>
-                    {treasuryStats && (
-                      <p
-                        className={`text-sm flex items-center ${
-                          treasuryStats.change24h >= 0
-                            ? "text-green-600"
-                            : "text-red-600"
-                        }`}
-                      >
-                        {treasuryStats.change24h >= 0 ? (
-                          <TrendingUp className="h-3 w-3 mr-1" />
-                        ) : (
-                          <TrendingDown className="h-3 w-3 mr-1" />
-                        )}
-                        {formatChange(treasuryStats.change24h)} 24h
-                      </p>
-                    )}
-                  </div>
+            {/* Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+              <div className="bg-card border rounded-xl p-6">
+                <div className="flex items-center gap-3 mb-2">
+                  <Wallet className="h-5 w-5 text-blue-500" />
+                  <p className="text-sm text-muted-foreground">Tracked ETH Balance</p>
                 </div>
+                <p className="text-3xl font-bold">{stats ? fmt(stats.nativeBalance) : "0"}</p>
+                <p className="text-sm text-muted-foreground mt-1">ETH (via depositToTreasury)</p>
               </div>
 
-              <div className="bg-card border rounded-lg p-6" data-testid="stat">
-                <div className="flex items-center">
-                  <Wallet className="h-8 w-8 text-blue-500" />
-                  <div className="ml-4">
-                    <p className="text-sm font-medium text-muted-foreground">
-                      Native Balance
-                    </p>
-                    <p
-                      className="text-2xl font-bold"
-                      data-testid="treasury-balance"
-                    >
-                      {treasuryStats
-                        ? formatBalance(treasuryStats.nativeBalance, 18)
-                        : "0"}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      {currentNetwork?.nativeCurrency.symbol || "ETH"}
-                    </p>
-                  </div>
+              <div className="bg-card border rounded-xl p-6">
+                <div className="flex items-center gap-3 mb-2">
+                  <DollarSign className="h-5 w-5 text-green-500" />
+                  <p className="text-sm text-muted-foreground">Actual Contract ETH</p>
                 </div>
+                <p className="text-3xl font-bold">{stats ? fmt(stats.contractBalance) : "0"}</p>
+                <p className="text-sm text-muted-foreground mt-1">ETH held by contract</p>
               </div>
 
-              <div className="bg-card border rounded-lg p-6" data-testid="stat">
-                <div className="flex items-center">
-                  <PieChart className="h-8 w-8 text-purple-500" />
-                  <div className="ml-4">
-                    <p className="text-sm font-medium text-muted-foreground">
-                      Assets
-                    </p>
-                    <p className="text-2xl font-bold">{assets.length}</p>
-                    <p className="text-sm text-muted-foreground">
-                      Different tokens
-                    </p>
-                  </div>
+              <div className="bg-card border rounded-xl p-6">
+                <div className="flex items-center gap-3 mb-2">
+                  <PieChart className="h-5 w-5 text-purple-500" />
+                  <p className="text-sm text-muted-foreground">GDAO in Contract</p>
                 </div>
-              </div>
-
-              <div className="bg-card border rounded-lg p-6" data-testid="stat">
-                <div className="flex items-center">
-                  <BarChart3 className="h-8 w-8 text-orange-500" />
-                  <div className="ml-4">
-                    <p className="text-sm font-medium text-muted-foreground">
-                      Last Updated
-                    </p>
-                    <p className="text-lg font-bold">
-                      {treasuryStats?.lastUpdated.toLocaleTimeString() ||
-                        "Never"}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      {treasuryStats?.lastUpdated.toLocaleDateString() || ""}
-                    </p>
-                  </div>
-                </div>
+                <p className="text-3xl font-bold">{stats ? Number(ethers.formatEther(stats.gdaoBalance)).toLocaleString() : "0"}</p>
+                <p className="text-sm text-muted-foreground mt-1">GDAO tokens</p>
               </div>
             </div>
 
-            {/* Assets Table */}
-            <div className="bg-card border rounded-lg overflow-hidden">
-              <div className="px-6 py-4 border-b">
-                <h2 className="text-lg font-semibold">Treasury Assets</h2>
+            {/* Info banner — treasury is empty */}
+            {stats && stats.nativeBalance === 0n && stats.contractBalance === 0n && (
+              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4 mb-6 flex items-start gap-3">
+                <Info className="h-5 w-5 text-blue-500 mt-0.5 flex-shrink-0" />
+                <div className="text-sm text-blue-800 dark:text-blue-200">
+                  <p className="font-medium mb-1">Treasury is empty</p>
+                  <p>The DAO treasury currently holds no ETH. Use "Deposit ETH" below to fund it. Treasury withdrawals require a governance proposal to be created, voted on, and executed.</p>
+                </div>
               </div>
+            )}
 
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-muted/50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                        Asset
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                        Balance
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                        USD Value
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                        24h Change
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border">
-                    {assets.map((asset) => (
-                      <tr key={asset.address} className="hover:bg-muted/50">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center">
-                            <div className="h-8 w-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-sm font-bold">
-                              {asset.symbol.charAt(0)}
-                            </div>
-                            <div className="ml-3">
-                              <div className="text-sm font-medium">
-                                {asset.name}
-                              </div>
-                              <div className="text-sm text-muted-foreground">
-                                {asset.symbol}
-                              </div>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-medium">
-                            {formatBalance(asset.balance, asset.decimals)}
-                          </div>
-                          <div className="text-sm text-muted-foreground">
-                            {asset.symbol}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-medium text-muted-foreground">
-                            {asset.usdValue > 0 ? formatUSD(asset.usdValue) : <span className="italic">N/A</span>}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div
-                            className={`text-sm flex items-center ${
-                              asset.change24h >= 0
-                                ? "text-green-600"
-                                : "text-red-600"
-                            }`}
-                          >
-                            {asset.change24h >= 0 ? (
-                              <TrendingUp className="h-3 w-3 mr-1" />
-                            ) : (
-                              <TrendingDown className="h-3 w-3 mr-1" />
-                            )}
-                            {formatChange(asset.change24h)}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm">
-                          <div className="flex gap-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="flex items-center gap-2"
-                            >
-                              <Send className="h-3 w-3" />
-                              Transfer
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="flex items-center gap-2"
-                            >
-                              <ExternalLink className="h-3 w-3" />
-                              View
-                            </Button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            {/* Treasury Actions */}
-            <div className="mt-8 bg-card border rounded-lg p-6">
+            {/* Actions */}
+            <div className="bg-card border rounded-xl p-6 mb-6">
               <h2 className="text-lg font-semibold mb-4">Treasury Actions</h2>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Button
-                  variant="outline"
-                  className="h-20 flex-col items-center gap-2"
-                  onClick={() => setShowProposeModal(true)}
-                >
-                  <Send className="h-6 w-6" />
-                  <span className="font-medium">Transfer Assets</span>
-                  <span className="text-xs text-muted-foreground">
-                    Send tokens to addresses
-                  </span>
-                </Button>
 
-                <Button
-                  variant="outline"
-                  className="h-20 flex-col items-center gap-2 opacity-60 cursor-not-allowed"
-                  disabled
-                >
-                  <Plus className="h-6 w-6" />
-                  <span className="font-medium">Add Asset</span>
-                  <span className="text-xs text-muted-foreground">
-                    Coming soon
-                  </span>
-                </Button>
+                {/* Deposit */}
+                <div className="border rounded-lg p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Plus className="h-5 w-5 text-green-500" />
+                    <span className="font-medium">Deposit ETH</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mb-3">Send ETH directly to the treasury. Anyone can deposit.</p>
+                  {showDepositForm ? (
+                    <div className="space-y-2">
+                      <input
+                        type="number"
+                        value={depositAmount}
+                        onChange={e => setDepositAmount(e.target.value)}
+                        placeholder="0.01"
+                        min="0"
+                        step="0.001"
+                        className="w-full px-3 py-2 border border-input bg-background rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                      />
+                      <div className="flex gap-2">
+                        <Button size="sm" onClick={handleDeposit} disabled={depositing || !wallet.isConnected} className="flex-1">
+                          {depositing ? "Depositing..." : "Confirm"}
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => setShowDepositForm(false)} className="flex-1">Cancel</Button>
+                      </div>
+                      {!wallet.isConnected && <p className="text-xs text-red-500">Connect wallet to deposit</p>}
+                    </div>
+                  ) : (
+                    <Button variant="outline" size="sm" className="w-full" onClick={() => setShowDepositForm(true)}>
+                      Deposit ETH
+                    </Button>
+                  )}
+                </div>
 
-                <Button
-                  variant="outline"
-                  className="h-20 flex-col items-center gap-2"
-                  data-testid="chart"
-                >
-                  <BarChart3 className="h-6 w-6" />
-                  <span className="font-medium">Analytics</span>
-                  <span className="text-xs text-muted-foreground">
-                    View detailed reports
-                  </span>
-                </Button>
+                {/* Propose Transfer */}
+                <div className="border rounded-lg p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Send className="h-5 w-5 text-blue-500" />
+                    <span className="font-medium">Propose Transfer</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mb-3">Create a governance proposal to transfer ETH from the treasury. Requires community vote.</p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full"
+                    onClick={() => setShowProposeModal(true)}
+                    disabled={!wallet.isConnected}
+                  >
+                    {wallet.isConnected ? "Create Proposal" : "Connect Wallet"}
+                  </Button>
+                </div>
+
+                {/* View on Etherscan */}
+                <div className="border rounded-lg p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <ExternalLink className="h-5 w-5 text-orange-500" />
+                    <span className="font-medium">View on Etherscan</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mb-3">See all transactions, token holdings, and contract interactions on Etherscan.</p>
+                  <a href={`${SEPOLIA_EXPLORER}/address/${DIAMOND}`} target="_blank" rel="noopener noreferrer">
+                    <Button variant="outline" size="sm" className="w-full flex items-center gap-2">
+                      <ExternalLink className="h-3 w-3" />
+                      Open Etherscan
+                    </Button>
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            {/* How it works */}
+            <div className="bg-card border rounded-xl p-6">
+              <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                <BarChart3 className="h-5 w-5" />
+                How Treasury Works
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-muted-foreground">
+                <div>
+                  <p className="font-medium text-foreground mb-1">Depositing</p>
+                  <p>Anyone can deposit ETH using the "Deposit ETH" button. The contract tracks the balance internally. You can also send ETH directly to the contract address.</p>
+                </div>
+                <div>
+                  <p className="font-medium text-foreground mb-1">Withdrawing</p>
+                  <p>Withdrawals require a governance proposal. Create a "Treasury Management" proposal, get it voted on and passed, then execute it after the 2-day timelock.</p>
+                </div>
+                <div>
+                  <p className="font-medium text-foreground mb-1">Treasury Managers</p>
+                  <p>Addresses with the Treasury Manager role can withdraw directly without a proposal. The owner can assign this role on the Governance page.</p>
+                </div>
+                <div>
+                  <p className="font-medium text-foreground mb-1">Current Status</p>
+                  <p>Treasury balance: <strong>{stats ? fmt(stats.nativeBalance) : "0"} ETH</strong>. Voting delay: 1h. Voting period: 7 days. Timelock: 2 days.</p>
+                </div>
               </div>
             </div>
           </>
         )}
 
-        {/* Propose Treasury Action Modal */}
         {showProposeModal && (
           <ProposeTreasuryActionModal
             onClose={() => setShowProposeModal(false)}
-            onActionProposed={() => {
-              setShowProposeModal(false);
-              handleRefresh();
-            }}
+            onActionProposed={() => { setShowProposeModal(false); handleRefresh(); }}
           />
         )}
       </div>

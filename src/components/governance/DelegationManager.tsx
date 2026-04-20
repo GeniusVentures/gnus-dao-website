@@ -193,7 +193,7 @@ export function DelegationManager() {
                   Your Voting Power
                 </p>
                 <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                  {delegationInfo.votingPower.toString()}
+                  {Number(delegationInfo.votingPower / 10n**18n).toLocaleString()} GDAO
                 </p>
               </div>
               <TrendingUp className="w-8 h-8 text-blue-600 dark:text-blue-400 opacity-50" />
@@ -207,7 +207,7 @@ export function DelegationManager() {
                     Votes Delegated to You
                   </p>
                   <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-                    {delegationInfo.delegatedVotes.toString()}
+                    {Number(delegationInfo.delegatedVotes / 10n**18n).toLocaleString()} GDAO
                   </p>
                 </div>
                 <Users className="w-8 h-8 text-green-600 dark:text-green-400 opacity-50" />

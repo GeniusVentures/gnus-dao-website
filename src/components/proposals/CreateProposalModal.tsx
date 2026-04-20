@@ -1,12 +1,11 @@
 "use client";
 
-import { useSiweProtectedAction } from "@/components/auth/SiweGuard";
 import { useSiwe } from "@/lib/auth/useSiwe";
 import { FileUpload } from "@/components/ipfs/FileUpload";
 import { Button } from "@/components/ui/Button";
 import { gnusDaoService } from "@/lib/contracts/gnusDaoService";
 import { SecureIPFSService } from "@/lib/ipfs/secureUpload";
-import type { IPFSUploadResult, ProposalMetadata } from "@/lib/ipfs/types";
+import type { IPFSUploadResult } from "@/lib/ipfs/types";
 import {
   validateProposalTitle,
   validateProposalDescription,
@@ -14,8 +13,9 @@ import {
   validateIPFSHash,
 } from "@/lib/utils/validation";
 import { useWeb3Store } from "@/lib/web3/reduxProvider";
-import { checkRateLimit } from "@/lib/utils/clientRateLimiter";
+import { checkRateLimit, resetRateLimit } from "@/lib/utils/clientRateLimiter";
 import { useUserActionTracking } from "@/hooks/useUserActionTracking";
+import { ethers } from "ethers";
 import {
   AlertTriangle,
   Code,
@@ -40,6 +40,10 @@ interface ProposalAction {
   value: string;
   signature: string;
   calldata: string;
+  actionType: "none" | "sendEth" | "transferGDAO" | "custom";
+  // human-readable fields for GDAO transfer
+  gdaoRecipient?: string;
+  gdaoAmount?: string;
 }
 
 export function CreateProposalModal({
@@ -47,12 +51,9 @@ export function CreateProposalModal({
   onProposalCreated,
 }: CreateProposalModalProps) {
   const { wallet, provider, signer } = useWeb3Store();
-  const { executeProtected, isAuthenticated } = useSiweProtectedAction();
-  const { signIn } = useSiwe();
+  const { signIn, isAuthenticating, isAuthenticated } = useSiwe();
   const { 
     trackModalAction, 
-    trackFormSubmit, 
-    trackFileUpload, 
     trackProposalAction,
     trackAction 
   } = useUserActionTracking();
@@ -73,14 +74,7 @@ export function CreateProposalModal({
       onClose();
       return;
     }
-
-    // Auto-prompt SIWE sign-in if wallet is connected but not authenticated
-    if (!isAuthenticated && signer) {
-      signIn().catch((error) => {
-        console.error("Auto SIWE sign-in failed:", error);
-        toast.error("Authentication is required to create proposals. Please sign in with Ethereum.");
-      });
-    }
+    // Do NOT auto-trigger SIWE here — user will see the explicit sign-in step inside the modal
   }, []); // Run once on mount
 
   // Basic proposal info
@@ -88,7 +82,7 @@ export function CreateProposalModal({
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState<
     "treasury" | "protocol" | "governance" | "community"
-  >("treasury");
+  >("governance");
   const [discussionUrl] = useState("");
   const [tags] = useState<string[]>([]);
 
@@ -103,7 +97,7 @@ export function CreateProposalModal({
 
   // Proposal actions
   const [actions, setActions] = useState<ProposalAction[]>([
-    { target: "", value: "0", signature: "", calldata: "0x" },
+    { target: "", value: "0", signature: "", calldata: "0x", actionType: "none" },
   ]);
 
   const categories = [
@@ -136,14 +130,8 @@ export function CreateProposalModal({
   const addAction = () => {
     setActions([
       ...actions,
-      { target: "", value: "0", signature: "", calldata: "0x" },
+      { target: "", value: "0", signature: "", calldata: "0x", actionType: "none" },
     ]);
-    
-    trackAction('click', {
-      component: 'CreateProposalModal',
-      action: 'add_proposal_action',
-      actionCount: actions.length + 1,
-    });
   };
 
   const removeAction = (index: number) => {
@@ -238,62 +226,54 @@ export function CreateProposalModal({
   };
 
   const handleSubmit = async () => {
-    // Track proposal submission attempt
-    trackProposalAction('create', undefined, {
-      category,
-      step,
-      titleLength: title.length,
-      descriptionLength: description.length,
-      actionCount: actions.filter(a => a.target || a.signature).length,
-      attachmentCount: attachments.length,
-      votingPeriodDays,
-      executionDelayDays,
-    });
+    // If not authenticated, trigger SIWE sign-in first then continue
+    if (!isAuthenticated) {
+      try {
+        alert("MetaMask will ask you to sign a message to verify your wallet. This is free and does not send a transaction.");
+        await signIn();
+      } catch (err) {
+        alert("Sign-in failed: " + (err instanceof Error ? err.message : "Please try again."));
+        return;
+      }
+    }
 
     // Validate title
     const titleValidation = validateProposalTitle(title);
     if (!titleValidation.isValid) {
-      toast.error(titleValidation.error || "Invalid proposal title");
-      trackAction('form_submit', {
-        component: 'CreateProposalModal',
-        result: 'validation_error',
-        error: 'invalid_title',
-      });
+      alert(titleValidation.error || "Invalid proposal title");
       return;
     }
 
     // Validate description
     const descriptionValidation = validateProposalDescription(description);
     if (!descriptionValidation.isValid) {
-      toast.error(descriptionValidation.error || "Invalid proposal description");
+      alert(descriptionValidation.error || "Invalid proposal description");
       return;
     }
 
     // Check wallet connection
     if (!wallet.isConnected || !wallet.address) {
-      toast.error("Please connect your wallet to create a proposal");
+      alert("Please connect your wallet to create a proposal");
       return;
     }
 
     // Validate wallet address
     const addressValidation = validateEthereumAddress(wallet.address);
     if (!addressValidation.isValid) {
-      toast.error("Invalid wallet address");
+      alert("Invalid wallet address");
       return;
     }
 
     // Check rate limit before submitting
     const rateLimitCheck = checkRateLimit('PROPOSAL_CREATE');
     if (!rateLimitCheck.allowed) {
-      toast.error(
-        `Too many proposals. Please wait ${Math.ceil(rateLimitCheck.resetIn / 60)} minutes before creating another proposal.`
-      );
+      alert(`Rate limit: Please wait ${Math.ceil(rateLimitCheck.resetIn / 60)} minutes before trying again.`);
       return;
     }
 
     // Validate actions - allow proposals without actions (governance proposals)
     const validActions = actions.filter(
-      (action) => action.target.trim() !== "" || action.signature.trim() !== "",
+      (action) => action.actionType !== "none" && (action.target.trim() !== "" || action.signature.trim() !== ""),
     );
 
     // Validate action target addresses
@@ -301,20 +281,21 @@ export function CreateProposalModal({
       if (action.target.trim()) {
         const targetValidation = validateEthereumAddress(action.target);
         if (!targetValidation.isValid) {
-          toast.error(`Invalid target address: ${action.target}`);
+          resetRateLimit('PROPOSAL_CREATE'); // don't penalise validation errors
+          alert(`Invalid target address: ${action.target}`);
           return;
         }
       }
     }
 
-    // Only require actions for certain categories
+    // Only require actions for treasury proposals
     if (category === "treasury" && validActions.length === 0) {
-      toast.error("Treasury proposals require at least one action");
+      resetRateLimit('PROPOSAL_CREATE'); // don't penalise validation errors
+      alert("Treasury proposals require at least one action. Please add an action or change the category.");
       return;
     }
 
     try {
-      // Execute directly, bypassing SIWE protection for on-chain TX
       await submitProposal(titleValidation.sanitized!, descriptionValidation.sanitized!, validActions);
     } catch (error) {
       console.error("Error in handleSubmit:", error);
@@ -328,34 +309,34 @@ export function CreateProposalModal({
     try {
       setLoading(true);
 
-      // Ensure DAO service is initialized with wallet provider and signer
-      try {
-        if (!provider || !signer) {
-          throw new Error("Wallet provider or signer not available");
-        }
-
-        const network = await provider.getNetwork();
-        const initialized = await gnusDaoService.initialize(
-          provider,
-          signer,
-          Number(network.chainId),
-        );
-
-        if (!initialized) {
-          throw new Error(
-            "Failed to initialize DAO service - contract not available on this network",
-          );
-        }
-      } catch (initError) {
-        console.error("Failed to initialize DAO service:", initError);
-        toast.error(
-          `Failed to initialize blockchain connection: ${initError instanceof Error ? initError.message : "Unknown error"}`,
-        );
+      // Ensure DAO service is initialized
+      if (!provider || !signer) {
+        resetRateLimit('PROPOSAL_CREATE');
+        alert("Wallet provider not available. Please reconnect your wallet and try again.");
         return;
       }
 
-      // Create proposal metadata for IPFS
-      const proposalMetadata: ProposalMetadata = {
+      const network = await provider.getNetwork();
+      const initialized = await gnusDaoService.initialize(provider, signer, Number(network.chainId));
+
+      if (!initialized) {
+        resetRateLimit('PROPOSAL_CREATE');
+        alert("Contract not available on this network. Please switch to Sepolia.");
+        return;
+      }
+
+      // Check voting power before attempting — saves a failed tx
+      const votingPower = await gnusDaoService.getVotingPower(wallet.address!);
+      const threshold = ethers.parseEther("1000");
+      if (votingPower < threshold) {
+        resetRateLimit('PROPOSAL_CREATE');
+        alert(`Insufficient voting power. You need at least 1,000 GDAO. You currently have ${ethers.formatEther(votingPower)} GDAO.`);
+        return;
+      }
+
+      // Upload metadata to IPFS
+      toast.loading("Uploading proposal to IPFS...", { id: "ipfs-upload" });
+      const proposalMetadata = {
         title: sanitizedTitle,
         description: sanitizedDescription,
         category,
@@ -372,110 +353,103 @@ export function CreateProposalModal({
         executionDelay: executionDelayDays,
       };
 
-      // Upload metadata to IPFS using secure service
-      let metadataHash = "";
-      try {
-        const metadataResult =
-          await SecureIPFSService.uploadProposalMetadata(proposalMetadata);
+      const metadataResult = await SecureIPFSService.uploadProposalMetadata(proposalMetadata);
+      toast.dismiss("ipfs-upload");
 
-        if (!metadataResult.success) {
-          throw new Error(metadataResult.error || "Metadata upload failed");
-        }
-
-        metadataHash = metadataResult.ipfsHash || "";
-
-        // Validate IPFS hash
-        const hashValidation = validateIPFSHash(metadataHash);
-        if (!hashValidation.isValid) {
-          console.warn("Invalid IPFS hash returned from upload:", metadataHash);
-          metadataHash = ""; // Clear invalid hash
-        }
-
-        toast.success("Proposal metadata uploaded to IPFS");
-      } catch (error) {
-        console.error("Failed to upload metadata to IPFS:", error);
-        toast.error(
-          `IPFS upload failed: ${error instanceof Error ? error.message : "Unknown error"}`,
-        );
-        // Continue without IPFS metadata if upload fails
+      if (!metadataResult.success || !metadataResult.ipfsHash) {
+        resetRateLimit('PROPOSAL_CREATE');
+        const errMsg = metadataResult.error?.includes("Authentication required")
+          ? "IPFS upload requires authentication. Please sign in with Ethereum first (click the yellow banner)."
+          : `IPFS upload failed: ${metadataResult.error || "Unknown error"}`;
+        alert(errMsg);
+        return;
       }
 
-      // Use the correct contract function signature
-      const ipfsHashForContract = metadataHash || `QmPlaceholder${Date.now()}`;
-
-      try {
-        // Extract actions
-        const targets = validActions.map(a => a.target);
-        const values = validActions.map(a => {
-          try {
-            return ethers.parseEther(a.value || "0");
-          } catch {
-            return 0n;
-          }
-        });
-        const calldatas = validActions.map(a => a.calldata || "0x");
-        const descriptions = new Array(validActions.length).fill("");
-
-        const tx = await gnusDaoService.createProposal(
-          sanitizedTitle,
-          ipfsHashForContract,
-          targets,
-          values,
-          calldatas,
-          descriptions
-        );
-        console.log("Transaction created:", tx);
-
-        toast.success("Proposal submitted! Waiting for confirmation...");
-
-        const receipt = await tx.wait();
-
-        if (receipt) {
-          toast.success("Proposal created successfully!");
-        } else {
-          toast.success("Proposal created successfully!");
-        }
-
-        // Track successful proposal creation
-        trackProposalAction('create', undefined, {
-          result: 'success',
-          category,
-          transactionHash: receipt?.hash,
-          blockNumber: receipt?.blockNumber,
-        });
-
-        onProposalCreated();
-        onClose();
-      } catch (txError: any) {
-        console.error("Blockchain transaction failed FULL ERROR:", JSON.stringify(txError, null, 2), txError);
-        
-        // Extract inner error message if present (e.g. gas estimation failure from contract revert)
-        let errMsg = txError.reason || txError.data?.message || txError.message || "Failed to create proposal.";
-        if (errMsg.includes("proposer votes below proposal threshold") || txError.data === "0xf1b7e15e" || errMsg.includes("0xf1b7e15e") || errMsg.includes("InsufficientTokens")) {
-          errMsg = "You don't have enough voting power to create a proposal. Please delegate GNUS to yourself first.";
-        }
-        
-        toast.error(`Transaction failed: ${errMsg}`);
-        throw txError;
+      const hashValidation = validateIPFSHash(metadataResult.ipfsHash);
+      if (!hashValidation.isValid) {
+        resetRateLimit('PROPOSAL_CREATE');
+        alert(`Invalid IPFS hash returned: ${metadataResult.ipfsHash}`);
+        return;
       }
-    } catch (error) {
-      console.error("Failed to create proposal:", error);
-      
-      // Track proposal creation failure
-      trackProposalAction('create', undefined, {
-        result: 'error',
-        category,
-        error: error instanceof Error ? error.message : 'Unknown error',
+
+      toast.success("Metadata uploaded to IPFS ✓");
+
+      // Submit on-chain
+      toast.loading("Opening MetaMask for transaction...", { id: "tx-pending" });
+
+      const targets = validActions.map(a => a.target);
+      const values = validActions.map(a => {
+        try { return ethers.parseEther(a.value || "0"); } catch { return 0n; }
       });
-      
-      toast.error(
-        error instanceof Error ? error.message : "Failed to create proposal. Check console for details.",
+      const calldatas = validActions.map(a => a.calldata || "0x");
+      const descriptions = new Array(validActions.length).fill("");
+
+      const tx = await gnusDaoService.createProposal(
+        sanitizedTitle,
+        metadataResult.ipfsHash,
+        targets,
+        values,
+        calldatas,
+        descriptions,
       );
+
+      toast.dismiss("tx-pending");
+      toast.loading("Waiting for confirmation...", { id: "tx-confirm" });
+      const receipt = await tx.wait();
+      toast.dismiss("tx-confirm");
+      toast.success(`Proposal created! Block #${receipt?.blockNumber}`);
+
+      trackProposalAction('create', undefined, { result: 'success', category, transactionHash: receipt?.hash });
+      onProposalCreated();
+      onClose();
+
+    } catch (error: any) {
+      toast.dismiss("ipfs-upload");
+      toast.dismiss("tx-pending");
+      toast.dismiss("tx-confirm");
+
+      // Always reset rate limit on failure so user can retry
+      resetRateLimit('PROPOSAL_CREATE');
+
+      let message = error?.reason || error?.data?.message || error?.message || "Failed to create proposal";
+      if (message.includes("InsufficientTokens") || error?.data === "0xf1b7e15e") {
+        message = "Insufficient voting power. You need at least 1,000 GDAO delegated to yourself.";
+      } else if (message.includes("CooldownNotMet") || error?.data === "0x078a94c5") {
+        // Read actual cooldown from contract to show correct wait time
+        let cooldownMsg = "Proposal cooldown active. Please wait before creating another proposal.";
+        try {
+          const config = await gnusDaoService.getVotingConfig();
+          if (config?.proposalCooldown) {
+            const secs = Number(config.proposalCooldown);
+            const hours = Math.round(secs / 3600);
+            const mins = Math.round(secs / 60);
+            const waitStr = hours >= 1 ? `${hours} hour${hours > 1 ? 's' : ''}` : `${mins} minutes`;
+            cooldownMsg = `Proposal cooldown active. You can only create one proposal per ${waitStr}. Please wait ${waitStr} before trying again.`;
+          }
+        } catch { /* use default message */ }
+        message = cooldownMsg;
+      } else if (message.includes("user rejected") || message.includes("ACTION_REJECTED")) {
+        message = "Transaction cancelled in MetaMask.";
+      } else if (message.includes("Authentication required")) {
+        message = "Please sign in with Ethereum before uploading to IPFS.";
+      } else if (message.includes("unknown custom error") || message.includes("0x")) {
+        // Try to decode from ABI
+        try {
+          const { ethers: e } = await import('ethers');
+          const abi = (await import('@/lib/contracts/GNUSDAODiamond.json')).abi;
+          const iface = new e.Interface(abi);
+          const decoded = iface.parseError(error?.data || '0x');
+          if (decoded) message = decoded.name + ': ' + (decoded.args?.join(', ') || '');
+        } catch { /* keep original */ }
+      }
+
+      alert("Proposal creation failed:\n\n" + message);
+
+      trackProposalAction('create', undefined, { result: 'error', category, error: message });
     } finally {
       setLoading(false);
     }
   };
-
   const renderBasicStep = () => (
     <div className="space-y-6">
       <div>
@@ -582,102 +556,206 @@ export function CreateProposalModal({
         <div className="flex items-start">
           <Info className="h-5 w-5 text-blue-500 mt-0.5 mr-3 flex-shrink-0" />
           <div>
-            <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-1">
-              Proposal Actions
-            </h4>
+            <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-1">On-Chain Actions (Optional)</h4>
             <p className="text-sm text-blue-800 dark:text-blue-200">
-              Define the on-chain actions that will be executed if this proposal
-              passes. Leave fields empty for proposals that don't require
-              on-chain execution.
+              Actions execute automatically if your proposal passes.
+              For Governance, Protocol, and Community proposals — leave this empty.
+              Only Treasury proposals need an action.
             </p>
           </div>
         </div>
       </div>
 
+      {/* No-action checkbox */}
+      <div className="flex items-center gap-3 p-4 border-2 border-primary/30 bg-primary/5 rounded-lg">
+        <input
+          type="checkbox"
+          id="no-actions"
+          checked={actions.every(a => a.actionType === "none")}
+          onChange={(e) => {
+            if (e.target.checked) {
+              setActions([{ target: "", value: "0", signature: "", calldata: "0x", actionType: "none" }]);
+            }
+          }}
+          className="h-4 w-4"
+        />
+        <label htmlFor="no-actions" className="text-sm font-medium cursor-pointer">
+          No on-chain actions — this is a signaling / governance proposal
+        </label>
+      </div>
+
       <div className="space-y-4">
         {actions.map((action, index) => (
-          <div key={index} className="border border-input rounded-lg p-4">
-            <div className="flex justify-between items-center mb-3">
+          <div key={index} className="border border-input rounded-lg p-4 space-y-4">
+            <div className="flex justify-between items-center">
               <h4 className="font-medium">Action {index + 1}</h4>
               {actions.length > 1 && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => removeAction(index)}
-                  className="text-red-600 hover:text-red-700"
-                >
+                <Button variant="ghost" size="sm" onClick={() => removeAction(index)} className="text-red-600 hover:text-red-700">
                   Remove
                 </Button>
               )}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">
-                  Target Contract
-                </label>
-                <input
-                  type="text"
-                  value={action.target}
-                  onChange={(e) =>
-                    updateAction(index, "target", e.target.value)
-                  }
-                  placeholder="0x..."
-                  className="w-full px-3 py-2 border border-input bg-background rounded-md focus:outline-none focus:ring-2 focus:ring-ring text-sm font-mono"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-1">
-                  ETH Value
-                </label>
-                <input
-                  type="text"
-                  value={action.value}
-                  onChange={(e) => updateAction(index, "value", e.target.value)}
-                  placeholder="0"
-                  className="w-full px-3 py-2 border border-input bg-background rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-1">
-                  Function Signature
-                </label>
-                <input
-                  type="text"
-                  value={action.signature}
-                  onChange={(e) =>
-                    updateAction(index, "signature", e.target.value)
-                  }
-                  placeholder="transfer(address,uint256)"
-                  className="w-full px-3 py-2 border border-input bg-background rounded-md focus:outline-none focus:ring-2 focus:ring-ring text-sm font-mono"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-1">
-                  Calldata
-                </label>
-                <input
-                  type="text"
-                  value={action.calldata}
-                  onChange={(e) =>
-                    updateAction(index, "calldata", e.target.value)
-                  }
-                  placeholder="0x"
-                  className="w-full px-3 py-2 border border-input bg-background rounded-md focus:outline-none focus:ring-2 focus:ring-ring text-sm font-mono"
-                />
-              </div>
+            {/* Action type selector */}
+            <div>
+              <label className="block text-sm font-medium mb-2">What should this action do?</label>
+              <select
+                className="w-full px-3 py-2 border border-input bg-background rounded-md focus:outline-none focus:ring-2 focus:ring-ring text-sm"
+                value={action.actionType}
+                onChange={(e) => {
+                  const type = e.target.value as ProposalAction["actionType"];
+                  const newActions = [...actions];
+                  newActions[index] = {
+                    target: "", value: "0", signature: "", calldata: "0x",
+                    actionType: type, gdaoRecipient: "", gdaoAmount: "",
+                  };
+                  setActions(newActions);
+                }}
+              >
+                <option value="none">— Select action type —</option>
+                <option value="sendEth">Send ETH to an address</option>
+                <option value="transferGDAO">Transfer GDAO tokens to an address</option>
+                <option value="custom">Custom (advanced — for developers)</option>
+              </select>
             </div>
+
+            {/* Send ETH */}
+            {action.actionType === "sendEth" && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Recipient Address</label>
+                  <input
+                    type="text"
+                    value={action.target}
+                    onChange={(e) => updateAction(index, "target", e.target.value)}
+                    placeholder="0x..."
+                    className="w-full px-3 py-2 border border-input bg-background rounded-md focus:outline-none focus:ring-2 focus:ring-ring text-sm font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Amount (ETH)</label>
+                  <input
+                    type="number"
+                    value={action.value}
+                    onChange={(e) => updateAction(index, "value", e.target.value)}
+                    placeholder="0.1"
+                    min="0"
+                    step="0.001"
+                    className="w-full px-3 py-2 border border-input bg-background rounded-md focus:outline-none focus:ring-2 focus:ring-ring text-sm"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Transfer GDAO */}
+            {action.actionType === "transferGDAO" && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium mb-1">GDAO Contract (auto-filled)</label>
+                  <input
+                    type="text"
+                    value="0x84Ba28d277ded98b3488C906E90B6435B116D5b4"
+                    readOnly
+                    className="w-full px-3 py-2 border border-input bg-muted rounded-md text-sm font-mono text-muted-foreground"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Recipient Address</label>
+                  <input
+                    type="text"
+                    value={action.gdaoRecipient || ""}
+                    onChange={(e) => {
+                      const recipient = e.target.value;
+                      const amount = action.gdaoAmount || "0";
+                      const newActions = [...actions];
+                      newActions[index] = {
+                        target: "0x84Ba28d277ded98b3488C906E90B6435B116D5b4",
+                        value: "0",
+                        signature: "transfer(address,uint256)",
+                        calldata: "0x",
+                        actionType: "transferGDAO",
+                        gdaoRecipient: recipient,
+                        gdaoAmount: amount,
+                      };
+                      try {
+                        const encoded = ethers.AbiCoder.defaultAbiCoder().encode(
+                          ["address", "uint256"],
+                          [recipient || ethers.ZeroAddress, ethers.parseEther(amount || "0")]
+                        );
+                        newActions[index].calldata = "0xa9059cbb" + encoded.slice(2);
+                      } catch { /* invalid, skip */ }
+                      setActions(newActions);
+                    }}
+                    placeholder="0x..."
+                    className="w-full px-3 py-2 border border-input bg-background rounded-md focus:outline-none focus:ring-2 focus:ring-ring text-sm font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Amount (GDAO)</label>
+                  <input
+                    type="number"
+                    value={action.gdaoAmount || ""}
+                    onChange={(e) => {
+                      const amount = e.target.value;
+                      const recipient = action.gdaoRecipient || "";
+                      const newActions = [...actions];
+                      newActions[index] = {
+                        target: "0x84Ba28d277ded98b3488C906E90B6435B116D5b4",
+                        value: "0",
+                        signature: "transfer(address,uint256)",
+                        calldata: "0x",
+                        actionType: "transferGDAO",
+                        gdaoRecipient: recipient,
+                        gdaoAmount: amount,
+                      };
+                      try {
+                        const encoded = ethers.AbiCoder.defaultAbiCoder().encode(
+                          ["address", "uint256"],
+                          [recipient || ethers.ZeroAddress, ethers.parseEther(amount || "0")]
+                        );
+                        newActions[index].calldata = "0xa9059cbb" + encoded.slice(2);
+                      } catch { /* invalid, skip */ }
+                      setActions(newActions);
+                    }}
+                    placeholder="100"
+                    min="0"
+                    step="1"
+                    className="w-full px-3 py-2 border border-input bg-background rounded-md focus:outline-none focus:ring-2 focus:ring-ring text-sm"
+                  />
+                </div>
+                {action.calldata && action.calldata !== "0x" && (
+                  <div className="md:col-span-2 text-xs text-muted-foreground">
+                    Calldata (auto-generated): <span className="font-mono">{action.calldata.slice(0, 20)}...</span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Custom advanced */}
+            {action.actionType === "custom" && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Target Contract Address</label>
+                  <input type="text" value={action.target} onChange={(e) => updateAction(index, "target", e.target.value)} placeholder="0x..." className="w-full px-3 py-2 border border-input bg-background rounded-md focus:outline-none focus:ring-2 focus:ring-ring text-sm font-mono" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">ETH Value</label>
+                  <input type="text" value={action.value} onChange={(e) => updateAction(index, "value", e.target.value)} placeholder="0" className="w-full px-3 py-2 border border-input bg-background rounded-md focus:outline-none focus:ring-2 focus:ring-ring text-sm" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Function Signature</label>
+                  <input type="text" value={action.signature} onChange={(e) => updateAction(index, "signature", e.target.value)} placeholder="transfer(address,uint256)" className="w-full px-3 py-2 border border-input bg-background rounded-md focus:outline-none focus:ring-2 focus:ring-ring text-sm font-mono" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Calldata (hex)</label>
+                  <input type="text" value={action.calldata} onChange={(e) => updateAction(index, "calldata", e.target.value)} placeholder="0x" className="w-full px-3 py-2 border border-input bg-background rounded-md focus:outline-none focus:ring-2 focus:ring-ring text-sm font-mono" />
+                </div>
+              </div>
+            )}
           </div>
         ))}
 
-        <Button
-          variant="outline"
-          onClick={addAction}
-          className="w-full flex items-center gap-2"
-        >
+        <Button variant="outline" onClick={addAction} className="w-full flex items-center gap-2">
           <Plus className="h-4 w-4" />
           Add Another Action
         </Button>
@@ -698,21 +776,6 @@ export function CreateProposalModal({
       <FileUpload
         onUploadComplete={(results) => {
           setAttachments([...attachments, ...results]);
-          
-          // Track successful file uploads
-          results.forEach((result, index) => {
-            trackFileUpload(
-              result.name,
-              result.size || 0,
-              'success',
-              {
-                component: 'CreateProposalModal',
-                ipfsHash: result.hash,
-                uploadIndex: index,
-              }
-            );
-          });
-          
           toast.success(`${results.length} file(s) uploaded successfully`);
         }}
         onUploadStart={() => {
@@ -916,7 +979,10 @@ export function CreateProposalModal({
                   : step === "attachments"
                     ? "3"
                     : "4"}{" "}
-              of 4
+              of 4 &nbsp;·&nbsp;
+              Wallet: {wallet.isConnected ? "✅ Connected" : "❌ Not connected"}
+              &nbsp;·&nbsp;
+              SIWE: {isAuthenticated ? "✅ Signed in" : "⚠️ Not signed in"}
             </p>
           </div>
           <Button 
@@ -994,6 +1060,42 @@ export function CreateProposalModal({
           </div>
         </div>
 
+        {/* SIWE Authentication Gate — shown when wallet connected but not signed in */}
+        {wallet.isConnected && !isAuthenticated && (
+          <div className="mb-6 p-4 border border-yellow-300 dark:border-yellow-700 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="h-5 w-5 text-yellow-600 dark:text-yellow-400 mt-0.5 flex-shrink-0" />
+              <div className="flex-1">
+                <p className="text-sm font-medium text-yellow-900 dark:text-yellow-100 mb-1">
+                  Sign-In with Ethereum required
+                </p>
+                <p className="text-xs text-yellow-800 dark:text-yellow-200 mb-3">
+                  Before submitting a proposal you need to verify wallet ownership. This is a free, gasless signature — it does not send a transaction.
+                </p>
+                <Button
+                  size="sm"
+                  onClick={async () => {
+                    try {
+                      await signIn();
+                      toast.success("Authenticated! You can now submit your proposal.");
+                    } catch (err) {
+                      toast.error(err instanceof Error ? err.message : "Sign-in failed. Please try again.");
+                    }
+                  }}
+                  disabled={isAuthenticating}
+                  className="flex items-center gap-2"
+                >
+                  {isAuthenticating ? (
+                    <><span className="animate-spin h-3 w-3 border-2 border-white border-t-transparent rounded-full" /> Signing...</>
+                  ) : (
+                    "Sign In with Ethereum"
+                  )}
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Step Content */}
         {step === "basic" && renderBasicStep()}
         {step === "actions" && renderActionsStep()}
@@ -1040,44 +1142,23 @@ export function CreateProposalModal({
             onClick={() => {
               if (step === "basic") {
                 setStep("actions");
-                trackAction('navigation', { 
-                  component: 'CreateProposalModal', 
-                  from: 'basic', 
-                  to: 'actions',
-                  formData: { category, titleLength: title.length, descriptionLength: description.length }
-                });
               } else if (step === "actions") {
                 setStep("attachments");
-                trackAction('navigation', { 
-                  component: 'CreateProposalModal', 
-                  from: 'actions', 
-                  to: 'attachments',
-                  actionCount: actions.filter(a => a.target || a.signature).length
-                });
               } else if (step === "attachments") {
                 setStep("review");
-                trackAction('navigation', { 
-                  component: 'CreateProposalModal', 
-                  from: 'attachments', 
-                  to: 'review',
-                  attachmentCount: attachments.length
-                });
               } else {
                 handleSubmit();
               }
             }}
             disabled={
               loading ||
-              (step === "basic" && (!title.trim() || !description.trim())) ||
-              (step === "review" && !wallet.isConnected)
+              (step === "basic" && (!title.trim() || !description.trim()))
             }
           >
             {loading
               ? "Submitting..."
               : step === "review"
-                ? !wallet.isConnected
-                  ? "Connect Wallet to Submit"
-                  : "Submit Proposal"
+                ? "Submit Proposal"
                 : "Next"}
           </Button>
         </div>

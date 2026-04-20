@@ -259,7 +259,7 @@ export default function ProposalsPage() {
     const matchesSearch =
       proposal.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       proposal.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesFilter = filterState === "all" || proposal.state === filterState;
+    const matchesFilter = filterState === "all" || proposal.state === Number(filterState);
     return matchesSearch && matchesFilter;
   });
 
@@ -347,7 +347,10 @@ export default function ProposalsPage() {
             <Filter className="h-4 w-4 text-muted-foreground" />
             <select
               value={filterState}
-              onChange={(e) => setFilterState(e.target.value as ProposalState | "all")}
+              onChange={(e) => {
+                const val = e.target.value;
+                setFilterState(val === "all" ? "all" : Number(val) as ProposalState);
+              }}
               className="px-3 py-2 border border-input bg-background rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
             >
               <option value="all">All States</option>
@@ -492,7 +495,7 @@ function ProposalCard({ proposal, router, onVoteClick, onExecuteClick }: Proposa
             <span>📅 {Math.round(proposal.votingPeriodDays || 7)} day voting period</span>
             <span>⏱️ {Math.round(proposal.executionDelayDays || 3)} day execution delay</span>
           </div>
-          <p className="text-sm line-clamp-2">{proposal.description}</p>
+          <p className="text-sm line-clamp-2 whitespace-pre-line">{proposal.description}</p>
         </div>
         <div className="text-right mt-4 sm:mt-0">
           <p className="text-sm text-muted-foreground">{proposal.timeRemaining}</p>
@@ -504,21 +507,14 @@ function ProposalCard({ proposal, router, onVoteClick, onExecuteClick }: Proposa
 
       {/* Voting Progress */}
       <div className="space-y-2 mb-4">
-        <div className="flex justify-between text-sm">
-          <span>For: {proposal.forVotes.toString()}</span>
-          <span>Against: {proposal.againstVotes.toString()}</span>
-          <span>Abstain: {proposal.abstainVotes.toString()}</span>
+        <div className="flex justify-between text-sm text-muted-foreground">
+          <span>Total votes: <strong className="text-foreground">{proposal.totalVotes.toString()}</strong></span>
+          <span>Quorum: {proposal.quorumReached ? <span className="text-green-600 font-medium">✓ Reached</span> : `${proposal.totalVotes.toString()} / 1000`}</span>
         </div>
-        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+        <div className="w-full bg-muted rounded-full h-2">
           <div
-            className="bg-green-500 h-2 rounded-l-full"
-            style={{
-              width: `${
-                proposal.totalVotes > 0n
-                  ? Number((proposal.forVotes * 100n) / proposal.totalVotes)
-                  : 0
-              }%`,
-            }}
+            className="bg-primary h-2 rounded-full transition-all"
+            style={{ width: `${Math.min(100, Number(proposal.totalVotes) / 1000 * 100)}%` }}
           />
         </div>
       </div>

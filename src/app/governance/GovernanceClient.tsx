@@ -104,35 +104,29 @@ export default function GovernanceClient() {
             ) : config ? (
               <div className="space-y-3">
                 <div className="flex justify-between items-center py-2 border-b border-gray-200 dark:border-gray-700">
-                  <span className="text-sm text-gray-600 dark:text-gray-400">
-                    Voting Delay
-                  </span>
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Voting Delay</span>
                   <span className="font-semibold">
-                    {config.votingDelay.toString()} blocks
+                    {Number(config.votingDelay) >= 3600
+                      ? `${Math.round(Number(config.votingDelay) / 3600)}h`
+                      : `${Math.round(Number(config.votingDelay) / 60)}m`}
                   </span>
                 </div>
                 <div className="flex justify-between items-center py-2 border-b border-gray-200 dark:border-gray-700">
-                  <span className="text-sm text-gray-600 dark:text-gray-400">
-                    Voting Period
-                  </span>
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Voting Period</span>
                   <span className="font-semibold">
-                    {config.votingPeriod.toString()} blocks
+                    {Math.round(Number(config.votingPeriod) / 86400)} days
                   </span>
                 </div>
                 <div className="flex justify-between items-center py-2 border-b border-gray-200 dark:border-gray-700">
-                  <span className="text-sm text-gray-600 dark:text-gray-400">
-                    Proposal Threshold
-                  </span>
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Proposal Threshold</span>
                   <span className="font-semibold">
-                    {config.proposalThreshold.toString()}
+                    {Number(config.proposalThreshold / 10n**18n).toLocaleString()} GDAO
                   </span>
                 </div>
                 <div className="flex justify-between items-center py-2">
-                  <span className="text-sm text-gray-600 dark:text-gray-400">
-                    Quorum
-                  </span>
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Quorum</span>
                   <span className="font-semibold">
-                    {config.quorumVotes.toString()}
+                    {Number(config.quorumVotes).toLocaleString()} votes
                   </span>
                 </div>
               </div>

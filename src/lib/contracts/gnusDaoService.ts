@@ -256,7 +256,9 @@ export class GNUSDAOService {
 		}
 
 		try {
-			return await this.contractSafe.delegateVotes(delegatee);
+			// Use delegate() directly from the token facet — NOT delegateVotes() from the
+			// governance facet, which incorrectly passes msg.sender as the diamond address
+			return await this.contractSafe.delegate(delegatee);
 		} catch (error) {
 			console.error('Error delegating votes:', error);
 			throw error;
@@ -317,7 +319,10 @@ export class GNUSDAOService {
 		}
 
 		try {
-			return await this.contractSafe.revokeDelegation();
+			// Delegate back to self using delegate() directly — revokeDelegation() in the
+			// governance facet has the same msg.sender bug as delegateVotes()
+			const address = await this.signer.getAddress();
+			return await this.contractSafe.delegate(address);
 		} catch (error) {
 			console.error('Error revoking delegation:', error);
 			throw error;
@@ -901,6 +906,20 @@ export class GNUSDAOService {
 			return await this.contractSafe.getTreasuryBalance();
 		} catch (error) {
 			console.error('Error getting treasury balance:', error);
+			return 0n;
+		}
+	}
+
+	/**
+	 * Get actual ETH balance held by the contract
+	 */
+	async getContractBalance(): Promise<bigint> {
+		await this.ensureInitialized();
+
+		try {
+			return await this.contractSafe.getContractBalance();
+		} catch (error) {
+			console.error('Error getting contract balance:', error);
 			return 0n;
 		}
 	}

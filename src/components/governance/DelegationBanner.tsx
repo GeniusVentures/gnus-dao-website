@@ -34,13 +34,11 @@ export function DelegationBanner() {
         setVotingPower(power);
 
         // Check if user has delegated their voting power to someone else
-        const hasOwnVotingPower = await gnusDaoService.isDelegatedToSelf(
-          wallet.address,
-        );
-        setIsDelegated(hasOwnVotingPower);
+        const selfDelegated = await gnusDaoService.isDelegatedToSelf(wallet.address);
+        setIsDelegated(selfDelegated);
 
-        // Auto-dismiss if user has voting power
-        if (power > 0n && hasOwnVotingPower) {
+        // Auto-dismiss if user has voting power and is self-delegated — no action needed
+        if (selfDelegated) {
           setIsDismissed(true);
         }
       } catch (error) {

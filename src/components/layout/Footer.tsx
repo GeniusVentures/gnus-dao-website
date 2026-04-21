@@ -6,51 +6,37 @@ import { Zap, Github, Twitter, MessageCircle, Mail } from "lucide-react";
 const navigation = {
   governance: [
     { name: "Proposals", href: "/proposals" },
+    { name: "Governance", href: "/governance" },
     { name: "Treasury", href: "/treasury" },
     { name: "Analytics", href: "/analytics" },
-    { name: "Voting History", href: "/history" },
+    { name: "History", href: "/history" },
+    { name: "Settings", href: "/settings" },
   ],
   resources: [
     { name: "Documentation", href: "/docs" },
-    { name: "API Reference", href: "https://github.com/GeniusVentures/gnus-dao", external: true },
-    { name: "Tutorials", href: "https://github.com/GeniusVentures/gnus-dao/wiki", external: true },
-    { name: "FAQ", href: "/docs" },
+    { name: "Smart Contracts", href: "/docs#smart-contracts" },
+    { name: "Quadratic Voting", href: "/docs#quadratic-voting" },
+    { name: "GitHub", href: "https://github.com/GeniusVentures/gnus-dao-website", external: true },
   ],
   community: [
-    { name: "Discord", href: "https://discord.gg", external: true },
-    { name: "Twitter", href: "https://twitter.com/gnusdao", external: true },
-    { name: "GitHub", href: "https://github.com/GeniusVentures/gnus-dao", external: true },
-    { name: "Forum", href: "https://forum.gnus.ai", external: true },
+    { name: "Discord", href: "https://discord.gg/gnus", external: true },
+    { name: "Twitter / X", href: "https://twitter.com/gnusai", external: true },
+    { name: "GitHub", href: "https://github.com/GeniusVentures", external: true },
+    { name: "gnus.ai", href: "https://gnus.ai", external: true },
   ],
   legal: [
     { name: "Privacy Policy", href: "https://gnus.ai/privacy", external: true },
     { name: "Terms of Service", href: "https://gnus.ai/terms", external: true },
-    { name: "Cookie Policy", href: "https://gnus.ai/cookies", external: true },
-    { name: "Security", href: "https://github.com/GeniusVentures/gnus-dao/security", external: true },
+    { name: "Security", href: "https://github.com/GeniusVentures/gnus-dao-website/security", external: true },
+    { name: "Etherscan", href: "https://sepolia.etherscan.io/address/0x84Ba28d277ded98b3488C906E90B6435B116D5b4", external: true },
   ],
 };
 
 const socialLinks = [
-  {
-    name: "Twitter",
-    href: "https://twitter.com",
-    icon: Twitter,
-  },
-  {
-    name: "Discord",
-    href: "https://discord.gg",
-    icon: MessageCircle,
-  },
-  {
-    name: "GitHub",
-    href: "https://github.com/GeniusVentures/gnus-dao",
-    icon: Github,
-  },
-  {
-    name: "Email",
-    href: "mailto:contact@gnus.ai",
-    icon: Mail,
-  },
+  { name: "Twitter", href: "https://twitter.com/gnusai", icon: Twitter },
+  { name: "Discord", href: "https://discord.gg/gnus", icon: MessageCircle },
+  { name: "GitHub", href: "https://github.com/GeniusVentures", icon: Github },
+  { name: "Email", href: "mailto:contact@gnus.ai", icon: Mail },
 ];
 
 export function Footer() {
@@ -68,10 +54,13 @@ export function Footer() {
                 GNUS DAO
               </span>
             </Link>
-            <p className="text-sm text-muted-foreground mb-4 max-w-sm">
-              Decentralized governance platform with quadratic
-              voting, multi-chain support, and Diamond pattern smart contracts.
+            <p className="text-sm text-muted-foreground mb-3 max-w-sm">
+              Decentralized governance platform with quadratic voting and Diamond pattern smart contracts.
             </p>
+            <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300 text-xs font-medium mb-4">
+              <span className="h-1.5 w-1.5 rounded-full bg-yellow-500 animate-pulse" />
+              Sepolia Testnet
+            </div>
             <div className="flex space-x-4">
               {socialLinks.map((item) => {
                 const Icon = item.icon;
@@ -93,14 +82,11 @@ export function Footer() {
 
           {/* Governance */}
           <div>
-            <h3 className="text-sm font-semibold mb-4">Governance</h3>
+            <h3 className="text-sm font-semibold mb-4">App</h3>
             <ul className="space-y-3">
               {navigation.governance.map((item) => (
                 <li key={item.name}>
-                  <Link
-                    href={item.href}
-                    className="text-sm text-muted-foreground hover:text-primary transition-colors"
-                  >
+                  <Link href={item.href} className="text-sm text-muted-foreground hover:text-primary transition-colors">
                     {item.name}
                   </Link>
                 </li>
@@ -115,19 +101,11 @@ export function Footer() {
               {navigation.resources.map((item) => (
                 <li key={item.name}>
                   {item.external ? (
-                    <a
-                      href={item.href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-sm text-muted-foreground hover:text-primary transition-colors"
-                    >
+                    <a href={item.href} target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:text-primary transition-colors">
                       {item.name}
                     </a>
                   ) : (
-                    <Link
-                      href={item.href}
-                      className="text-sm text-muted-foreground hover:text-primary transition-colors"
-                    >
+                    <Link href={item.href} className="text-sm text-muted-foreground hover:text-primary transition-colors">
                       {item.name}
                     </Link>
                   )}
@@ -142,12 +120,7 @@ export function Footer() {
             <ul className="space-y-3">
               {navigation.community.map((item) => (
                 <li key={item.name}>
-                  <a
-                    href={item.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-sm text-muted-foreground hover:text-primary transition-colors"
-                  >
+                  <a href={item.href} target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:text-primary transition-colors">
                     {item.name}
                   </a>
                 </li>
@@ -161,12 +134,7 @@ export function Footer() {
             <ul className="space-y-3">
               {navigation.legal.map((item) => (
                 <li key={item.name}>
-                  <a
-                    href={item.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-sm text-muted-foreground hover:text-primary transition-colors"
-                  >
+                  <a href={item.href} target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:text-primary transition-colors">
                     {item.name}
                   </a>
                 </li>
@@ -175,17 +143,15 @@ export function Footer() {
           </div>
         </div>
 
-        {/* Bottom section */}
+        {/* Bottom */}
         <div className="mt-12 pt-8 border-t border-border">
-          <div className="flex flex-col md:flex-row justify-between items-center">
-            <div className="text-sm text-muted-foreground">
+          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+            <p className="text-sm text-muted-foreground">
               © {new Date().getFullYear()} GNUS DAO. All rights reserved.
-            </div>
-            <div className="mt-4 md:mt-0 flex items-center space-x-4 text-sm text-muted-foreground">
-              <span>Built with ❤️ by Genius Ventures</span>
-              <span>•</span>
-              <span>Powered by Genius Ventures</span>
-            </div>
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Built by <a href="https://gnus.ai" target="_blank" rel="noopener noreferrer" className="hover:text-primary transition-colors">Genius Ventures</a>
+            </p>
           </div>
         </div>
       </div>

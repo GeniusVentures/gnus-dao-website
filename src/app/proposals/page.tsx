@@ -359,6 +359,7 @@ export default function ProposalsPage() {
               <option value={ProposalState.Succeeded}>Succeeded</option>
               <option value={ProposalState.Executed}>Executed</option>
               <option value={ProposalState.Defeated}>Defeated</option>
+              <option value={ProposalState.Expired}>Quorum Not Met</option>
               <option value={ProposalState.Canceled}>Canceled</option>
             </select>
           </div>
@@ -449,6 +450,8 @@ function ProposalCard({ proposal, router, onVoteClick, onExecuteClick }: Proposa
         return "bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400";
       case ProposalState.Defeated:
         return "bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400";
+      case ProposalState.Expired:
+        return "bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-400";
       case ProposalState.Pending:
         return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400";
       case ProposalState.Executed:
@@ -462,18 +465,14 @@ function ProposalCard({ proposal, router, onVoteClick, onExecuteClick }: Proposa
 
   const getStateName = (state: ProposalState): string => {
     switch (state) {
-      case ProposalState.Active:
-        return "Active";
-      case ProposalState.Succeeded:
-        return "Succeeded";
-      case ProposalState.Defeated:
-        return "Defeated";
-      case ProposalState.Pending:
-        return "Pending";
-      case ProposalState.Executed:
-        return "Executed";
-      case ProposalState.Canceled:
-        return "Canceled";
+      case ProposalState.Active:    return "Active";
+      case ProposalState.Succeeded: return "Succeeded";
+      case ProposalState.Defeated:  return "Defeated";
+      case ProposalState.Expired:   return "Quorum Not Met";
+      case ProposalState.Pending:   return "Pending";
+      case ProposalState.Executed:  return "Executed";
+      case ProposalState.Canceled:  return "Canceled";
+      case ProposalState.Queued:    return "Queued";
       default:
         return "Unknown";
     }

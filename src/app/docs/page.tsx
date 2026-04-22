@@ -214,13 +214,14 @@ export default function DocsPage() {
         <SubSection title="Proposal Lifecycle">
           <div className="flex flex-col gap-2">
             {[
-              ["Pending", "yellow", "Proposal created. Voting hasn't started yet (1-hour delay)."],
-              ["Active", "green", "Voting is open. Token holders can cast votes."],
-              ["Succeeded", "blue", "Voting ended with quorum met. Ready to queue."],
-              ["Defeated", "red", "Voting ended but quorum not met (< 1,000 votes)."],
-              ["Queued", "indigo", "Proposal queued for execution. 2-day timelock starts."],
-              ["Executed", "purple", "Proposal executed on-chain."],
-              ["Canceled", "gray", "Proposal canceled by proposer or owner."],
+              ["Pending",        "yellow",  "Proposal created. Voting hasn't started yet (1-hour delay)."],
+              ["Active",         "green",   "Voting is open. Token holders can cast For, Against, or Abstain votes."],
+              ["Succeeded",      "blue",    "Voting ended. Quorum met and For votes exceed Against votes. Ready to queue."],
+              ["Defeated",       "red",     "Community rejected it — Against votes exceeded For votes."],
+              ["Quorum Not Met", "orange",  "Not enough voters participated (fewer than 1,000 total votes cast)."],
+              ["Queued",         "indigo",  "Proposal queued for execution. 2-day timelock starts."],
+              ["Executed",       "purple",  "Proposal executed on-chain."],
+              ["Canceled",       "gray",    "Proposal canceled by proposer or owner."],
             ].map(([state, color, desc]) => (
               <div key={state as string} className="flex items-start gap-3 text-sm">
                 <span className={`px-2 py-0.5 rounded-full text-xs font-medium bg-${color}-100 text-${color}-800 dark:bg-${color}-900/30 dark:text-${color}-300 whitespace-nowrap`}>{state as string}</span>
@@ -231,26 +232,41 @@ export default function DocsPage() {
         </SubSection>
       </Section>
 
-      {/* Voting */}
       <Section id="voting" title="Voting on Proposals">
+        <SubSection title="Vote Options">
+          <div className="grid md:grid-cols-3 gap-3 mb-4">
+            {[
+              ["✓ For", "green", "You support the proposal. For votes must exceed Against votes for it to pass."],
+              ["✗ Against", "red", "You oppose the proposal. If Against votes exceed For votes, the proposal is Defeated."],
+              ["− Abstain", "gray", "You participate (counts toward quorum) but take no position on the outcome."],
+            ].map(([label, color, desc]) => (
+              <div key={label as string} className={`bg-${color}-50 dark:bg-${color}-900/20 border border-${color}-200 dark:border-${color}-800 rounded-lg p-3 text-sm`}>
+                <p className={`font-medium text-${color}-800 dark:text-${color}-200 mb-1`}>{label as string}</p>
+                <p className={`text-${color}-700 dark:text-${color}-300 text-xs`}>{desc as string}</p>
+              </div>
+            ))}
+          </div>
+        </SubSection>
         <SubSection title="How to Vote">
           <ol className="text-sm text-muted-foreground space-y-2 list-decimal list-inside">
             <li>Go to <Link href="/proposals" className="text-primary underline">Proposals</Link> and click a proposal with "Active" status</li>
             <li>Connect your wallet if not already connected</li>
-            <li>Choose how many votes to cast (1 vote = 1 GDAO, 4 votes = 16 GDAO, etc.)</li>
-            <li>Click "Vote" — MetaMask will open to confirm the transaction</li>
-            <li>Your GDAO tokens are burned as the voting cost</li>
+            <li>Choose For, Against, or Abstain</li>
+            <li>For 1 vote click the quick button. For multiple votes click "Choose vote count"</li>
+            <li>MetaMask will open to confirm the transaction — GDAO tokens are burned as the cost</li>
           </ol>
+        </SubSection>
+        <SubSection title="Proposal Success Criteria">
+          <p className="text-sm text-muted-foreground mb-2">A proposal succeeds when <strong>both</strong> conditions are met:</p>
+          <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
+            <li>Total votes (For + Against + Abstain) ≥ 1,000 (quorum)</li>
+            <li>For votes &gt; Against votes (majority)</li>
+          </ul>
+          <p className="text-sm text-muted-foreground mt-2">If quorum is not met → <span className="text-orange-600 font-medium">Quorum Not Met</span>. If Against ≥ For → <span className="text-red-600 font-medium">Defeated</span>.</p>
         </SubSection>
         <InfoBox type="warning">
           <strong>Votes burn tokens.</strong> When you vote, the GDAO tokens used as the quadratic cost are permanently burned. You cannot get them back. Think carefully about how many votes to cast.
         </InfoBox>
-        <SubSection title="Voting Power">
-          <p className="text-sm text-muted-foreground">
-            Your voting power equals your GDAO balance (or the balance of whoever delegated to you).
-            You can check your voting power on the <Link href="/governance" className="text-primary underline">Governance page</Link>.
-          </p>
-        </SubSection>
       </Section>
 
       {/* Quadratic Voting */}
@@ -430,7 +446,9 @@ export default function DocsPage() {
             ["Why can't I create a proposal?",
              "You need at least 1,000 GDAO voting power. Also there's a 1-hour cooldown between proposals from the same address."],
             ["What happens if a proposal doesn't reach quorum?",
-             "If fewer than 1,000 total votes are cast, the proposal is Defeated and cannot be executed."],
+             "If fewer than 1,000 total votes are cast, the proposal shows as 'Quorum Not Met' (orange badge). This means not enough people participated — it's different from being actively rejected."],
+            ["What's the difference between 'Defeated' and 'Quorum Not Met'?",
+             "'Defeated' means the community actively voted against it — Against votes exceeded For votes. 'Quorum Not Met' means not enough people voted at all (total votes < 1,000). Both prevent execution, but for different reasons."],
             ["Can I cancel my proposal?",
              "Yes, the proposer can cancel a proposal before it's queued. The owner can cancel at any time before execution."],
             ["Is this on mainnet?",

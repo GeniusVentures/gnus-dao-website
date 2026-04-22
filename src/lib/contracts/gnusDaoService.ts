@@ -442,78 +442,39 @@ export class GNUSDAOService {
 				return ProposalState.Active;
 			}
 
-			// Voting has ended - determine if succeeded or defeated
+			// Voting has ended - determine if succeeded, defeated, or expired
 			if (currentTime >= endTime) {
-				// First check if there are any votes at all
+				// No votes at all = quorum not met = Expired
 				if (totalVotes === 0n) {
-					return ProposalState.Defeated;
+					return ProposalState.Expired;
 				}
 
 				// Get vote breakdown to check majority
 				const breakdown = await this.getVoteBreakdown(proposalId);
-				
-				// Use the contract's checkQuorum function for accurate quorum checking
+
 				try {
 					const votingConfig = await this.getVotingConfig();
-					if (!votingConfig) {
-						console.warn('No voting config found, using simple vote check');
-						// If no config, check if For > Against
-						if (breakdown && breakdown.forVotes > breakdown.againstVotes) {
-							return ProposalState.Succeeded;
-						}
+					const quorumThreshold = votingConfig?.quorumThreshold ?? 1000n;
+
+					const meetsQuorum = totalVotes >= quorumThreshold;
+
+					// Quorum not met = Expired (not enough participation)
+					if (!meetsQuorum) {
+						return ProposalState.Expired;
+					}
+
+					// Quorum met but Against >= For = Defeated (community rejected it)
+					if (!breakdown || breakdown.forVotes <= breakdown.againstVotes) {
 						return ProposalState.Defeated;
 					}
 
-					// Try to use the VotingMechanismsFacet's checkQuorum function
-					try {
-						const meetsQuorum = await this.contractSafe.checkQuorum(
-							totalVotes,
-							votingConfig.quorumThreshold,
-						);
+					// Quorum met and For > Against = Succeeded
+					return ProposalState.Succeeded;
 
-						console.log(`Proposal ${proposalId} quorum check:`, {
-							totalVotes: totalVotes.toString(),
-							quorumThreshold: votingConfig.quorumThreshold.toString(),
-							meetsQuorum,
-							forVotes: breakdown?.forVotes.toString(),
-							againstVotes: breakdown?.againstVotes.toString(),
-						});
-
-						// Proposal succeeds only if quorum is met AND For > Against
-						if (meetsQuorum && breakdown && breakdown.forVotes > breakdown.againstVotes) {
-							return ProposalState.Succeeded;
-						}
-						return ProposalState.Defeated;
-					} catch (quorumError) {
-						console.warn(
-							'checkQuorum function not available, using manual calculation:',
-							quorumError,
-						);
-
-						// Manual quorum calculation as fallback
-						const meetsQuorum = totalVotes >= votingConfig.quorumThreshold;
-
-						console.log(`Manual quorum check for proposal ${proposalId}:`, {
-							totalVotes: totalVotes.toString(),
-							quorumThreshold: votingConfig.quorumThreshold.toString(),
-							meetsQuorum,
-							forVotes: breakdown?.forVotes.toString(),
-							againstVotes: breakdown?.againstVotes.toString(),
-						});
-
-						// Proposal succeeds only if quorum is met AND For > Against
-						if (meetsQuorum && breakdown && breakdown.forVotes > breakdown.againstVotes) {
-							return ProposalState.Succeeded;
-						}
-						return ProposalState.Defeated;
-					}
 				} catch (error) {
 					console.error('Error checking quorum:', error);
-					// Fallback: check if For > Against
-					if (breakdown && breakdown.forVotes > breakdown.againstVotes && totalVotes > 0n) {
-						return ProposalState.Succeeded;
-					}
-					return ProposalState.Defeated;
+					// Fallback: no breakdown data, just check total votes
+					return totalVotes > 0n ? ProposalState.Succeeded : ProposalState.Expired;
 				}
 			}
 

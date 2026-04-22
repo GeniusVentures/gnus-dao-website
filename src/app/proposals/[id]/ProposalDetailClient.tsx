@@ -294,14 +294,14 @@ export default function ProposalDetailClient() {
 
   const stateBadge = (state: ProposalState) => {
     const map: Record<number, { label: string; cls: string }> = {
-      [ProposalState.Pending]:   { label: "Pending",   cls: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300" },
-      [ProposalState.Active]:    { label: "Active",    cls: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300" },
-      [ProposalState.Succeeded]: { label: "Succeeded", cls: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300" },
-      [ProposalState.Defeated]:  { label: "Defeated",  cls: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300" },
-      [ProposalState.Executed]:  { label: "Executed",  cls: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300" },
-      [ProposalState.Canceled]:  { label: "Canceled",  cls: "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400" },
-      [ProposalState.Queued]:    { label: "Queued",    cls: "bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300" },
-      [ProposalState.Expired]:   { label: "Expired",   cls: "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400" },
+      [ProposalState.Pending]:   { label: "Pending",        cls: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300" },
+      [ProposalState.Active]:    { label: "Active",         cls: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300" },
+      [ProposalState.Succeeded]: { label: "Succeeded",      cls: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300" },
+      [ProposalState.Defeated]:  { label: "Defeated",       cls: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300" },
+      [ProposalState.Executed]:  { label: "Executed",       cls: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300" },
+      [ProposalState.Canceled]:  { label: "Canceled",       cls: "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400" },
+      [ProposalState.Queued]:    { label: "Queued",         cls: "bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300" },
+      [ProposalState.Expired]:   { label: "Quorum Not Met", cls: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300" },
     };
     const { label, cls } = map[state] ?? { label: "Unknown", cls: "bg-gray-100 text-gray-600" };
     return <span className={`px-3 py-1 rounded-full text-sm font-semibold ${cls}`}>{label}</span>;
@@ -380,6 +380,32 @@ export default function ProposalDetailClient() {
             <div>
               <p className="font-medium text-yellow-900 dark:text-yellow-100">
                 {proposal.timeRemaining}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Defeated banner - community rejected */}
+        {proposal.state === ProposalState.Defeated && (
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4 mb-4 flex items-start gap-3">
+            <XCircle className="w-5 h-5 text-red-600 dark:text-red-400 mt-0.5 flex-shrink-0" />
+            <div>
+              <p className="font-medium text-red-900 dark:text-red-100">Proposal Defeated</p>
+              <p className="text-sm text-red-800 dark:text-red-200 mt-0.5">
+                The community voted against this proposal. Against votes exceeded For votes.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Expired banner - quorum not met */}
+        {proposal.state === ProposalState.Expired && (
+          <div className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-xl p-4 mb-4 flex items-start gap-3">
+            <Info className="w-5 h-5 text-orange-600 dark:text-orange-400 mt-0.5 flex-shrink-0" />
+            <div>
+              <p className="font-medium text-orange-900 dark:text-orange-100">Quorum Not Met</p>
+              <p className="text-sm text-orange-800 dark:text-orange-200 mt-0.5">
+                Not enough voters participated. Required {proposal.quorumThreshold.toString()} votes, got {proposal.totalVotes.toString()}.
               </p>
             </div>
           </div>

@@ -449,13 +449,19 @@ export class GNUSDAOService {
 					return ProposalState.Defeated;
 				}
 
+				// Get vote breakdown to check majority
+				const breakdown = await this.getVoteBreakdown(proposalId);
+				
 				// Use the contract's checkQuorum function for accurate quorum checking
 				try {
 					const votingConfig = await this.getVotingConfig();
 					if (!votingConfig) {
 						console.warn('No voting config found, using simple vote check');
-						// If no config, proposals with votes succeed
-						return totalVotes > 0n ? ProposalState.Succeeded : ProposalState.Defeated;
+						// If no config, check if For > Against
+						if (breakdown && breakdown.forVotes > breakdown.againstVotes) {
+							return ProposalState.Succeeded;
+						}
+						return ProposalState.Defeated;
 					}
 
 					// Try to use the VotingMechanismsFacet's checkQuorum function
@@ -469,9 +475,15 @@ export class GNUSDAOService {
 							totalVotes: totalVotes.toString(),
 							quorumThreshold: votingConfig.quorumThreshold.toString(),
 							meetsQuorum,
+							forVotes: breakdown?.forVotes.toString(),
+							againstVotes: breakdown?.againstVotes.toString(),
 						});
 
-						return meetsQuorum ? ProposalState.Succeeded : ProposalState.Defeated;
+						// Proposal succeeds only if quorum is met AND For > Against
+						if (meetsQuorum && breakdown && breakdown.forVotes > breakdown.againstVotes) {
+							return ProposalState.Succeeded;
+						}
+						return ProposalState.Defeated;
 					} catch (quorumError) {
 						console.warn(
 							'checkQuorum function not available, using manual calculation:',
@@ -479,23 +491,29 @@ export class GNUSDAOService {
 						);
 
 						// Manual quorum calculation as fallback
-						// quorumThreshold is typically a percentage (e.g., 4 = 4%)
-						// We need to check if totalVotes meets the threshold
 						const meetsQuorum = totalVotes >= votingConfig.quorumThreshold;
 
 						console.log(`Manual quorum check for proposal ${proposalId}:`, {
 							totalVotes: totalVotes.toString(),
 							quorumThreshold: votingConfig.quorumThreshold.toString(),
 							meetsQuorum,
+							forVotes: breakdown?.forVotes.toString(),
+							againstVotes: breakdown?.againstVotes.toString(),
 						});
 
-						return meetsQuorum ? ProposalState.Succeeded : ProposalState.Defeated;
+						// Proposal succeeds only if quorum is met AND For > Against
+						if (meetsQuorum && breakdown && breakdown.forVotes > breakdown.againstVotes) {
+							return ProposalState.Succeeded;
+						}
+						return ProposalState.Defeated;
 					}
 				} catch (error) {
 					console.error('Error checking quorum:', error);
-					// Fallback: if we can't check quorum, use simple logic
-					// Proposals with 0 votes are defeated
-					return totalVotes > 0n ? ProposalState.Succeeded : ProposalState.Defeated;
+					// Fallback: check if For > Against
+					if (breakdown && breakdown.forVotes > breakdown.againstVotes && totalVotes > 0n) {
+						return ProposalState.Succeeded;
+					}
+					return ProposalState.Defeated;
 				}
 			}
 
@@ -683,12 +701,12 @@ export class GNUSDAOService {
 				}
 			}
 
-			// Use vote(proposalId, votes) — confirmed in deployed Diamond ABI
-			// The on-chain vote() handles quadratic cost calculation internally
+			// Use vote(proposalId, support, votes) — updated Diamond ABI with For/Against/Abstain
+			// support: 0=Against, 1=For, 2=Abstain
 			if (!this.contractSafe.vote) {
 				throw new Error('vote function not available on contract');
 			}
-			return await this.contractSafe.vote(proposalId, votesToCast);
+			return await this.contractSafe.vote(proposalId, support, votesToCast);
 		} catch (error) {
 			logger.error('Error casting vote:', error as any);
 			throw error;
@@ -724,6 +742,27 @@ export class GNUSDAOService {
 			};
 		} catch (error) {
 			console.error('Error getting vote receipt:', error);
+			return null;
+		}
+	}
+
+	/**
+	 * Get vote breakdown (For/Against/Abstain) for a proposal
+	 */
+	async getVoteBreakdown(proposalId: bigint): Promise<{ forVotes: bigint; againstVotes: bigint; abstainVotes: bigint } | null> {
+		await this.ensureInitialized();
+
+		try {
+			const breakdown = await this.contractSafe.getVoteBreakdown?.(proposalId);
+			if (!breakdown) return { forVotes: 0n, againstVotes: 0n, abstainVotes: 0n };
+
+			return {
+				forVotes: breakdown[0] || 0n,
+				againstVotes: breakdown[1] || 0n,
+				abstainVotes: breakdown[2] || 0n,
+			};
+		} catch (error) {
+			console.error('Error getting vote breakdown:', error);
 			return null;
 		}
 	}

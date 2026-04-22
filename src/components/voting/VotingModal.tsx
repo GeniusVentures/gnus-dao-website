@@ -1,24 +1,12 @@
 "use client";
 
-import { useSiweProtectedAction } from "@/components/auth/SiweGuard";
 import { useSiwe } from "@/lib/auth/useSiwe";
 import { Button } from "@/components/ui/Button";
 import { VoteSupport } from "@/lib/contracts/gnusDao";
 import { gnusDaoService } from "@/lib/contracts/gnusDaoService";
 import { useWeb3Store } from "@/lib/web3/reduxProvider";
-import { checkRateLimit } from "@/lib/utils/clientRateLimiter";
-import {
-  AlertTriangle,
-  Calculator,
-  CheckCircle,
-  Info,
-  MinusCircle,
-  XCircle,
-  Zap,
-  ThumbsUp,
-  ThumbsDown,
-  Minus,
-} from "lucide-react";
+import { ethers } from "ethers";
+import { CheckCircle, Minus, ThumbsDown, ThumbsUp, XCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
 
@@ -29,464 +17,246 @@ interface VotingModalProps {
   onVoteSubmitted: () => void;
 }
 
-export function VotingModal({
-  proposalId,
-  proposalTitle,
-  onClose,
-  onVoteSubmitted,
-}: VotingModalProps) {
+export function VotingModal({ proposalId, proposalTitle, onClose, onVoteSubmitted }: VotingModalProps) {
   const { wallet, provider, signer } = useWeb3Store();
-  const { executeProtected, isAuthenticated } = useSiweProtectedAction();
-  const { signIn } = useSiwe();
-  const [selectedSupport, setSelectedSupport] = useState<VoteSupport | null>(null);
-  const [creditsToSpend, setCreditsToSpend] = useState<number>(1);
-  const [votingPower, setVotingPower] = useState<number>(1);
+  const { isAuthenticated, signIn } = useSiwe();
+
+  const [selectedSupport, setSelectedSupport] = useState<VoteSupport>(VoteSupport.For);
+  // votes is the number of votes to cast (human units, not wei)
+  const [votes, setVotes] = useState(1);
   const [loading, setLoading] = useState(false);
-  const [userCredits, setUserCredits] = useState<bigint>(0n);
-  const [tokenBalance, setTokenBalance] = useState<bigint>(0n);
-  const [maxVotesPerWallet, setMaxVotesPerWallet] = useState<bigint>(0n);
-  const [validationResult, setValidationResult] = useState<{
-    valid: boolean;
-    cost: bigint;
-  } | null>(null);
-  const [isValidating, setIsValidating] = useState(false);
-  const [supportsAllVoteTypes, setSupportsAllVoteTypes] = useState(false);
-  const [serviceReady, setServiceReady] = useState(false);
 
-  // Initialize DAO service and prompt SIWE when modal opens
-  useEffect(() => {
-    const initService = async () => {
-      try {
-        if (provider && signer) {
-          const network = await provider.getNetwork();
-          await gnusDaoService.initialize(provider, signer, Number(network.chainId));
-        }
-        setServiceReady(true);
-      } catch (error) {
-        console.error('Failed to initialize DAO service for voting:', error);
-        setServiceReady(true); // Still allow — ensureInitialized will handle fallback
-      }
-    };
-    initService();
-
-    // Auto-prompt SIWE if not authenticated
-    if (!isAuthenticated && signer) {
-      signIn().catch((error) => {
-        console.error('Auto SIWE sign-in failed:', error);
-      });
-    }
-  }, []); // Run once on mount
+  // Human-readable GDAO balance (already divided by 1e18)
+  const [gdaoBalance, setGdaoBalance] = useState(0);
+  const [maxVotes, setMaxVotes] = useState(10000);
+  const [alreadyVoted, setAlreadyVoted] = useState(false);
 
   useEffect(() => {
-    if (serviceReady) {
-      loadUserCredits();
-      checkVoteTypeSupport();
-    }
-  }, [wallet.address, serviceReady]);
+    loadBalance();
+  }, [wallet.address]);
 
-  useEffect(() => {
-    if (creditsToSpend > 0) {
-      validateVote();
-    }
-  }, [creditsToSpend, selectedSupport]);
-
-  const checkVoteTypeSupport = async () => {
-    try {
-      // Check if contract supports quadratic voting (which has For/Against/Abstain)
-      // by looking for castQuadraticVote in the deployed facets
-      const facets = await gnusDaoService.getFacets();
-      // castQuadraticVote(uint256,uint8,uint256) selector = first 4 bytes of keccak256
-      const hasQuadraticVoting = facets.some(f => 
-        f.functionSelectors.some(selector => {
-          // Check for castQuadraticVote function selector
-          // The selector is 4 bytes, we check against known selectors
-          return selector === '0x' + 'castQuadraticVote'.slice(0, 8) ||
-            f.facetAddress !== '0x0000000000000000000000000000000000000000';
-        })
-      );
-      // Also try calling the function to see if it exists
-      if (!hasQuadraticVoting && gnusDaoService.isInitialized()) {
-        try {
-          // If getVoteCredits exists, quadratic voting is likely available
-          await gnusDaoService.getVoteCredits?.(wallet.address || '0x0000000000000000000000000000000000000000');
-          setSupportsAllVoteTypes(true);
-          return;
-        } catch {
-          // Function doesn't exist
-        }
-      }
-      setSupportsAllVoteTypes(hasQuadraticVoting);
-    } catch (error) {
-      console.warn('Could not determine vote type support:', error);
-      // Default to true — castVote() in gnusDaoService already handles fallback
-      setSupportsAllVoteTypes(true);
-    }
-  };
-
-  const loadUserCredits = async () => {
+  const loadBalance = async () => {
     if (!wallet.address) return;
-
     try {
-      const [balance, config] = await Promise.all([
+      const [balance, config, voteReceipt] = await Promise.all([
         gnusDaoService.getTokenBalance(wallet.address),
         gnusDaoService.getVotingConfig(),
+        gnusDaoService.getVoteReceipt(proposalId, wallet.address).catch(() => null),
       ]);
-
-      setTokenBalance(balance);
-      setUserCredits(balance);
-      
-      if (config) {
-        setMaxVotesPerWallet(config.maxVotesPerWallet);
-      }
-    } catch (error) {
-      console.error("Error loading user credits:", error);
-      toast.error("Failed to load voting credits");
+      const gdao = Number(ethers.formatEther(balance));
+      setGdaoBalance(gdao);
+      if (config?.maxVotesPerWallet) setMaxVotes(Number(config.maxVotesPerWallet));
+      if (voteReceipt?.hasVoted) setAlreadyVoted(true);
+    } catch (e) {
+      console.error("Failed to load balance:", e);
     }
   };
 
-  const validateVote = async () => {
-    if (!selectedSupport || creditsToSpend <= 0) return;
-
-    setIsValidating(true);
-    try {
-      const votes = BigInt(votingPower);
-      const validation = await gnusDaoService.validateVote(
-        votes,
-        maxVotesPerWallet,
-        tokenBalance,
-      );
-
-      const cost = await gnusDaoService.calculateQuadraticCost(votes);
-      setValidationResult({ valid: validation.valid, cost });
-    } catch (error) {
-      console.error("Validation error:", error);
-      setValidationResult({ valid: false, cost: 0n });
-    } finally {
-      setIsValidating(false);
-    }
-  };
-
-  const handleCreditsChange = (value: number) => {
-    const clampedValue = Math.max(1, Math.min(value, Number(userCredits)));
-    setCreditsToSpend(clampedValue);
-    
-    // Calculate voting power (square root of credits for quadratic voting)
-    const power = Math.floor(Math.sqrt(clampedValue));
-    setVotingPower(Math.max(1, power));
-  };
-
-  const handleVotingPowerChange = (value: number) => {
-    const clampedValue = Math.max(1, Math.min(value, Math.floor(Math.sqrt(Number(userCredits)))));
-    setVotingPower(clampedValue);
-    
-    // Calculate required credits (square of voting power)
-    const credits = clampedValue * clampedValue;
-    setCreditsToSpend(credits);
-  };
+  // Quadratic cost in GDAO (votes²)
+  const cost = votes * votes;
+  // Max votes = floor(sqrt(balance))
+  const maxPossibleVotes = Math.min(maxVotes, Math.floor(Math.sqrt(gdaoBalance)));
+  const canAfford = cost <= gdaoBalance;
+  const remaining = gdaoBalance - cost;
 
   const handleVote = async () => {
-    if (!selectedSupport || !wallet.address || !validationResult?.valid) return;
+    if (!wallet.address) { alert("Please connect your wallet."); return; }
 
-    // Rate limiting check
-    const rateLimitCheck = checkRateLimit('VOTE_CAST');
-    if (!rateLimitCheck.allowed) {
-      toast.error(`Please wait ${rateLimitCheck.resetIn} seconds before voting again`);
+    if (!isAuthenticated) {
+      try {
+        await signIn();
+      } catch { return; }
+    }
+
+    if (!canAfford) {
+      alert(`Insufficient GDAO. You need ${cost} GDAO but have ${gdaoBalance.toFixed(2)} GDAO.`);
       return;
     }
 
     setLoading(true);
     try {
-      // Execute with SIWE protection — voting requires authentication
-      await executeProtected(
-        async () => {
-          const votes = BigInt(votingPower);
-          
-          // Cast the vote
-          const tx = await gnusDaoService.castVote(proposalId, selectedSupport!, votes);
-          
-          toast.success("Vote submitted successfully!");
-          onVoteSubmitted();
-          onClose();
-        },
-        {
-          requireAuth: true,
-          errorMessage: "You must sign in with Ethereum to vote",
-        }
-      );
-    } catch (error: any) {
-      console.error("Voting error:", error);
-      
-      if (error.message?.includes("only supports FOR votes")) {
-        toast.error("This contract only supports FOR votes currently");
-      } else if (error.message?.includes("already voted")) {
-        toast.error("You have already voted on this proposal");
-      } else if (error.message?.includes("insufficient")) {
-        toast.error("Insufficient tokens to cast this vote");
-      } else {
-        toast.error(error.message || "Failed to submit vote");
+      if (provider && signer) {
+        const network = await provider.getNetwork();
+        await gnusDaoService.initialize(provider, signer, Number(network.chainId));
       }
+
+      // The vote() function calls burnFrom(voter, votes²) internally.
+      // burnFrom requires the diamond to have an ERC20 allowance from the voter.
+      // We must approve the diamond to spend the token cost before voting.
+      const costWei = ethers.parseEther(cost.toString());
+
+      // Step 1: Activate voting power checkpoints if needed (delegate to self)
+      // Wallets that received tokens via transfer have no checkpoints until they delegate.
+      // getPastVotingPower (used inside vote()) reads checkpoints, not current balance.
+      const DIAMOND_ADDR = "0x84Ba28d277ded98b3488C906E90B6435B116D5b4";
+      const checkAbi = ['function getDelegates(address) view returns (address)'];
+      const checkContract = new ethers.Contract(DIAMOND_ADDR, checkAbi, provider!);
+      const currentDelegate = await (checkContract.getDelegates as (addr: string) => Promise<string>)(wallet.address!);
+      if (currentDelegate === ethers.ZeroAddress) {
+        toast.loading("Step 1/3: Activating voting power (delegate to self)...", { id: "vote" });
+        const delegateTx = await gnusDaoService.delegate(wallet.address!);
+        await delegateTx.wait();
+      }
+
+      // Step 2: Approve token spend
+      toast.loading(`${currentDelegate === ethers.ZeroAddress ? "Step 2/3" : "Step 1/2"}: Approving token spend...`, { id: "vote" });
+      const approveTx = await gnusDaoService.approve(DIAMOND_ADDR, costWei);
+      await approveTx.wait();
+
+      // Step 3: Cast vote
+      toast.loading(`${currentDelegate === ethers.ZeroAddress ? "Step 3/3" : "Step 2/2"}: Casting vote...`, { id: "vote" });
+      const tx = await gnusDaoService.castVote(proposalId, selectedSupport, BigInt(votes));
+      toast.loading("Waiting for confirmation...", { id: "vote" });
+      await tx.wait();
+      toast.dismiss("vote");
+      toast.success(`Voted! ${votes} vote${votes > 1 ? 's' : ''} cast, ${cost.toLocaleString()} GDAO burned.`);
+      onVoteSubmitted();
+      onClose();
+    } catch (error: any) {
+      toast.dismiss("vote");
+      const msg = error?.reason || error?.message || "Vote failed";
+      if (msg.includes("AlreadyVoted") || error?.data === "0x7c9a1cf9") {
+        setAlreadyVoted(true);
+        alert("You have already voted on this proposal. Each address can only vote once.");
+      } else if (msg.includes("VotingNotStarted")) alert("Voting hasn't started yet. Please wait for the voting delay.");
+      else if (msg.includes("VotingEnded")) alert("Voting has ended for this proposal.");
+      else if (msg.includes("InsufficientVotingPower") || error?.data === "0xcabeb655") alert("Insufficient voting power. Your tokens may not have checkpoints yet — try voting again, the activation step should fix this.");
+      else if (msg.includes("InsufficientAllowance") || error?.data === "0x13be252b") alert("Token approval failed. Please try again.")
+      else alert("Vote failed: " + msg);
     } finally {
       setLoading(false);
     }
   };
 
-  const getVoteTypeIcon = (voteType: VoteSupport) => {
-    switch (voteType) {
-      case VoteSupport.For:
-        return <ThumbsUp className="w-5 h-5" />;
-      case VoteSupport.Against:
-        return <ThumbsDown className="w-5 h-5" />;
-      case VoteSupport.Abstain:
-        return <Minus className="w-5 h-5" />;
-    }
-  };
-
-  const getVoteTypeColor = (voteType: VoteSupport) => {
-    switch (voteType) {
-      case VoteSupport.For:
-        return "bg-green-500 hover:bg-green-600 text-white";
-      case VoteSupport.Against:
-        return "bg-red-500 hover:bg-red-600 text-white";
-      case VoteSupport.Abstain:
-        return "bg-gray-500 hover:bg-gray-600 text-white";
-    }
-  };
-
-  const getVoteTypeLabel = (voteType: VoteSupport) => {
-    switch (voteType) {
-      case VoteSupport.For:
-        return "For";
-      case VoteSupport.Against:
-        return "Against";
-      case VoteSupport.Abstain:
-        return "Abstain";
-    }
-  };
-
-  const maxVotingPower = Math.floor(Math.sqrt(Number(userCredits)));
-  const efficiency = votingPower > 0 ? (votingPower / creditsToSpend) * 100 : 0;
-
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-card border rounded-xl max-w-md w-full shadow-xl">
         <div className="p-6">
+          {/* Header */}
           <div className="flex justify-between items-start mb-6">
             <div>
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-                Cast Your Vote
-              </h2>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                {proposalTitle}
-              </p>
+              <h2 className="text-xl font-bold">Cast Your Vote</h2>
+              <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{proposalTitle}</p>
             </div>
-            <button
-              onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-            >
+            <button onClick={onClose} className="text-muted-foreground hover:text-foreground ml-4">
               <XCircle className="w-6 h-6" />
             </button>
           </div>
 
-          {/* Vote Type Selection */}
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-              Vote Type
-            </label>
-            <div className="grid grid-cols-1 gap-2">
-              {/* For Vote */}
-              <button
-                onClick={() => setSelectedSupport(VoteSupport.For)}
-                className={`p-3 rounded-lg border-2 transition-all flex items-center gap-3 ${
-                  selectedSupport === VoteSupport.For
-                    ? "border-green-500 bg-green-50 dark:bg-green-900/20"
-                    : "border-gray-200 dark:border-gray-600 hover:border-green-300"
-                }`}
-              >
-                <ThumbsUp className={`w-5 h-5 ${
-                  selectedSupport === VoteSupport.For ? "text-green-600" : "text-gray-400"
-                }`} />
-                <div className="text-left">
-                  <div className="font-medium text-gray-900 dark:text-white">For</div>
-                  <div className="text-sm text-gray-600 dark:text-gray-400">
-                    Support this proposal
-                  </div>
-                </div>
-              </button>
-
-              {/* Against Vote */}
-              <button
-                onClick={() => setSelectedSupport(VoteSupport.Against)}
-                disabled={!supportsAllVoteTypes}
-                className={`p-3 rounded-lg border-2 transition-all flex items-center gap-3 ${
-                  !supportsAllVoteTypes 
-                    ? "opacity-50 cursor-not-allowed border-gray-200 dark:border-gray-600"
-                    : selectedSupport === VoteSupport.Against
-                    ? "border-red-500 bg-red-50 dark:bg-red-900/20"
-                    : "border-gray-200 dark:border-gray-600 hover:border-red-300"
-                }`}
-              >
-                <ThumbsDown className={`w-5 h-5 ${
-                  selectedSupport === VoteSupport.Against ? "text-red-600" : "text-gray-400"
-                }`} />
-                <div className="text-left">
-                  <div className="font-medium text-gray-900 dark:text-white">Against</div>
-                  <div className="text-sm text-gray-600 dark:text-gray-400">
-                    {supportsAllVoteTypes ? "Oppose this proposal" : "Not supported"}
-                  </div>
-                </div>
-              </button>
-
-              {/* Abstain Vote */}
-              <button
-                onClick={() => setSelectedSupport(VoteSupport.Abstain)}
-                disabled={!supportsAllVoteTypes}
-                className={`p-3 rounded-lg border-2 transition-all flex items-center gap-3 ${
-                  !supportsAllVoteTypes 
-                    ? "opacity-50 cursor-not-allowed border-gray-200 dark:border-gray-600"
-                    : selectedSupport === VoteSupport.Abstain
-                    ? "border-gray-500 bg-gray-50 dark:bg-gray-700/20"
-                    : "border-gray-200 dark:border-gray-600 hover:border-gray-300"
-                }`}
-              >
-                <Minus className={`w-5 h-5 ${
-                  selectedSupport === VoteSupport.Abstain ? "text-gray-600" : "text-gray-400"
-                }`} />
-                <div className="text-left">
-                  <div className="font-medium text-gray-900 dark:text-white">Abstain</div>
-                  <div className="text-sm text-gray-600 dark:text-gray-400">
-                    {supportsAllVoteTypes ? "Neither for nor against" : "Not supported"}
-                  </div>
-                </div>
-              </button>
-            </div>
-
-            {!supportsAllVoteTypes && (
-              <div className="mt-2 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
-                <div className="flex items-center gap-2">
-                  <AlertTriangle className="w-4 h-4 text-yellow-600" />
-                  <span className="text-sm text-yellow-800 dark:text-yellow-200">
-                    This contract currently only supports FOR votes
-                  </span>
-                </div>
-              </div>
-            )}
+          {/* Balance */}
+          <div className="bg-muted/50 rounded-lg p-3 mb-5 flex justify-between text-sm">
+            <span className="text-muted-foreground">Your GDAO balance</span>
+            <span className="font-semibold">{gdaoBalance.toLocaleString(undefined, { maximumFractionDigits: 2 })} GDAO</span>
           </div>
 
-          {/* Voting Power Configuration */}
-          {selectedSupport && (
-            <>
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Voting Power: {votingPower} votes
-                </label>
-                <input
-                  type="range"
-                  min="1"
-                  max={maxVotingPower}
-                  value={votingPower}
-                  onChange={(e) => handleVotingPowerChange(Number(e.target.value))}
-                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700"
-                />
-                <div className="flex justify-between text-xs text-gray-500 mt-1">
-                  <span>1 vote</span>
-                  <span>{maxVotingPower} votes (max)</span>
-                </div>
-              </div>
-
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Token Cost: {creditsToSpend} tokens
-                </label>
-                <input
-                  type="range"
-                  min="1"
-                  max={Number(userCredits)}
-                  value={creditsToSpend}
-                  onChange={(e) => handleCreditsChange(Number(e.target.value))}
-                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700"
-                />
-                <div className="flex justify-between text-xs text-gray-500 mt-1">
-                  <span>1 token</span>
-                  <span>{Number(userCredits)} tokens (balance)</span>
-                </div>
-              </div>
-
-              {/* Vote Statistics */}
-              <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 mb-6">
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <div className="text-gray-600 dark:text-gray-400">Efficiency</div>
-                    <div className="font-medium text-gray-900 dark:text-white">
-                      {efficiency.toFixed(1)}%
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-gray-600 dark:text-gray-400">Remaining Balance</div>
-                    <div className="font-medium text-gray-900 dark:text-white">
-                      {Number(userCredits) - creditsToSpend} tokens
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Validation Status */}
-              {isValidating ? (
-                <div className="flex items-center gap-2 text-blue-600 mb-4">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                  <span className="text-sm">Validating vote...</span>
-                </div>
-              ) : validationResult ? (
-                <div className={`flex items-center gap-2 mb-4 ${
-                  validationResult.valid ? "text-green-600" : "text-red-600"
-                }`}>
-                  {validationResult.valid ? (
-                    <CheckCircle className="w-4 h-4" />
-                  ) : (
-                    <XCircle className="w-4 h-4" />
-                  )}
-                  <span className="text-sm">
-                    {validationResult.valid 
-                      ? "Vote is valid" 
-                      : `Insufficient tokens (need ${validationResult.cost})`
-                    }
-                  </span>
-                </div>
-              ) : null}
-
-              {/* Submit Button */}
-              <div className="flex gap-3">
-                <Button
-                  onClick={onClose}
-                  variant="outline"
-                  className="flex-1"
-                  disabled={loading}
+          {/* Already voted */}
+          {alreadyVoted ? (
+            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-4 text-sm text-blue-800 dark:text-blue-200">
+              ✓ You have already voted on this proposal. Each address can only vote once.
+            </div>
+          ) : (
+          <>
+          {/* Vote type */}
+          <div className="mb-5">
+            <p className="text-sm font-medium mb-2">Vote direction</p>
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                { type: VoteSupport.For, label: "For", icon: <ThumbsUp className="w-4 h-4" />, cls: "border-green-500 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300" },
+                { type: VoteSupport.Against, label: "Against", icon: <ThumbsDown className="w-4 h-4" />, cls: "border-red-500 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300" },
+                { type: VoteSupport.Abstain, label: "Abstain", icon: <Minus className="w-4 h-4" />, cls: "border-gray-400 bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300" },
+              ].map(({ type, label, icon, cls }) => (
+                <button
+                  key={type}
+                  onClick={() => setSelectedSupport(type)}
+                  className={`flex flex-col items-center gap-1 p-3 rounded-lg border-2 transition-all text-sm font-medium ${
+                    selectedSupport === type ? cls : "border-input hover:border-muted-foreground"
+                  }`}
                 >
-                  Cancel
-                </Button>
-                <Button
-                  onClick={handleVote}
-                  disabled={
-                    loading || 
-                    !selectedSupport || 
-                    !validationResult?.valid ||
-                    (!supportsAllVoteTypes && selectedSupport !== VoteSupport.For)
-                  }
-                  className={`flex-1 ${getVoteTypeColor(selectedSupport || VoteSupport.For)}`}
-                >
-                  {loading ? (
-                    <div className="flex items-center gap-2">
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                      <span>Voting...</span>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-2">
-                      {selectedSupport && getVoteTypeIcon(selectedSupport)}
-                      <span>Vote {selectedSupport && getVoteTypeLabel(selectedSupport)}</span>
-                    </div>
-                  )}
-                </Button>
-              </div>
-            </>
+                  {icon}
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Votes slider */}
+          <div className="mb-5">
+            <div className="flex justify-between text-sm mb-2">
+              <span className="font-medium">Number of votes</span>
+              <span className="font-bold text-primary">{votes} vote{votes > 1 ? 's' : ''}</span>
+            </div>
+            <input
+              type="range"
+              min={1}
+              max={Math.max(1, maxPossibleVotes)}
+              value={votes}
+              onChange={e => setVotes(Number(e.target.value))}
+              className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
+            />
+            <div className="flex justify-between text-xs text-muted-foreground mt-1">
+              <span>1 vote</span>
+              <span>{maxPossibleVotes} max (√{gdaoBalance.toFixed(0)})</span>
+            </div>
+          </div>
+
+          {/* Cost breakdown */}
+          <div className="bg-muted/50 rounded-lg p-4 mb-5 space-y-2 text-sm">
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Quadratic cost ({votes}² votes)</span>
+              <span className={`font-semibold ${canAfford ? "" : "text-red-500"}`}>
+                {cost.toLocaleString()} GDAO
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Remaining after vote</span>
+              <span className={`font-semibold ${remaining >= 0 ? "" : "text-red-500"}`}>
+                {remaining >= 0 ? remaining.toLocaleString(undefined, { maximumFractionDigits: 2 }) : "—"} GDAO
+              </span>
+            </div>
+            <div className="border-t pt-2 flex justify-between">
+              <span className="text-muted-foreground">Status</span>
+              {canAfford ? (
+                <span className="text-green-600 flex items-center gap-1"><CheckCircle className="w-3 h-3" /> Can afford</span>
+              ) : (
+                <span className="text-red-500 flex items-center gap-1"><XCircle className="w-3 h-3" /> Insufficient GDAO</span>
+              )}
+            </div>
+          </div>
+
+          {/* Info */}
+          <p className="text-xs text-muted-foreground mb-5">
+            Voting may require up to 3 MetaMask confirmations: activate voting power (first time only),
+            approve token spend, then cast the vote.
+            This burns {cost.toLocaleString()} GDAO permanently (votes² = {votes}² = {cost.toLocaleString()}).
+          </p>
+
+          {/* Actions */}
+          <div className="flex gap-3">
+            <Button variant="outline" onClick={onClose} disabled={loading} className="flex-1">
+              {alreadyVoted ? "Close" : "Cancel"}
+            </Button>
+            {!alreadyVoted && (
+            <Button
+              onClick={handleVote}
+              disabled={loading || !canAfford || votes < 1}
+              className={`flex-1 ${
+                selectedSupport === VoteSupport.For ? "bg-green-600 hover:bg-green-700" :
+                selectedSupport === VoteSupport.Against ? "bg-red-600 hover:bg-red-700" :
+                "bg-gray-600 hover:bg-gray-700"
+              } text-white`}
+            >
+              {loading ? (
+                <span className="flex items-center gap-2">
+                  <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
+                  Voting...
+                </span>
+              ) : (
+                `Vote ${selectedSupport === VoteSupport.For ? "For" : selectedSupport === VoteSupport.Against ? "Against" : "Abstain"} · ${cost.toLocaleString()} GDAO`
+              )}
+            </Button>
+            )}
+          </div>
+          </> /* end !alreadyVoted */
           )}
         </div>
       </div>

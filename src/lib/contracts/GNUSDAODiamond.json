@@ -693,6 +693,12 @@
         },
         {
           "indexed": false,
+          "internalType": "uint8",
+          "name": "support",
+          "type": "uint8"
+        },
+        {
+          "indexed": false,
           "internalType": "uint256",
           "name": "votes",
           "type": "uint256"
@@ -1693,6 +1699,34 @@
       "type": "function"
     },
     {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "proposalId",
+          "type": "uint256"
+        },
+        {
+          "internalType": "bool",
+          "name": "executed",
+          "type": "bool"
+        },
+        {
+          "internalType": "bool",
+          "name": "cancelled",
+          "type": "bool"
+        },
+        {
+          "internalType": "bool",
+          "name": "queued",
+          "type": "bool"
+        }
+      ],
+      "name": "fixProposalState",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
       "inputs": [],
       "name": "getContractBalance",
       "outputs": [
@@ -2145,6 +2179,40 @@
       "inputs": [
         {
           "internalType": "uint256",
+          "name": "proposalId",
+          "type": "uint256"
+        }
+      ],
+      "name": "getVoteBreakdown",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "forVotes",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "againstVotes",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "abstainVotes",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "totalVoters",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
           "name": "votes",
           "type": "uint256"
         },
@@ -2163,6 +2231,30 @@
         }
       ],
       "stateMutability": "pure",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "proposalId",
+          "type": "uint256"
+        },
+        {
+          "internalType": "address",
+          "name": "voter",
+          "type": "address"
+        }
+      ],
+      "name": "getVoterSupport",
+      "outputs": [
+        {
+          "internalType": "uint8",
+          "name": "support",
+          "type": "uint8"
+        }
+      ],
+      "stateMutability": "view",
       "type": "function"
     },
     {
@@ -2800,6 +2892,19 @@
       "inputs": [
         {
           "internalType": "uint256",
+          "name": "newCooldown",
+          "type": "uint256"
+        }
+      ],
+      "name": "updateProposalCooldown",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
           "name": "newThreshold",
           "type": "uint256"
         }
@@ -2916,6 +3021,11 @@
           "type": "uint256"
         },
         {
+          "internalType": "uint8",
+          "name": "support",
+          "type": "uint8"
+        },
+        {
           "internalType": "uint256",
           "name": "votes",
           "type": "uint256"
@@ -2950,7 +3060,7 @@
   "linkReferences": {},
   "deployedLinkReferences": {},
   "_diamondMetadata": {
-    "generatedAt": "2026-04-07T14:22:53.694Z",
+    "generatedAt": "2026-04-21T12:55:48.104Z",
     "diamondName": "GNUSDAODiamond",
     "networkName": "sepolia",
     "chainId": 31337,
@@ -3005,6 +3115,7 @@
       "0x718b2058": "GNUSDAOGovernanceFacet",
       "0x95ccea67": "GNUSDAOGovernanceFacet",
       "0x0d61b519": "GNUSDAOGovernanceFacet",
+      "0xdc3eade9": "GNUSDAOGovernanceFacet",
       "0x6f9fb98a": "GNUSDAOGovernanceFacet",
       "0xb4b5ea57": "GNUSDAOGovernanceFacet",
       "0xce5119ee": "GNUSDAOGovernanceFacet",
@@ -3020,6 +3131,8 @@
       "0x481c42a2": "GNUSDAOGovernanceFacet",
       "0x9b5655dc": "GNUSDAOGovernanceFacet",
       "0xbc3f931f": "GNUSDAOGovernanceFacet",
+      "0xdf2a7055": "GNUSDAOGovernanceFacet",
+      "0xdd349bbf": "GNUSDAOGovernanceFacet",
       "0x721c3c64": "GNUSDAOGovernanceFacet",
       "0xa2b170b0": "GNUSDAOGovernanceFacet",
       "0x3ecc6a43": "GNUSDAOGovernanceFacet",
@@ -3036,12 +3149,13 @@
       "0xa4d31805": "GNUSDAOGovernanceFacet",
       "0x548a6594": "GNUSDAOGovernanceFacet",
       "0xd48b9a07": "GNUSDAOGovernanceFacet",
+      "0xf25d7c97": "GNUSDAOGovernanceFacet",
       "0x57ad6279": "GNUSDAOGovernanceFacet",
       "0x210a5e87": "GNUSDAOGovernanceFacet",
       "0x8e52d9d3": "GNUSDAOGovernanceFacet",
       "0x63d61a19": "GNUSDAOGovernanceFacet",
       "0xef00ef43": "GNUSDAOGovernanceFacet",
-      "0xb384abef": "GNUSDAOGovernanceFacet",
+      "0xe520251a": "GNUSDAOGovernanceFacet",
       "0x0663af08": "GNUSDAOGovernanceFacet",
       "0xd88a22cb": "GNUSDAOVotingMechanismsFacet",
       "0x2c3556d6": "GNUSDAOVotingMechanismsFacet",
@@ -3055,7 +3169,7 @@
       "0xcc951dba": "GNUSDAOVotingMechanismsFacet"
     },
     "stats": {
-      "totalFunctions": 98,
+      "totalFunctions": 102,
       "totalEvents": 39,
       "totalErrors": 60,
       "facetCount": 7,

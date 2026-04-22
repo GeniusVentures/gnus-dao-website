@@ -9,6 +9,7 @@ import { gnusDaoService } from "@/lib/contracts/gnusDaoService";
 import { formatAddress } from "@/lib/utils";
 import { useWeb3Store } from "@/lib/web3/reduxProvider";
 import { useSiwe } from "@/lib/auth/useSiwe";
+import { ethers } from "ethers";
 import {
   ArrowLeft, Ban, Calendar, CheckCircle, Clock,
   MinusCircle, Play, User, Vote, XCircle, Info,
@@ -25,6 +26,9 @@ interface ProposalWithMetadata extends Proposal {
   quorumReached: boolean;
   timeRemaining: string;
   quorumThreshold: bigint;
+  forVotes?: bigint;
+  againstVotes?: bigint;
+  abstainVotes?: bigint;
 }
 
 export default function ProposalDetailClient() {
@@ -121,6 +125,14 @@ export default function ProposalDetailClient() {
       const quorumReached = totalVotes >= quorumThreshold && state !== ProposalState.Pending;
       const timeRemaining = formatTimeRemaining(proposalData.startTime || 0n, proposalData.endTime || 0n, state);
 
+      // Fetch vote breakdown (For/Against/Abstain)
+      let breakdown = null;
+      try {
+        breakdown = await gnusDaoService.getVoteBreakdown(id);
+      } catch (e) {
+        console.warn('Could not fetch vote breakdown:', e);
+      }
+
       let description = `Submitted by ${proposalData.proposer.slice(0, 6)}...${proposalData.proposer.slice(-4)}`;
       if (proposalData.ipfsHash && !proposalData.ipfsHash.startsWith('QmPlaceholder')) {
         try {
@@ -139,6 +151,9 @@ export default function ProposalDetailClient() {
         quorumReached,
         timeRemaining,
         quorumThreshold,
+        forVotes: breakdown?.forVotes || 0n,
+        againstVotes: breakdown?.againstVotes || 0n,
+        abstainVotes: breakdown?.abstainVotes || 0n,
       });
 
       if (wallet.address) {
@@ -159,7 +174,7 @@ export default function ProposalDetailClient() {
     const checkPermissions = async () => {
       if (!wallet.address || !proposal) return;
       try {
-        setCanExecute(proposal.state === ProposalState.Succeeded);
+        setCanExecute(proposal.state === ProposalState.Succeeded && !proposal.executed);
 
         // Check if proposer or owner — derive from proposal data directly
         const isProposer = proposal.proposer.toLowerCase() === wallet.address.toLowerCase();
@@ -174,8 +189,11 @@ export default function ProposalDetailClient() {
           isOwner = wallet.address.toLowerCase() === '0xd4467da256cd3fc5751f2bc358f52cfa441741a1';
         }
 
+        // Can only cancel if not executed and not already cancelled
         setCanCancel(
           (isProposer || isOwner) &&
+          !proposal.executed &&
+          !proposal.canceled &&
           (proposal.state === ProposalState.Pending || proposal.state === ProposalState.Active)
         );
       } catch (e) {
@@ -190,7 +208,6 @@ export default function ProposalDetailClient() {
 
     if (!isAuthenticated) {
       try {
-        alert("MetaMask will ask you to sign a message to verify your wallet. This is free.");
         await signIn();
       } catch { return; }
     }
@@ -253,8 +270,23 @@ export default function ProposalDetailClient() {
       loadProposal();
     } catch (error: any) {
       toast.dismiss("cancel-tx");
-      const msg = error?.reason || error?.data?.message || error?.message || "Cancel failed";
-      alert("Cancel failed: " + msg);
+      
+      // Decode custom errors
+      let errorMsg = "Cancel failed";
+      if (error?.data?.includes("0x60bf3177")) {
+        errorMsg = "Cannot cancel: Proposal has already been executed";
+      } else if (error?.data?.includes("0x54e37625")) {
+        errorMsg = "Proposal has already been cancelled";
+      } else if (error?.data?.includes("0xb7e8bcb6")) {
+        errorMsg = "Only proposer or owner can cancel this proposal";
+      } else {
+        errorMsg = error?.reason || error?.data?.message || error?.message || "Cancel failed";
+      }
+      
+      toast.error(errorMsg);
+      
+      // Reload proposal to get fresh state
+      loadProposal();
     } finally {
       setIsCanceling(false);
     }
@@ -343,16 +375,11 @@ export default function ProposalDetailClient() {
 
         {/* Pending info banner */}
         {isPending && (
-          <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-xl p-5 mb-4 flex items-start gap-3">
+          <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-xl p-4 mb-4 flex items-start gap-3">
             <Info className="w-5 h-5 text-yellow-600 dark:text-yellow-400 mt-0.5 flex-shrink-0" />
             <div>
-              <p className="font-medium text-yellow-900 dark:text-yellow-100 mb-1">
-                Voting opens {proposal.timeRemaining.replace('Voting starts in ', 'in ')}
-              </p>
-              <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                Voting start: <strong>{formatTimestamp(proposal.startTime || 0n)}</strong>
-                <br />
-                Voting end: <strong>{formatTimestamp(proposal.endTime || 0n)}</strong>
+              <p className="font-medium text-yellow-900 dark:text-yellow-100">
+                {proposal.timeRemaining}
               </p>
             </div>
           </div>
@@ -376,9 +403,58 @@ export default function ProposalDetailClient() {
             />
           </div>
 
-          <div className="text-center text-3xl font-bold text-foreground">
-            {proposal.totalVotes.toString()}
-            <span className="text-base font-normal text-muted-foreground ml-2">total votes cast</span>
+          {/* Vote Breakdown - For/Against/Abstain */}
+          {!isPending && (
+            <div className="grid grid-cols-3 gap-4 mb-4">
+              <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4 text-center">
+                <div className="flex items-center justify-center gap-2 mb-2">
+                  <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400" />
+                  <span className="text-sm font-medium text-green-800 dark:text-green-200">For</span>
+                </div>
+                <div className="text-2xl font-bold text-green-900 dark:text-green-100">
+                  {proposal.forVotes?.toString() || "0"}
+                </div>
+              </div>
+              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 text-center">
+                <div className="flex items-center justify-center gap-2 mb-2">
+                  <XCircle className="w-5 h-5 text-red-600 dark:text-red-400" />
+                  <span className="text-sm font-medium text-red-800 dark:text-red-200">Against</span>
+                </div>
+                <div className="text-2xl font-bold text-red-900 dark:text-red-100">
+                  {proposal.againstVotes?.toString() || "0"}
+                </div>
+              </div>
+              <div className="bg-gray-50 dark:bg-gray-900/20 border border-gray-200 dark:border-gray-800 rounded-lg p-4 text-center">
+                <div className="flex items-center justify-center gap-2 mb-2">
+                  <MinusCircle className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                  <span className="text-sm font-medium text-gray-800 dark:text-gray-200">Abstain</span>
+                </div>
+                <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                  {proposal.abstainVotes?.toString() || "0"}
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="grid grid-cols-2 gap-4 text-center mb-4">
+            <div>
+              <div className="text-3xl font-bold text-foreground">{proposal.totalVotes.toString()}</div>
+              <div className="text-sm text-muted-foreground mt-1">Total votes cast</div>
+            </div>
+            <div>
+              <div className="text-3xl font-bold text-foreground">{proposal.totalVoters?.toString() ?? "—"}</div>
+              <div className="text-sm text-muted-foreground mt-1">Unique voters</div>
+            </div>
+          </div>
+
+          <div className="bg-muted/50 rounded-lg p-3 text-xs text-muted-foreground">
+            This contract uses quadratic voting with For/Against/Abstain support.
+            Cost = votes². Need {proposal.quorumThreshold.toString()} total votes for quorum.
+            {(proposal.forVotes === 0n && proposal.againstVotes === 0n && proposal.abstainVotes === 0n && proposal.totalVotes > 0n) && (
+              <span className="block mt-1 text-yellow-600 dark:text-yellow-400">
+                Note: Votes cast before the upgrade don't have For/Against/Abstain data.
+              </span>
+            )}
           </div>
 
           {userVote?.hasVoted && (
@@ -397,26 +473,84 @@ export default function ProposalDetailClient() {
             </div>
           ) : isActive && !userVote?.hasVoted ? (
             <div>
-              <h2 className="text-lg font-semibold mb-4">Cast Your Vote</h2>
+              <h2 className="text-lg font-semibold mb-3">Cast Your Vote</h2>
+
+              <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3 mb-4 text-xs text-yellow-800 dark:text-yellow-200">
+                <strong>Note:</strong> This contract now supports For/Against/Abstain voting.
+                All votes count toward the {proposal.quorumThreshold.toString()}-vote quorum threshold.
+                A proposal succeeds if For votes exceed Against votes and quorum is met.
+              </div>
+
               <p className="text-sm text-muted-foreground mb-4">
-                Your voting power: <strong>{votingPower.toString()} GDAO</strong>.
-                Quadratic cost: {(1n).toString()} vote costs 1 token, 4 votes costs 16 tokens, etc.
+                Your voting power: <strong>{Number(ethers.formatEther(votingPower)).toLocaleString()} GDAO</strong>.
+                Quadratic cost: 1 vote costs 1 GDAO, 4 votes costs 16 GDAO, etc.
               </p>
               <div className="flex flex-wrap gap-3">
                 <Button onClick={() => handleVote(1n)} disabled={voting} className="bg-green-600 hover:bg-green-700">
-                  <CheckCircle className="w-4 h-4 mr-2" /> Vote (1 vote)
+                  <CheckCircle className="w-4 h-4 mr-2" /> Vote For (1 vote · 1 GDAO)
+                </Button>
+                <Button 
+                  onClick={async () => {
+                    if (!proposal || !wallet.address) return;
+                    setVoting(true);
+                    try {
+                      const tx = await gnusDaoService.castVote(BigInt(proposalId), VoteSupport.Against, 1n);
+                      toast.loading("Waiting for confirmation...", { id: "vote-tx" });
+                      await tx.wait();
+                      toast.dismiss("vote-tx");
+                      toast.success("Vote submitted!");
+                      const voteReceipt = await gnusDaoService.getVoteReceipt(BigInt(proposalId), wallet.address);
+                      setUserVote(voteReceipt);
+                      loadProposal();
+                    } catch (error: any) {
+                      toast.dismiss("vote-tx");
+                      const msg = error?.reason || error?.message || "Vote failed";
+                      toast.error(msg.includes("VotingNotStarted") ? "Voting hasn't started yet" : msg);
+                    } finally {
+                      setVoting(false);
+                    }
+                  }}
+                  disabled={voting} 
+                  className="bg-red-600 hover:bg-red-700"
+                >
+                  <XCircle className="w-4 h-4 mr-2" /> Vote Against (1 vote · 1 GDAO)
+                </Button>
+                <Button 
+                  onClick={async () => {
+                    if (!proposal || !wallet.address) return;
+                    setVoting(true);
+                    try {
+                      const tx = await gnusDaoService.castVote(BigInt(proposalId), VoteSupport.Abstain, 1n);
+                      toast.loading("Waiting for confirmation...", { id: "vote-tx" });
+                      await tx.wait();
+                      toast.dismiss("vote-tx");
+                      toast.success("Vote submitted!");
+                      const voteReceipt = await gnusDaoService.getVoteReceipt(BigInt(proposalId), wallet.address);
+                      setUserVote(voteReceipt);
+                      loadProposal();
+                    } catch (error: any) {
+                      toast.dismiss("vote-tx");
+                      const msg = error?.reason || error?.message || "Vote failed";
+                      toast.error(msg.includes("VotingNotStarted") ? "Voting hasn't started yet" : msg);
+                    } finally {
+                      setVoting(false);
+                    }
+                  }}
+                  disabled={voting} 
+                  variant="outline"
+                  className="border-gray-300 text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300"
+                >
+                  <MinusCircle className="w-4 h-4 mr-2" /> Abstain (1 vote · 1 GDAO)
                 </Button>
                 <Button onClick={() => setShowQuadraticModal(true)} disabled={voting} variant="outline" className="border-purple-300 text-purple-700 hover:bg-purple-50 dark:border-purple-700 dark:text-purple-300">
-                  <Vote className="w-4 h-4 mr-2" /> Quadratic Vote
+                  <Vote className="w-4 h-4 mr-2" /> Choose vote count
                 </Button>
               </div>
             </div>
           ) : isActive && userVote?.hasVoted ? (
             <p className="text-muted-foreground text-center py-2">You have already voted on this proposal.</p>
           ) : isPending ? (
-            <p className="text-muted-foreground text-center py-2">
-              Voting opens <strong>{formatTimestamp(proposal.startTime || 0n)}</strong>
-            </p>
+            <p className="text-muted-foreground text-center py-2">Voting has not started yet.</p>
           ) : (
             <p className="text-muted-foreground text-center py-2">Voting is closed for this proposal.</p>
           )}

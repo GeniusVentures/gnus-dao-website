@@ -229,10 +229,9 @@ export function CreateProposalModal({
     // If not authenticated, trigger SIWE sign-in first then continue
     if (!isAuthenticated) {
       try {
-        alert("MetaMask will ask you to sign a message to verify your wallet. This is free and does not send a transaction.");
         await signIn();
       } catch (err) {
-        alert("Sign-in failed: " + (err instanceof Error ? err.message : "Please try again."));
+        toast.error("Sign-in failed: " + (err instanceof Error ? err.message : "Please try again."));
         return;
       }
     }

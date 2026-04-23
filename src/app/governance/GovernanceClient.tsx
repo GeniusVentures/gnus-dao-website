@@ -279,8 +279,7 @@ export default function GovernanceClient() {
                 )}
                 <PermissionBadge label="Owner" active={permissions.isOwner} icon={<User className="w-4 h-4" />} />
                 <PermissionBadge label="Treasury Manager" active={permissions.isTreasuryManager} icon={<Shield className="w-4 h-4" />} />
-                <PermissionBadge label="Minter" active={permissions.isMinter} icon={<Settings className="w-4 h-4" />} />
-                {!permissions.isOwner && !permissions.isTreasuryManager && !permissions.isMinter && (
+                {!permissions.isOwner && !permissions.isTreasuryManager && (
                   <p className="text-sm text-gray-500 text-center py-4">No special permissions</p>
                 )}
                 {permissions.isOwner && (

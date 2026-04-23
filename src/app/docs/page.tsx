@@ -174,7 +174,7 @@ export default function DocsPage() {
           <div>
             <SubSection title="What GDAO is used for">
               <ul className="text-sm text-muted-foreground space-y-2">
-                <li className="flex items-start gap-2"><ArrowRight className="h-4 w-4 mt-0.5 flex-shrink-0 text-primary" /><span><strong>Voting:</strong> Spend GDAO to cast votes. Cost = votes² (quadratic).</span></li>
+                <li className="flex items-start gap-2"><ArrowRight className="h-4 w-4 mt-0.5 flex-shrink-0 text-primary" /><span><strong>Voting:</strong> Hold GDAO to vote. Power required = votes² (quadratic). Tokens are not burned.</span></li>
                 <li className="flex items-start gap-2"><ArrowRight className="h-4 w-4 mt-0.5 flex-shrink-0 text-primary" /><span><strong>Proposals:</strong> Need 1,000 GDAO voting power to create a proposal.</span></li>
                 <li className="flex items-start gap-2"><ArrowRight className="h-4 w-4 mt-0.5 flex-shrink-0 text-primary" /><span><strong>Delegation:</strong> Delegate your GDAO voting power to another address.</span></li>
               </ul>
@@ -265,15 +265,14 @@ export default function DocsPage() {
           <p className="text-sm text-muted-foreground mt-2">If quorum is not met → <span className="text-orange-600 font-medium">Quorum Not Met</span>. If Against ≥ For → <span className="text-red-600 font-medium">Defeated</span>.</p>
         </SubSection>
         <InfoBox type="warning">
-          <strong>Votes burn tokens.</strong> When you vote, the GDAO tokens used as the quadratic cost are permanently burned. You cannot get them back. Think carefully about how many votes to cast.
+          <strong>Tokens are not burned.</strong> Voting uses snapshot-based power — your GDAO balance is checked at the block when the proposal was created. You need sufficient GDAO to vote, but tokens remain in your wallet after voting.
         </InfoBox>
       </Section>
 
       {/* Quadratic Voting */}
       <Section id="quadratic-voting" title="Quadratic Voting Explained">
         <p className="text-muted-foreground mb-4 text-sm">
-          Quadratic voting makes it expensive to cast many votes, preventing wealthy token holders from dominating governance.
-          The cost to cast <em>n</em> votes is <em>n²</em> tokens.
+          Quadratic voting limits the influence of large token holders. The <em>voting power required</em> to cast <em>n</em> votes is <em>n²</em> tokens — but tokens are <strong>not burned or locked</strong>. Your balance is simply checked at the proposal's snapshot block.
         </p>
         <div className="overflow-x-auto mb-4">
           <table className="w-full text-sm border-collapse">
@@ -296,7 +295,7 @@ export default function DocsPage() {
           </table>
         </div>
         <InfoBox type="tip">
-          With 1,000 GDAO you can cast a maximum of 31 votes (31² = 961 ≤ 1000). Use the Quadratic Vote button on a proposal to calculate the optimal number of votes for your balance.
+          With 1,000 GDAO you can cast a maximum of 31 votes (31² = 961 ≤ 1000). Your tokens stay in your wallet — only your balance at the proposal's snapshot block matters.
         </InfoBox>
       </Section>
 
@@ -440,7 +439,7 @@ export default function DocsPage() {
             ["Why do my votes burn tokens?",
              "Quadratic voting requires burning tokens as the cost of voting. This prevents wealthy holders from dominating governance by making it exponentially expensive to cast many votes."],
             ["Can I get my tokens back after voting?",
-             "No. Burned tokens are permanently removed from supply. This is by design — it creates a real cost for governance participation."],
+             "Yes — tokens are not burned. GNUS DAO uses snapshot-based voting. Your balance is checked at the block when the proposal was created, but tokens stay in your wallet."],
             ["Why does my proposal show 'Pending'?",
              "There's a 1-hour voting delay after proposal creation. The proposal will become Active automatically after that delay."],
             ["Why can't I create a proposal?",

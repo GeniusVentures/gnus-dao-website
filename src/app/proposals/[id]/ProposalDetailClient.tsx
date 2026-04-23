@@ -501,15 +501,14 @@ export default function ProposalDetailClient() {
             <div>
               <h2 className="text-lg font-semibold mb-3">Cast Your Vote</h2>
 
-              <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3 mb-4 text-xs text-yellow-800 dark:text-yellow-200">
-                <strong>Note:</strong> This contract now supports For/Against/Abstain voting.
-                All votes count toward the {proposal.quorumThreshold.toString()}-vote quorum threshold.
-                A proposal succeeds if For votes exceed Against votes and quorum is met.
+              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 mb-4 text-xs text-blue-800 dark:text-blue-200">
+                Voting uses your GDAO balance at the time the proposal was created — tokens are <strong>not burned or locked</strong>.
+                Quadratic formula: 1 vote requires 1 GDAO, 2 votes require 4 GDAO, 3 votes require 9 GDAO.
               </div>
 
               <p className="text-sm text-muted-foreground mb-4">
                 Your voting power: <strong>{Number(ethers.formatEther(votingPower)).toLocaleString()} GDAO</strong>.
-                Quadratic cost: 1 vote costs 1 GDAO, 4 votes costs 16 GDAO, etc.
+                Quadratic formula: votes² GDAO required (not spent). 1 vote needs 1 GDAO, 10 votes need 100 GDAO.
               </p>
               <div className="flex flex-wrap gap-3">
                 <Button onClick={() => handleVote(1n)} disabled={voting} className="bg-green-600 hover:bg-green-700">

@@ -25,7 +25,6 @@ interface UserRole {
   address: string;
   ensName?: string;
   isTreasuryManager: boolean;
-  isMinter: boolean;
   isOwner: boolean;
 }
 
@@ -34,7 +33,7 @@ export function RoleManager({ onClose }: RoleManagerProps) {
   const [loading, setLoading] = useState(false);
   const [isOwner, setIsOwner] = useState(false);
   const [newAddress, setNewAddress] = useState("");
-  const [selectedRole, setSelectedRole] = useState<"treasury" | "minter">("treasury");
+  const [selectedRole, setSelectedRole] = useState<"treasury">("treasury");
   const [users, setUsers] = useState<UserRole[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(true);
 
@@ -59,15 +58,13 @@ export function RoleManager({ onClose }: RoleManagerProps) {
 
       const userRoles: UserRole[] = await Promise.all(
         uniqueAddresses.map(async (address) => {
-          const [isTreasuryManager, isMinter] = await Promise.all([
+          const [isTreasuryManager] = await Promise.all([
             gnusDaoService.isTreasuryManager(address),
-            gnusDaoService.isMinter(address),
           ]);
 
           return {
             address,
             isTreasuryManager,
-            isMinter,
             isOwner: address.toLowerCase() === owner.toLowerCase(),
           };
         })
@@ -113,7 +110,7 @@ export function RoleManager({ onClose }: RoleManagerProps) {
     }
   };
 
-  const handleRemoveRole = async (address: string, role: "treasury" | "minter") => {
+  const handleRemoveRole = async (address: string, role: "treasury") => {
     if (!isOwner) return;
 
     setLoading(true);
@@ -224,25 +221,10 @@ export function RoleManager({ onClose }: RoleManagerProps) {
                   <div className="flex gap-2">
                     <button
                       onClick={() => setSelectedRole("treasury")}
-                      className={`flex items-center gap-2 px-3 py-2 rounded-lg border-2 transition-all ${
-                        selectedRole === "treasury"
-                          ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300"
-                          : "border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400"
-                      }`}
+                      className="flex items-center gap-2 px-3 py-2 rounded-lg border-2 border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300"
                     >
                       <Vault className="w-4 h-4" />
                       Treasury Manager
-                    </button>
-                    <button
-                      onClick={() => setSelectedRole("minter")}
-                      className={`flex items-center gap-2 px-3 py-2 rounded-lg border-2 transition-all ${
-                        selectedRole === "minter"
-                          ? "border-green-500 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300"
-                          : "border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400"
-                      }`}
-                    >
-                      <Coins className="w-4 h-4" />
-                      Minter
                     </button>
                   </div>
                 </div>
@@ -328,26 +310,7 @@ export function RoleManager({ onClose }: RoleManagerProps) {
                           </div>
                         )}
 
-                        {user.isMinter && (
-                          <div className="flex items-center gap-1">
-                            <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${getRoleColor("minter")}`}>
-                              {getRoleIcon("minter")}
-                              Minter
-                            </span>
-                            {isOwner && !user.isOwner && (
-                              <button
-                                onClick={() => handleRemoveRole(user.address, "minter")}
-                                disabled={loading}
-                                className="text-red-500 hover:text-red-700 p-1"
-                                title="Remove minter role"
-                              >
-                                <UserMinus className="w-3 h-3" />
-                              </button>
-                            )}
-                          </div>
-                        )}
-
-                        {!user.isOwner && !user.isTreasuryManager && !user.isMinter && (
+                        {!user.isOwner && !user.isTreasuryManager && (
                           <span className="text-sm text-gray-500 dark:text-gray-400">
                             No roles
                           </span>

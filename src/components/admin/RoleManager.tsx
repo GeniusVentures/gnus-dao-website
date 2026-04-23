@@ -29,6 +29,23 @@ interface UserRole {
   isOwner: boolean;
 }
 
+const KNOWN_ADDRESSES_KEY = "gnus_dao_known_role_addresses";
+
+function loadKnownAddresses(): Set<string> {
+  try {
+    const stored = localStorage.getItem(KNOWN_ADDRESSES_KEY);
+    return stored ? new Set(JSON.parse(stored)) : new Set();
+  } catch {
+    return new Set();
+  }
+}
+
+function saveKnownAddresses(addresses: Set<string>) {
+  try {
+    localStorage.setItem(KNOWN_ADDRESSES_KEY, JSON.stringify(Array.from(addresses)));
+  } catch {}
+}
+
 export function RoleManager({ onClose }: RoleManagerProps) {
   const { wallet } = useWeb3Store();
   const [loading, setLoading] = useState(false);
@@ -37,6 +54,7 @@ export function RoleManager({ onClose }: RoleManagerProps) {
   const [selectedRole, setSelectedRole] = useState<"treasury">("treasury");
   const [users, setUsers] = useState<UserRole[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(true);
+  const [knownAddresses, setKnownAddresses] = useState<Set<string>>(() => loadKnownAddresses());
 
   useEffect(() => {
     loadRoleData();
@@ -47,23 +65,34 @@ export function RoleManager({ onClose }: RoleManagerProps) {
 
     setLoadingUsers(true);
     try {
-      // Check if current user is owner
       const owner = await gnusDaoService.getOwner();
       const userIsOwner = owner.toLowerCase() === wallet.address.toLowerCase();
       setIsOwner(userIsOwner);
 
-      // Load known users (this would typically come from your backend or indexer)
-      // For now, we'll just show the current user and owner
-      const knownAddresses = [wallet.address, owner];
-      const uniqueAddresses = [...new Set(knownAddresses)];
+      // Fetch all active treasury managers from on-chain events
+      const onChainManagers = await gnusDaoService.getTreasuryManagerAddresses();
+
+      // Merge with wallet, owner, and locally tracked addresses
+      const addressesToCheck = new Set([
+        wallet.address.toLowerCase(),
+        owner.toLowerCase(),
+        ...onChainManagers.map(a => a.toLowerCase()),
+        ...Array.from(knownAddresses).map(a => a.toLowerCase()),
+      ]);
+
+      // Persist any newly discovered on-chain addresses to localStorage
+      const updated = new Set([...knownAddresses, ...onChainManagers.map(a => a.toLowerCase())]);
+      if (updated.size !== knownAddresses.size) {
+        saveKnownAddresses(updated);
+        setKnownAddresses(updated);
+      }
 
       const userRoles: UserRole[] = await Promise.all(
-        uniqueAddresses.map(async (address) => {
+        Array.from(addressesToCheck).map(async (address) => {
           const [isTreasuryManager, ensName] = await Promise.all([
             gnusDaoService.isTreasuryManager(address),
             resolveEnsName(address),
           ]);
-
           return {
             address,
             ensName: ensName ?? undefined,
@@ -73,7 +102,11 @@ export function RoleManager({ onClose }: RoleManagerProps) {
         })
       );
 
-      setUsers(userRoles);
+      // Only show users that have a role or are the owner/connected wallet
+      const relevant = userRoles.filter(u =>
+        u.isTreasuryManager || u.isOwner || u.address.toLowerCase() === wallet.address.toLowerCase()
+      );
+      setUsers(relevant);
     } catch (error) {
       console.error("Error loading role data:", error);
       toast.error("Failed to load role information");
@@ -111,7 +144,10 @@ export function RoleManager({ onClose }: RoleManagerProps) {
     setLoading(true);
     try {
       if (selectedRole === "treasury") {
-        await gnusDaoService.addTreasuryManager(resolvedAddress);
+        const tx = await gnusDaoService.addTreasuryManager(resolvedAddress);
+        toast.loading("Waiting for confirmation...", { id: "role-add" });
+        await tx.wait();
+        toast.dismiss("role-add");
         toast.success("Treasury manager added successfully!");
       } else if (selectedRole === "minter") {
         // Note: This would need to be implemented in the service
@@ -121,6 +157,11 @@ export function RoleManager({ onClose }: RoleManagerProps) {
       }
 
       setNewAddress("");
+      setKnownAddresses(prev => {
+        const next = new Set([...prev, resolvedAddress.toLowerCase()]);
+        saveKnownAddresses(next);
+        return next;
+      });
       await loadRoleData(); // Refresh the list
     } catch (error: any) {
       console.error("Error adding role:", error);
@@ -136,7 +177,10 @@ export function RoleManager({ onClose }: RoleManagerProps) {
     setLoading(true);
     try {
       if (role === "treasury") {
-        await gnusDaoService.removeTreasuryManager(address);
+        const tx = await gnusDaoService.removeTreasuryManager(address);
+        toast.loading("Waiting for confirmation...", { id: "role-remove" });
+        await tx.wait();
+        toast.dismiss("role-remove");
         toast.success("Treasury manager removed successfully!");
       } else if (role === "minter") {
         // Note: This would need to be implemented in the service
@@ -145,6 +189,12 @@ export function RoleManager({ onClose }: RoleManagerProps) {
         return;
       }
 
+      setKnownAddresses(prev => {
+        const next = new Set(prev);
+        next.delete(address.toLowerCase());
+        saveKnownAddresses(next);
+        return next;
+      });
       await loadRoleData(); // Refresh the list
     } catch (error: any) {
       console.error("Error removing role:", error);
@@ -312,7 +362,7 @@ export function RoleManager({ onClose }: RoleManagerProps) {
                         )}
                         
                         {user.isTreasuryManager && (
-                          <div className="flex items-center gap-1">
+                          <div className="flex items-center gap-2">
                             <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${getRoleColor("treasury")}`}>
                               {getRoleIcon("treasury")}
                               Treasury Manager
@@ -321,10 +371,10 @@ export function RoleManager({ onClose }: RoleManagerProps) {
                               <button
                                 onClick={() => handleRemoveRole(user.address, "treasury")}
                                 disabled={loading}
-                                className="text-red-500 hover:text-red-700 p-1"
-                                title="Remove treasury manager role"
+                                className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium text-red-600 bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/40 border border-red-200 dark:border-red-800 disabled:opacity-50"
                               >
                                 <UserMinus className="w-3 h-3" />
+                                Revoke
                               </button>
                             )}
                           </div>

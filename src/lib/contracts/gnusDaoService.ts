@@ -939,6 +939,30 @@ export class GNUSDAOService {
 	}
 
 	/**
+	 * Get all addresses that have ever been added as treasury managers by querying on-chain events
+	 */
+	async getTreasuryManagerAddresses(): Promise<string[]> {
+		await this.ensureInitialized();
+		try {
+			const contract = this.contract;
+			const addedFilter = contract.filters.TreasuryManagerAdded();
+			const removedFilter = contract.filters.TreasuryManagerRemoved();
+			const [addedEvents, removedEvents] = await Promise.all([
+				contract.queryFilter(addedFilter),
+				contract.queryFilter(removedFilter),
+			]);
+			const removed = new Set(removedEvents.map((e: any) => e.args.manager.toLowerCase()));
+			const active = addedEvents
+				.map((e: any) => e.args.manager as string)
+				.filter((addr) => !removed.has(addr.toLowerCase()));
+			return [...new Set(active)];
+		} catch (error) {
+			console.error('Error fetching treasury manager events:', error);
+			return [];
+		}
+	}
+
+	/**
 	 * Add a treasury manager (requires owner role)
 	 */
 	async addTreasuryManager(manager: string): Promise<ethers.ContractTransactionResponse> {

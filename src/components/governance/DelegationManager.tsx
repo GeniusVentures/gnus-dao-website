@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useSiweProtectedAction } from "@/components/auth/SiweGuard";
 import { useWeb3Store } from "@/lib/web3/reduxProvider";
 import { Button } from "@/components/ui/Button";
@@ -35,13 +35,18 @@ export function DelegationManager() {
   const [isRevoking, setIsRevoking] = useState(false);
 
   // Initialize DAO service and load delegation info when wallet connects
+  const providerRef = useRef(provider);
+  const signerRef = useRef(signer);
+  providerRef.current = provider;
+  signerRef.current = signer;
+
   useEffect(() => {
     const init = async () => {
       if (isConnected && address) {
         try {
-          if (provider && signer) {
-            const network = await provider.getNetwork();
-            await gnusDaoService.initialize(provider, signer, Number(network.chainId));
+          if (providerRef.current && signerRef.current) {
+            const network = await providerRef.current.getNetwork();
+            await gnusDaoService.initialize(providerRef.current, signerRef.current, Number(network.chainId));
           }
         } catch (error) {
           console.error('Failed to initialize DAO service for delegation:', error);
@@ -50,7 +55,7 @@ export function DelegationManager() {
       }
     };
     init();
-  }, [isConnected, address, provider, signer]);
+  }, [isConnected, address]);
 
   const loadDelegationInfo = async () => {
     if (!address) return;

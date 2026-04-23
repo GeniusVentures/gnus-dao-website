@@ -40,14 +40,13 @@ export const connectWallet = createAsyncThunk(
 			const signer = await provider.getSigner();
 			const network = getNetworkConfig(chainId);
 
-			// Get ENS name if on mainnet
+			// Get ENS name via mainnet regardless of connected network
 			let ensName: string | undefined;
-			if (chainId === 1) {
-				try {
-					ensName = (await provider.lookupAddress(address)) || undefined;
-				} catch {
-					// ENS lookup failed, ignore
-				}
+			try {
+				const mainnetProvider = new ethers.JsonRpcProvider('https://ethereum.publicnode.com');
+				ensName = (await mainnetProvider.lookupAddress(address)) || undefined;
+			} catch {
+				// ENS lookup failed, ignore
 			}
 
 			// Save connector for auto-reconnect

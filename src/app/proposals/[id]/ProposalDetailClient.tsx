@@ -6,7 +6,7 @@ import { QuadraticVotingModal } from "@/components/voting/QuadraticVotingModal";
 import type { Proposal, VoteReceipt } from "@/lib/contracts/gnusDao";
 import { ProposalState, VoteSupport } from "@/lib/contracts/gnusDao";
 import { gnusDaoService } from "@/lib/contracts/gnusDaoService";
-import { formatAddress } from "@/lib/utils";
+import { formatAddress, resolveEnsName } from "@/lib/utils";
 import { useWeb3Store } from "@/lib/web3/reduxProvider";
 import { useSiwe } from "@/lib/auth/useSiwe";
 import { ethers } from "ethers";
@@ -43,6 +43,7 @@ export default function ProposalDetailClient() {
   const [userVote, setUserVote] = useState<VoteReceipt | null>(null);
   const [showQuadraticModal, setShowQuadraticModal] = useState(false);
   const [isExecuting, setIsExecuting] = useState(false);
+  const [proposerEns, setProposerEns] = useState<string | null>(null);
   const [isCanceling, setIsCanceling] = useState(false);
   const [canExecute, setCanExecute] = useState(false);
   const [canCancel, setCanCancel] = useState(false);
@@ -155,6 +156,9 @@ export default function ProposalDetailClient() {
         againstVotes: breakdown?.againstVotes || 0n,
         abstainVotes: breakdown?.abstainVotes || 0n,
       });
+
+      // Resolve proposer ENS name
+      resolveEnsName(proposalData.proposer).then(setProposerEns);
 
       if (wallet.address) {
         const voteReceipt = await gnusDaoService.getVoteReceipt(id, wallet.address);
@@ -353,7 +357,9 @@ export default function ProposalDetailClient() {
               <User className="w-4 h-4 flex-shrink-0" />
               <div>
                 <p className="text-xs">Proposer</p>
-                <p className="font-medium text-foreground">{formatAddress(proposal.proposer)}</p>
+                <p className="font-medium text-foreground">
+                  {proposerEns || formatAddress(proposal.proposer)}
+                </p>
               </div>
             </div>
             <div className="flex items-center gap-2 text-muted-foreground">

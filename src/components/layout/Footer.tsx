@@ -19,7 +19,7 @@ const navigation = {
     { name: "GitHub", href: "https://github.com/GeniusVentures/gnus-dao-website", external: true },
   ],
   community: [
-    { name: "Discord", href: "https://discord.gg/gnus", external: true },
+    { name: "Discord", href: "https://discord.com/invite/gnusai", external: true },
     { name: "Twitter / X", href: "https://twitter.com/gnusai", external: true },
     { name: "GitHub", href: "https://github.com/GeniusVentures", external: true },
     { name: "gnus.ai", href: "https://gnus.ai", external: true },
@@ -34,7 +34,7 @@ const navigation = {
 
 const socialLinks = [
   { name: "Twitter", href: "https://twitter.com/gnusai", icon: Twitter },
-  { name: "Discord", href: "https://discord.gg/gnus", icon: MessageCircle },
+  { name: "Discord", href: "https://discord.com/invite/gnusai", icon: MessageCircle },
   { name: "GitHub", href: "https://github.com/GeniusVentures", icon: Github },
   { name: "Email", href: "mailto:contact@gnus.ai", icon: Mail },
 ];

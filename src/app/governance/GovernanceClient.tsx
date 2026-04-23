@@ -77,10 +77,29 @@ export default function GovernanceClient() {
       alert("Please connect your wallet first.");
       return;
     }
-    if (!ethers.isAddress(sendTo)) {
-      alert("Invalid recipient address.");
-      return;
+
+    // Resolve ENS name to address if needed
+    let resolvedAddress = sendTo.trim();
+    if (!ethers.isAddress(resolvedAddress)) {
+      if (resolvedAddress.endsWith(".eth") || resolvedAddress.includes(".")) {
+        try {
+          const mainnet = new ethers.JsonRpcProvider("https://ethereum.publicnode.com");
+          const resolved = await mainnet.resolveName(resolvedAddress);
+          if (!resolved) {
+            alert(`Could not resolve ENS name: ${resolvedAddress}`);
+            return;
+          }
+          resolvedAddress = resolved;
+        } catch {
+          alert(`Failed to resolve ENS name: ${resolvedAddress}`);
+          return;
+        }
+      } else {
+        alert("Invalid recipient address.");
+        return;
+      }
     }
+
     const amount = parseFloat(sendAmount);
     if (isNaN(amount) || amount <= 0) {
       alert("Enter a valid amount.");
@@ -97,11 +116,12 @@ export default function GovernanceClient() {
       const network = await provider.getNetwork();
       await gnusDaoService.initialize(provider, signer, Number(network.chainId));
       toast.loading("Opening MetaMask...", { id: "send" });
-      const tx = await gnusDaoService.transfer(sendTo, amountWei);
+      const tx = await gnusDaoService.transfer(resolvedAddress, amountWei);
       toast.loading("Waiting for confirmation...", { id: "send" });
       await tx.wait();
       toast.dismiss("send");
-      toast.success(`Sent ${sendAmount} GDAO to ${sendTo.slice(0,6)}...${sendTo.slice(-4)}`);
+      const displayTo = sendTo !== resolvedAddress ? sendTo : `${resolvedAddress.slice(0,6)}...${resolvedAddress.slice(-4)}`;
+      toast.success(`Sent ${sendAmount} GDAO to ${displayTo}`);
       setSendTo("");
       setSendAmount("");
       loadGovernanceData(); // refresh balance
@@ -195,13 +215,13 @@ export default function GovernanceClient() {
                 </div>
 
                 {/* Preview */}
-                {sendTo && sendAmount && ethers.isAddress(sendTo) && parseFloat(sendAmount) > 0 && (
+                {sendTo && sendAmount && (ethers.isAddress(sendTo) || sendTo.includes(".")) && parseFloat(sendAmount) > 0 && (
                   <div className="bg-muted/50 rounded-lg p-3 text-sm flex items-center gap-2">
                     <ArrowRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                     <span>
                       Send <strong>{sendAmount} GDAO</strong> to{" "}
                       <span className="font-mono">
-                        {sendTo === DIAMOND ? "Treasury" : `${sendTo.slice(0,6)}...${sendTo.slice(-4)}`}
+                        {sendTo === DIAMOND ? "Treasury" : ethers.isAddress(sendTo) ? `${sendTo.slice(0,6)}...${sendTo.slice(-4)}` : sendTo}
                       </span>
                     </span>
                   </div>

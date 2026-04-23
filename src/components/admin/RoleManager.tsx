@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/Button";
 import { gnusDaoService } from "@/lib/contracts/gnusDaoService";
 import { useWeb3Store } from "@/lib/web3/reduxProvider";
+import { resolveEnsName } from "@/lib/utils";
 import {
   Shield,
   UserPlus,
@@ -58,12 +59,14 @@ export function RoleManager({ onClose }: RoleManagerProps) {
 
       const userRoles: UserRole[] = await Promise.all(
         uniqueAddresses.map(async (address) => {
-          const [isTreasuryManager] = await Promise.all([
+          const [isTreasuryManager, ensName] = await Promise.all([
             gnusDaoService.isTreasuryManager(address),
+            resolveEnsName(address),
           ]);
 
           return {
             address,
+            ensName: ensName ?? undefined,
             isTreasuryManager,
             isOwner: address.toLowerCase() === owner.toLowerCase(),
           };
@@ -82,16 +85,33 @@ export function RoleManager({ onClose }: RoleManagerProps) {
   const handleAddRole = async () => {
     if (!newAddress || !isOwner) return;
 
-    // Basic address validation
-    if (!/^0x[a-fA-F0-9]{40}$/.test(newAddress)) {
-      toast.error("Invalid Ethereum address");
-      return;
+    // Resolve ENS name if needed
+    let resolvedAddress = newAddress.trim();
+    if (!/^0x[a-fA-F0-9]{40}$/.test(resolvedAddress)) {
+      if (resolvedAddress.includes(".")) {
+        try {
+          const { ethers } = await import("ethers");
+          const mainnet = new ethers.JsonRpcProvider("https://ethereum.publicnode.com");
+          const resolved = await mainnet.resolveName(resolvedAddress);
+          if (!resolved) {
+            toast.error(`Could not resolve ENS name: ${resolvedAddress}`);
+            return;
+          }
+          resolvedAddress = resolved;
+        } catch {
+          toast.error(`Failed to resolve ENS name: ${resolvedAddress}`);
+          return;
+        }
+      } else {
+        toast.error("Invalid Ethereum address");
+        return;
+      }
     }
 
     setLoading(true);
     try {
       if (selectedRole === "treasury") {
-        await gnusDaoService.addTreasuryManager(newAddress);
+        await gnusDaoService.addTreasuryManager(resolvedAddress);
         toast.success("Treasury manager added successfully!");
       } else if (selectedRole === "minter") {
         // Note: This would need to be implemented in the service

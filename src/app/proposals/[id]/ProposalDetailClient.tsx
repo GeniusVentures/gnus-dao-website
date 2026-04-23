@@ -26,9 +26,9 @@ interface ProposalWithMetadata extends Proposal {
   quorumReached: boolean;
   timeRemaining: string;
   quorumThreshold: bigint;
-  forVotes?: bigint;
-  againstVotes?: bigint;
-  abstainVotes?: bigint;
+  forVotes: bigint;
+  againstVotes: bigint;
+  abstainVotes: bigint;
 }
 
 export default function ProposalDetailClient() {
@@ -172,7 +172,7 @@ export default function ProposalDetailClient() {
     }
   };
 
-  useEffect(() => { loadProposal(); }, [gnusDaoInitialized, proposalId, wallet.address]);
+  useEffect(() => { loadProposal(); }, [proposalId, wallet.address]);
 
   useEffect(() => {
     const checkPermissions = async () => {
@@ -322,8 +322,11 @@ export default function ProposalDetailClient() {
   if (!proposal) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-4">
-        <p className="text-lg text-muted-foreground">Proposal not found</p>
+        <p className="text-lg text-muted-foreground">
+          {loading ? "Loading..." : `Proposal #${proposalId} not found`}
+        </p>
         <Button onClick={() => router.push("/proposals")}>Back to Proposals</Button>
+        <Button variant="outline" onClick={loadProposal}>Retry</Button>
       </div>
     );
   }

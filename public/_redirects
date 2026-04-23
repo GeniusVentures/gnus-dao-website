@@ -6,9 +6,3 @@
 /dao /proposals 301
 /dao/governance /governance 301
 /proposal/:id /proposals/:id 301
-
-# Proposal detail sub-pages (dynamic routes not statically generated)
-/proposals/:id /proposals.html 200
-
-# Catch-all fallback - must be last
-/* /index.html 200

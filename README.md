@@ -1,238 +1,246 @@
-# GNUS DAO Website
-
 # 🗳️ GNUS DAO Governance Platform
 
-A modern, decentralized autonomous organization (DAO) governance platform built with Next.js 14, featuring quadratic voting, multi-chain support, and Diamond pattern smart contract integration.
+A decentralized autonomous organization (DAO) governance platform built with Next.js 14, featuring quadratic voting, multi-chain support, and Diamond pattern smart contract integration (EIP-2535).
 
-## 🌟 Features
+**Live:** https://feature-governance-dashboard.gnus-dao-web-2po.pages.dev/
+**Faucet:** https://gnus-dao-faucet.pages.dev/
 
-### Core Governance Features
-- **✅ Proposal Creation**: Create and submit governance proposals with IPFS metadata storage
-- **✅ Voting System**: Vote For/Against proposals directly from the interface
-- **✅ Proposal States**: Real-time proposal status (Active, Pending, Succeeded, Defeated, Executed)
-- **✅ Vote Tracking**: View voting history and user vote receipts
-- **✅ Quadratic Voting**: Advanced voting mechanism for democratic decision-making
-- **✅ Time-based Voting**: Configurable voting periods and execution delays
+## Features
 
-### Technical Features
-- **✅ Multi-Chain Support**: Compatible with Ethereum, Base, Polygon, and SKALE networks
-- **✅ Diamond Pattern Integration**: Upgradeable smart contracts using EIP-2535
-- **✅ WalletConnect v2**: Seamless wallet integration with MetaMask and WalletConnect
-- **✅ IPFS Integration**: Decentralized storage via Pinata for proposal metadata
-- **✅ Real-time Updates**: Live proposal status and voting results
-- **✅ Mobile Responsive**: Optimized for all device sizes
-- **✅ Dark/Light Theme**: User preference-based theming
+### Governance
+- Proposal creation with IPFS metadata storage (Pinata)
+- Voting system (For/Against) with quadratic voting support
+- Real-time proposal states (Active, Pending, Succeeded, Defeated, Executed)
+- Vote tracking and user vote receipts
+- Configurable voting periods and execution delays
 
-## 🚀 Quick Start
+### Technical
+- Multi-chain support: Ethereum, Base, Polygon, SKALE, Sepolia (testnet)
+- Diamond pattern smart contracts (EIP-2535) — upgradeable, modular facets
+- WalletConnect v2 + MetaMask via Reown AppKit
+- IPFS integration via Pinata for proposal metadata
+- Static export (SPA) deployed to Cloudflare Pages with Workers
+- Sentry error tracking and performance monitoring
+- Dark/Light theme with mobile-responsive design
+
+## Quick Start
 
 ### Prerequisites
 
-- Node.js 18+ and yarn
+- Node.js 18+
+- Yarn 4 (`packageManager: yarn@4.10.3`)
 - MetaMask or compatible Web3 wallet
-- Access to Sepolia testnet (for development)
 
 ### Installation
 
 ```bash
-
-# Install dependencies
 yarn install
 
 # Set up environment variables
 cp .env.example .env.local
-# Edit .env.local with your configuration
+# Edit .env.local with your configuration (see .env.example for all options)
 
 # Start development server
 yarn dev
 ```
 
-### Environment Configuration
+### Key Environment Variables
 
-Create a `.env.local` file with the following variables:
+See `.env.example` for the full list. The minimum required:
 
 ```env
-# WalletConnect Configuration
-NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=805f6520f2f2934352c65fe6bd70d15d
+# WalletConnect (required) — get from https://cloud.reown.com
+NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=
 
-# Network Configuration (Sepolia Testnet)
-NEXT_PUBLIC_SEPOLIA_RPC_URL=
-NEXT_PUBLIC_SEPOLIA_GNUS_DAO_ADDRESS=0x57AE78C65F7Dd6d158DE9F4cA9CCeaA98C988199
+# Contract address (Sepolia testnet)
+NEXT_PUBLIC_SEPOLIA_GNUS_DAO_ADDRESS=0x84Ba28d277ded98b3488C906E90B6435B116D5b4
 
-# IPFS Configuration (Pinata)
-NEXT_PUBLIC_PINATA_API_KEY=your_pinata_api_key
-NEXT_PUBLIC_PINATA_SECRET_KEY=your_pinata_secret_key
-NEXT_PUBLIC_PINATA_JWT=your_pinata_jwt_token
+# IPFS / Pinata (required for proposal creation)
+NEXT_PUBLIC_PINATA_API_KEY=
+NEXT_PUBLIC_PINATA_SECRET_KEY=
+NEXT_PUBLIC_PINATA_JWT=
 ```
 
-## 📁 Project Structure
+## Project Structure
 
 ```
-src/
-├── app/                    # Next.js 14 App Router pages
-│   ├── proposals/         # Proposal management pages
-│   │   ├── page.tsx       # Main proposals listing
-│   │   └── [id]/          # Individual proposal details
-│   ├── treasury/          # Treasury management
-│   ├── analytics/         # DAO analytics dashboard
-│   └── governance/        # Governance settings
-├── components/            # Reusable React components
-│   ├── proposals/         # Proposal-related components
-│   │   ├── CreateProposalModal.tsx  # Proposal creation
-│   │   └── ProposalCard.tsx         # Proposal display
-│   ├── voting/           # Voting interface components
-│   ├── wallet/           # Wallet connection components
-│   └── ui/               # Base UI components (Button, Modal, etc.)
-├── lib/                  # Core business logic
-│   ├── contracts/        # Smart contract interactions
-│   │   ├── gnusDaoService.ts        # Main DAO service
-│   │   └── GNUSDAODiamond.json      # Contract ABI
-│   ├── web3/            # Web3 provider and Redux store
-│   ├── ipfs/            # IPFS integration (Pinata)
-│   └── utils/           # Utility functions
-├── types/               # TypeScript type definitions
-└── scripts/             # Build and deployment scripts
+├── contracts/              # Solidity smart contracts (Diamond facets)
+├── diamonds/               # Diamond configuration and ABIs
+├── functions/              # Cloudflare Workers (serverless API)
+│   ├── api/               # API routes (auth, health, ipfs, config, performance)
+│   ├── utils/             # Worker utilities
+│   └── _middleware.ts     # Edge middleware
+├── scripts/               # Hardhat deployment & governance scripts
+├── src/
+│   ├── app/               # Next.js 14 App Router pages
+│   │   ├── analytics/     # DAO analytics dashboard
+│   │   ├── docs/          # Documentation pages
+│   │   ├── governance/    # Governance settings
+│   │   ├── history/       # Voting history
+│   │   ├── proposals/     # Proposal listing & detail ([id])
+│   │   ├── settings/      # User settings
+│   │   └── treasury/      # Treasury management
+│   ├── components/        # React components
+│   │   ├── admin/         # Admin panel components
+│   │   ├── analytics/     # Analytics charts & widgets
+│   │   ├── auth/          # Authentication (SIWE)
+│   │   ├── error/         # Error boundaries
+│   │   ├── governance/    # Governance UI
+│   │   ├── ipfs/          # IPFS upload & display
+│   │   ├── layout/        # Header, sidebar, navigation
+│   │   ├── monitoring/    # Performance monitoring
+│   │   ├── proposals/     # Proposal cards, creation modal
+│   │   ├── providers/     # Context providers (Web3, Redux, Theme)
+│   │   ├── sections/      # Landing page sections
+│   │   ├── treasury/      # Treasury components
+│   │   ├── ui/            # Base UI (Button, Modal, Toast, etc.)
+│   │   ├── voting/        # Voting interface
+│   │   └── wallet/        # Wallet connection
+│   ├── hooks/             # Custom React hooks
+│   ├── lib/               # Core business logic
+│   │   ├── auth/          # Authentication logic (SIWE)
+│   │   ├── config/        # App configuration
+│   │   ├── contracts/     # Smart contract service & ABIs
+│   │   ├── ipfs/          # IPFS/Pinata integration
+│   │   ├── middleware/    # Request middleware
+│   │   ├── services/      # Business services
+│   │   ├── store/         # Redux store & slices
+│   │   ├── utils/         # Utility functions
+│   │   └── web3/          # Web3 provider setup
+│   └── types/             # TypeScript type definitions
+└── hardhat.config.ts       # Hardhat configuration
 ```
 
-## 🔧 Development
+## Development
 
-### Available Scripts
+### Scripts
 
 ```bash
 # Development
-yarn dev                    # Start development server (port 3000)
-                           # Note: Runs SSR mode for development convenience
-                           # Production uses static export (SPA) architecture
-yarn dev:turbo             # Start development server with Turbopack
+yarn dev                    # Start dev server (port 3000, SSR mode)
+yarn dev:turbo              # Dev server with Turbopack
 
 # Building
-yarn build                 # Build for production (static export to out/)
-                           # Produces SPA for Cloudflare Pages deployment
+yarn build                  # Production build (static export → out/)
 
 # Preview
-yarn preview:local         # Preview production build locally with Wrangler
+yarn preview:local          # Preview with Wrangler locally
 
 # Testing
-yarn test                  # Run unit tests
-yarn test:coverage         # Run tests with coverage
-yarn test:e2e             # Run Playwright end-to-end tests
-yarn test:e2e:ui          # Run Playwright tests with UI
-yarn validate             # Run type-check + lint + tests
+yarn test                   # Run Jest unit tests
+yarn test:coverage          # Tests with coverage report
+yarn test:e2e              # Playwright end-to-end tests
+yarn test:e2e:ui           # Playwright with interactive UI
+yarn validate              # type-check + lint + test:ci
 
 # Code Quality
-yarn lint                  # Run ESLint
-yarn lint:fix             # Fix linting issues automatically
-yarn type-check           # TypeScript type checking
-yarn format               # Format code with Prettier
+yarn lint                   # ESLint (max 50 warnings)
+yarn lint:fix              # Auto-fix lint issues
+yarn type-check            # TypeScript strict check
+yarn format                # Prettier formatting
+
+# Smart Contracts
+yarn compile               # Compile contracts + generate Diamond ABI & typechain
+yarn clean-compile         # Clean + compile
+yarn test-hh              # Run Hardhat tests
+yarn coverage             # Solidity coverage
 
 # Deployment
-yarn deploy:prepare        # Build for production
-yarn deploy:cloudflare     # Build and deploy to Cloudflare Pages
-yarn deploy:static         # Alias for deploy:cloudflare
+yarn deploy:cloudflare     # Build + deploy to Cloudflare Pages
+yarn deploy:prepare        # Build only
 
 # Maintenance
-yarn clean                 # Clean build artifacts (.next, out, dist)
-yarn clean:all            # Clean everything including node_modules
+yarn clean                 # Remove .next, out, dist, cache
+yarn clean:all            # Remove everything including node_modules
 ```
 
-### Testing Strategy
+### Smart Contract Development
 
-The project includes comprehensive testing:
+The project uses the Diamond pattern (EIP-2535) with Hardhat:
 
-- **✅ Unit Tests**: Jest with React Testing Library for component testing
-- **✅ E2E Tests**: Playwright for end-to-end user flow testing
-- **✅ Type Safety**: Full TypeScript coverage with strict mode
-- **✅ Linting**: ESLint with custom rules for Web3 development
-- **✅ Integration Tests**: Contract interaction testing
+```bash
+# Compile contracts and generate ABI + typechain types
+yarn compile
 
-### Development Workflow
+# Run contract tests
+yarn test-hh
 
-1. **Local Development**: `yarn dev` starts the development server (SSR mode for convenience)
-2. **Code Quality**: `yarn validate` runs all quality checks
-3. **Testing**: `yarn test:coverage` ensures >80% test coverage
-4. **Building**: `yarn build` creates static export for production
-5. **Preview**: `yarn preview:local` tests production build locally
-6. **Deployment**: Automatic deployment via GitHub Actions
+# Generate Diamond ABI only
+yarn diamond:generate-abi
 
-## 🌐 Deployment
+# Governance scripts (require .env configuration)
+npx hardhat run scripts/init-governance.ts --network sepolia
+npx hardhat run scripts/upgrade-governance-facet.ts --network sepolia
+```
+
+## Deployment
 
 ### Cloudflare Pages (Production)
 
-The project is deployed as a Single Page Application (SPA) with Cloudflare Workers:
+Architecture: Static SPA (`out/`) + Cloudflare Workers (`functions/`).
 
 ```bash
-# Build static export
-yarn build
-
-# Preview locally with Wrangler
-yarn preview:local
-
-# Deploy to Cloudflare Pages
+# Build and deploy
 yarn deploy:cloudflare
+
+# Or preview locally first
+yarn build
+yarn preview:local
 ```
 
-**Architecture**: Static HTML/CSS/JS served from `out/` directory with serverless functions in `functions/` directory running as Cloudflare Workers.
+### CI/CD
 
-**Live Deployment**: https://gnus-dao-web.pages.dev
+Automated via GitHub Actions:
+- Type checking, linting, and testing on PRs
+- Automatic deployment to Cloudflare Pages on push to main
+- Preview deployments for pull requests
 
-### GitHub Actions CI/CD
+## Architecture
 
-Automated deployment pipeline includes:
+### Smart Contracts
 
-- **✅ Code Quality Checks**: TypeScript, ESLint, Prettier
-- **✅ Automated Testing**: Unit and integration tests
-- **✅ Build Verification**: Ensures successful production builds
-- **✅ Automatic Deployment**: Deploy to Cloudflare Pages on main branch
-- **✅ Preview Deployments**: Deploy preview for pull requests
+Diamond pattern (EIP-2535) deployed on Sepolia testnet:
+- **Contract:** `0x84Ba28d277ded98b3488C906E90B6435B116D5b4`
+- Modular facets: Proposals, Voting, Treasury, Token
+- Upgradeable without redeployment via `diamondCut`
 
-
-## 🏗️ Architecture
-
-### Smart Contract Integration
-
-The platform integrates with Diamond pattern smart contracts (EIP-2535):
-
-- **✅ Upgradeable Architecture**: Modular contract system with facets
-- **✅ Gas Optimization**: Efficient function delegation and storage
-- **✅ Feature Modularity**: Separate facets for proposals, voting, treasury
-- **✅ Contract Address**: `0x57AE78C65F7Dd6d158DE9F4cA9CCeaA98C988199` (Sepolia)
-
-### Key Contract Functions
+### Key Contract Interface
 
 ```typescript
-// Proposal Management
-propose(title: string, ipfsHash: string) → uint256
-getProposalBasic(proposalId: uint256) → (id, proposer, title, ipfsHash)
-getProposalStatus(proposalId: uint256) → (startTime, endTime, totalVotes, executed, cancelled)
+// Proposals
+propose(title, ipfsHash) → proposalId
+getProposalBasic(proposalId) → (id, proposer, title, ipfsHash)
+getProposalStatus(proposalId) → (startTime, endTime, totalVotes, executed, cancelled)
 
-// Voting System
-vote(proposalId: uint256, votes: uint256) → void
-hasVoted(proposalId: uint256, voter: address) → bool
-getVote(proposalId: uint256, voter: address) → uint256
+// Voting
+vote(proposalId, votes)
+hasVoted(proposalId, voter) → bool
+getVote(proposalId, voter) → uint256
 
 // Configuration
 getVotingConfig() → (proposalThreshold, votingDelay, votingPeriod, quorumThreshold)
 ```
 
-## 📊 Current Status
+### Monitoring & Error Tracking
 
-### ✅ Completed Features
+- **Sentry** for error tracking and performance monitoring
+- Critical error alerting via webhooks (Slack, Discord)
+- Web Vitals attribution (CLS, LCP, FID, FCP, TTFB)
+- Custom performance monitoring hooks
 
-- **Proposal Creation**: Full end-to-end proposal creation with IPFS upload
+## Security
 
-- **Proposal Display**: Real-time proposal states and time remaining
-- **Wallet Integration**: WalletConnect v2 support and MetaMask support
-- **Navigation**: Seamless routing between proposal list and details
-- **State Management**: Proper proposal state calculation from contract data
-- **Error Handling**: Comprehensive error handling and user feedback
-- **Build System**: Hybrid build for Cloudflare Pages deployment
-- **CI/CD Pipeline**: Automated testing and deployment
+```bash
+# Run all security checks
+yarn security-check
 
-### 🔄 Current Tasks
+# Individual checks
+yarn snyk:test             # Snyk vulnerability scan
+yarn semgrep:scan          # Static analysis
+yarn slither:scan          # Solidity security analysis
+yarn git-secrets:scan      # Secret detection
+```
 
-- **Enhanced UI/UX**: Improve visual design and user experience
-- **Wallet Integration**: WalletConnect v2 support, SIWE for cloudflare
-- **Voting System**: Vote For/Against functionality with wallet integration
-- **Performance Optimization**: Optimize bundle size and loading times
-- **Advanced Voting**: Implement delegation and quadratic voting features
-- **Treasury Management**: Add treasury proposal and execution features
-- **Analytics Dashboard**: Implement governance analytics and metrics
+## License
+
+MIT

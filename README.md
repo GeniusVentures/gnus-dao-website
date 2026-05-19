@@ -2,7 +2,7 @@
 
 A decentralized autonomous organization (DAO) governance platform built with Next.js 14, featuring quadratic voting, multi-chain support, and Diamond pattern smart contract integration (EIP-2535).
 
-**Live:** https://feature-governance-dashboard.gnus-dao-web-2po.pages.dev/
+**Live:** https://feature-governance-dashboard.gnus-dao-web-2po.pages.dev/  
 **Faucet:** https://gnus-dao-faucet.pages.dev/
 
 ## Features

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import {
   Vote,
   Coins,
@@ -133,16 +134,15 @@ export function Features() {
         {/* Bottom CTA */}
         <div className="text-center mt-16">
           <p className="text-muted-foreground mb-4">
-            Ready to join the world's largest decentralized AI computing
-            network?
+            Ready to participate in GNUS DAO governance?
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <button className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-lg text-white bg-primary hover:bg-primary/90 transition-colors">
-              Start Contributing GPU Power
-            </button>
-            <button className="inline-flex items-center px-6 py-3 border border-input text-base font-medium rounded-lg bg-background hover:bg-accent transition-colors">
-              Learn About GNUS.AI
-            </button>
+            <Link href="/proposals" className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-lg text-white bg-primary hover:bg-primary/90 transition-colors">
+              View Proposals
+            </Link>
+            <Link href="/docs" className="inline-flex items-center px-6 py-3 border border-input text-base font-medium rounded-lg bg-background hover:bg-accent transition-colors">
+              Read the Docs
+            </Link>
           </div>
         </div>
       </div>

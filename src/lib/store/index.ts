@@ -15,18 +15,26 @@ export const store = configureStore({
 	middleware: (getDefaultMiddleware) =>
 		getDefaultMiddleware({
 			serializableCheck: {
-				// Ignore these action types
+				// Ignore these action types (non-serializable payload objects like BrowserProvider)
 				ignoredActions: [
 					'web3/setProvider',
 					'web3/setSigner',
-					'wallet/connectWallet/fulfilled',
+					'wallet/connect/fulfilled', // connectWallet thunk
 					'wallet/setProvider',
 					'wallet/setSigner',
+					'wallet/initialize/fulfilled', // initializeWeb3 thunk (auto-reconnect)
+					'gnusDao/initialize/fulfilled', // initializeGnusDao thunk
 				],
-				// Ignore these field paths in all actions
-				ignoredActionsPaths: ['payload.provider', 'payload.signer'],
-				// Ignore these paths in the state
-				ignoredPaths: ['web3.provider', 'web3.signer', 'wallet.provider', 'wallet.signer'],
+				// Ignore non-serializable values in action payloads
+				ignoredActionsPaths: ['payload.provider', 'payload.signer', 'payload.connector'],
+				// Ignore non-serializable values in Redux state
+				ignoredPaths: [
+					'web3.provider',
+					'web3.signer',
+					'wallet.provider',
+					'wallet.signer',
+					'wallet.connector',
+				],
 			},
 		}),
 });

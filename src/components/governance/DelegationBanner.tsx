@@ -29,18 +29,16 @@ export function DelegationBanner() {
           Number(network.chainId),
         );
 
-        // Get voting power (comes from token balance, not delegation)
+        // Get voting power
         const power = await gnusDaoService.getVotingPower(wallet.address);
         setVotingPower(power);
 
         // Check if user has delegated their voting power to someone else
-        const hasOwnVotingPower = await gnusDaoService.isDelegatedToSelf(
-          wallet.address,
-        );
-        setIsDelegated(hasOwnVotingPower);
+        const selfDelegated = await gnusDaoService.isDelegatedToSelf(wallet.address);
+        setIsDelegated(selfDelegated);
 
-        // Auto-dismiss if user has voting power
-        if (power > 0n && hasOwnVotingPower) {
+        // Auto-dismiss if user has voting power and is self-delegated — no action needed
+        if (selfDelegated) {
           setIsDismissed(true);
         }
       } catch (error) {
@@ -52,16 +50,49 @@ export function DelegationBanner() {
     checkVotingPower();
   }, [wallet.isConnected, wallet.address, provider, signer]);
 
-  const handleGetTokens = () => {
-    // Redirect to token acquisition page or show instructions
-    toast.error(
-      "You need GNUS tokens to participate in governance. " +
-        "Please acquire GNUS tokens to gain voting power.",
-      { duration: 5000 },
-    );
+  // NOTE: This contract does NOT support self-delegation (reverts with CannotDelegateToSelf).
+  // Voting power is derived directly from token balance — no activation step needed.
+  // The banner is shown only when a user has delegated their votes AWAY to someone else.
 
-    // You can add a link to a DEX or token sale page here
-    // window.open("https://app.uniswap.org/...", "_blank");
+  const handleRevoke = async () => {
+    if (!wallet.isConnected || !provider || !signer) {
+      toast.error("Please connect your wallet first");
+      return;
+    }
+
+    try {
+      // Create a fresh initialization right before the transaction
+      const network = await provider.getNetwork();
+      await gnusDaoService.initialize(
+        provider,
+        signer,
+        Number(network.chainId),
+      );
+
+      const tx = await gnusDaoService.revokeDelegation();
+      toast.success("Revocation transaction submitted. Waiting for confirmation...");
+      await tx.wait();
+      toast.success("Delegation revoked successfully! You now have your own voting power.");
+      setIsDelegated(true);
+      setIsDismissed(true);
+    } catch (error: any) {
+      console.error("Failed to revoke delegation:", error);
+      let errMsg =
+        error.reason ||
+        error.data?.message ||
+        error.message ||
+        "Failed to revoke delegation";
+      // Match the custom error NoActiveDelegation (selector 0xba970e57)
+      if (
+        errMsg.includes("NoActiveDelegation") ||
+        error.data === "0xba970e57" ||
+        errMsg.includes("0xba970e57")
+      ) {
+        errMsg =
+          "You have not delegated your voting power, so there is nothing to revoke.";
+      }
+      toast.error(errMsg);
+    }
   };
 
   // Don't show if:
@@ -91,14 +122,14 @@ export function DelegationBanner() {
         {/* Content */}
         <div className="flex-1 min-w-0">
           <h3 className="text-sm font-semibold text-yellow-900 dark:text-yellow-100 mb-1">
-            {votingPower === 0n ? "No Voting Power" : "Voting Power Delegated"}
+            Voting Power Delegated Away
           </h3>
           <p className="text-sm text-yellow-800 dark:text-yellow-200 mb-3">
             {votingPower === 0n ? (
               <>
-                You need GNUS tokens to participate in governance. Your voting
-                power is based on your token balance. Acquire GNUS tokens to
-                gain voting power and vote on proposals.
+                You have delegated your voting power to another address and
+                currently have 0 active votes. To vote on proposals yourself,
+                revoke the delegation below.
               </>
             ) : (
               <>
@@ -110,13 +141,14 @@ export function DelegationBanner() {
           </p>
 
           <div className="flex items-center gap-3">
+            {/* Both states where banner is visible require Revoke */}
             <Button
-              onClick={handleGetTokens}
+              onClick={handleRevoke}
               size="sm"
               className="bg-yellow-600 hover:bg-yellow-700 text-white"
             >
               <Zap className="h-4 w-4 mr-2" />
-              {votingPower === 0n ? "Get GNUS Tokens" : "Revoke Delegation"}
+              Revoke Delegation
             </Button>
 
             <button

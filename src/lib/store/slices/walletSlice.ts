@@ -40,14 +40,13 @@ export const connectWallet = createAsyncThunk(
 			const signer = await provider.getSigner();
 			const network = getNetworkConfig(chainId);
 
-			// Get ENS name if on mainnet
+			// Get ENS name via mainnet regardless of connected network
 			let ensName: string | undefined;
-			if (chainId === 1) {
-				try {
-					ensName = (await provider.lookupAddress(address)) || undefined;
-				} catch {
-					// ENS lookup failed, ignore
-				}
+			try {
+				const mainnetProvider = new ethers.JsonRpcProvider('https://ethereum.publicnode.com');
+				ensName = (await mainnetProvider.lookupAddress(address)) || undefined;
+			} catch {
+				// ENS lookup failed, ignore
 			}
 
 			// Save connector for auto-reconnect
@@ -64,6 +63,52 @@ export const connectWallet = createAsyncThunk(
 			};
 		} catch (error: any) {
 			return rejectWithValue(error.message || 'Failed to connect wallet');
+		}
+	},
+);
+
+/**
+ * Silent reconnect — restores wallet session WITHOUT triggering a MetaMask popup.
+ * Uses eth_accounts (read-only, already-authorized accounts) instead of eth_requestAccounts.
+ * Only succeeds if MetaMask already has permission for this site.
+ */
+export const silentReconnectWallet = createAsyncThunk(
+	'wallet/connect', // Same type as connectWallet so web3Slice matcher picks it up
+	async (connectorId: string, { rejectWithValue }) => {
+		try {
+			if (!(window as any).ethereum) {
+				return rejectWithValue('No wallet provider');
+			}
+
+			// eth_accounts returns already-authorized accounts WITHOUT a popup
+			const accounts: string[] = await (window as any).ethereum.request({
+				method: 'eth_accounts',
+			});
+
+			if (!accounts || accounts.length === 0) {
+				// Not connected — do nothing (no popup)
+				return rejectWithValue('No authorized accounts');
+			}
+
+			const provider = new ethers.BrowserProvider((window as any).ethereum);
+			const network = await provider.getNetwork();
+			const chainId = Number(network.chainId);
+			const signer = await provider.getSigner();
+			const networkConfig = getNetworkConfig(chainId);
+
+			const connector = getConnectorById(connectorId);
+
+			return {
+				provider,
+				signer,
+				connector,
+				address: accounts[0],
+				chainId,
+				ensName: undefined,
+				network: networkConfig,
+			};
+		} catch (error: any) {
+			return rejectWithValue(error.message || 'Silent reconnect failed');
 		}
 	},
 );

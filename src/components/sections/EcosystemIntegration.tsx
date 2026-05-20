@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import {
   ArrowRight,
   Code,
@@ -201,13 +202,13 @@ export function EcosystemIntegration() {
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <button className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-lg text-white bg-primary hover:bg-primary/90 transition-colors">
-                Join the Network
+              <Link href="/proposals" className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-lg text-white bg-primary hover:bg-primary/90 transition-colors">
+                View Proposals
                 <ArrowRight className="ml-2 h-5 w-5" />
-              </button>
-              <button className="inline-flex items-center px-6 py-3 border border-input text-base font-medium rounded-lg bg-background hover:bg-accent transition-colors">
+              </Link>
+              <Link href="/docs" className="inline-flex items-center px-6 py-3 border border-input text-base font-medium rounded-lg bg-background hover:bg-accent transition-colors">
                 Learn More
-              </button>
+              </Link>
             </div>
           </div>
         </div>

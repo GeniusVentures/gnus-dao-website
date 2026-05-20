@@ -39,9 +39,11 @@ export function CTA() {
                 </>
               ) : (
                 <>
-                  <Button size="lg" variant="default" onClick={() => connect()}>
-                    Connect Wallet to Start
-                    <ArrowRight className="ml-2 h-5 w-5" />
+                  <Button asChild size="lg" variant="default">
+                    <Link href="/proposals">
+                      View Proposals
+                      <ArrowRight className="ml-2 h-5 w-5" />
+                    </Link>
                   </Button>
                   <Button asChild size="lg" variant="outline">
                     <Link href="/docs">Learn More</Link>
@@ -89,38 +91,23 @@ export function CTA() {
           {/* Secondary CTA */}
           <div className="bg-card border rounded-2xl p-8">
             <h3 className="text-2xl font-bold mb-4">
-              Join the GNUS.AI Network
+              Get Started Now
             </h3>
             <p className="text-muted-foreground mb-6">
-              Get updates on network upgrades, new AI capabilities, and GPU
-              provider rewards.
+              The DAO is live on Sepolia testnet. Connect your wallet and start participating in governance today.
             </p>
-
-            <div className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto">
-              <input
-                type="email"
-                placeholder="Enter your email"
-                className="flex-1 px-4 py-2 border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary"
-              />
-              <Button>Subscribe</Button>
-            </div>
-
-            <p className="text-xs text-muted-foreground mt-4">
-              We respect your privacy. Unsubscribe at any time.
-            </p>
-          </div>
-
-          {/* Social proof */}
-          <div className="mt-16 text-center">
-            <p className="text-sm text-muted-foreground mb-4">
-              Powering AI applications for leading organizations worldwide
-            </p>
-            <div className="flex flex-wrap justify-center items-center gap-8 opacity-60">
-              {/* Placeholder for partner logos */}
-              <div className="h-8 w-24 bg-muted rounded"></div>
-              <div className="h-8 w-24 bg-muted rounded"></div>
-              <div className="h-8 w-24 bg-muted rounded"></div>
-              <div className="h-8 w-24 bg-muted rounded"></div>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Button asChild size="lg">
+                <Link href="/proposals">Browse Proposals <ArrowRight className="ml-2 h-4 w-4" /></Link>
+              </Button>
+              <Button asChild size="lg" variant="outline">
+                <Link href="/docs">Read the Docs</Link>
+              </Button>
+              <Button asChild size="lg" variant="outline">
+                <a href="https://github.com/GeniusVentures/gnus-dao-website" target="_blank" rel="noopener noreferrer">
+                  GitHub
+                </a>
+              </Button>
             </div>
           </div>
         </div>

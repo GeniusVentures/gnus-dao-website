@@ -1,278 +1,246 @@
-# GNUS DAO Website
-
 # 🗳️ GNUS DAO Governance Platform
 
-A modern, decentralized autonomous organization (DAO) governance platform built with Next.js 14, featuring quadratic voting, multi-chain support, and Diamond pattern smart contract integration.
+A decentralized autonomous organization (DAO) governance platform built with Next.js 14, featuring quadratic voting, multi-chain support, and Diamond pattern smart contract integration (EIP-2535).
 
-## 📚 Documentation
+**Live:** https://feature-governance-dashboard.gnus-dao-web-2po.pages.dev/  
+**Faucet:** https://gnus-dao-faucet.pages.dev/
 
-### User Guides
-- **[📖 Complete Usage Guide](USAGE_GUIDE.md)** - Comprehensive user manual for all features
-- **[⚡ Quick Reference](QUICK_REFERENCE.md)** - Essential commands and troubleshooting
-- **[🔧 Technical Documentation](TECHNICAL_DOCS.md)** - Developer and architecture guide
+## Features
 
-### Getting Started
-1. **New Users**: Start with the [Usage Guide](USAGE_GUIDE.md)
-2. **Quick Help**: Check the [Quick Reference](QUICK_REFERENCE.md)
-3. **Developers**: Read the [Technical Docs](TECHNICAL_DOCS.md)
+### Governance
+- Proposal creation with IPFS metadata storage (Pinata)
+- Voting system (For/Against) with quadratic voting support
+- Real-time proposal states (Active, Pending, Succeeded, Defeated, Executed)
+- Vote tracking and user vote receipts
+- Configurable voting periods and execution delays
 
-## 🌟 Features
+### Technical
+- Multi-chain support: Ethereum, Base, Polygon, SKALE, Sepolia (testnet)
+- Diamond pattern smart contracts (EIP-2535) — upgradeable, modular facets
+- WalletConnect v2 + MetaMask via Reown AppKit
+- IPFS integration via Pinata for proposal metadata
+- Static export (SPA) deployed to Cloudflare Pages with Workers
+- Sentry error tracking and performance monitoring
+- Dark/Light theme with mobile-responsive design
 
-### Core Governance Features
-- **✅ Proposal Creation**: Create and submit governance proposals with IPFS metadata storage
-- **✅ Quadratic Voting System**: Advanced voting mechanism with cost = votes² formula
-- **✅ Proposal Management**: Complete lifecycle from creation to execution
-- **✅ Vote Tracking**: Comprehensive voting history and receipts
-- **✅ Treasury Operations**: Decentralized fund management
-- **✅ Role Management**: Admin controls for treasury managers and permissions
-- **✅ Real-time Updates**: Live proposal status and voting results
-
-### Advanced Features
-- **✅ Diamond Pattern Integration**: Upgradeable smart contracts using EIP-2535
-- **✅ IPFS Integration**: Decentralized metadata storage with multiple gateway fallback
-- **✅ Multi-Wallet Support**: MetaMask, WalletConnect, and other Web3 wallets
-- **✅ Mobile Responsive**: Optimized interface for all devices
-- **✅ Error Handling**: Comprehensive error tracking and user feedback
-- **✅ Security Features**: Input validation, rate limiting, and safe transactions
-
-### Technical Stack
-- **Frontend**: Next.js 14.2.35 with TypeScript
-- **Styling**: Tailwind CSS with custom components
-- **State Management**: Redux Toolkit
-- **Web3**: ethers.js v6 with TypeChain
-- **Smart Contracts**: Diamond pattern (7 facets)
-- **Network**: Ethereum Sepolia Testnet
-
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
-- Node.js 18+ and yarn
+
+- Node.js 18+
+- Yarn 4 (`packageManager: yarn@4.10.3`)
 - MetaMask or compatible Web3 wallet
-
-### Development
-```bash
-# Install dependencies
-yarn install
-
-# Start development server
-yarn dev
-
-# Open http://localhost:3000
-```
-
-### Deployment
-```bash
-# Build and deploy to Cloudflare Pages
-yarn deploy:pages
-
-# Or build only
-yarn build:pages
-```
-
-📋 **For detailed deployment instructions, see [DEPLOYMENT.md](DEPLOYMENT.md)**
-- Access to Sepolia testnet (for development)
 
 ### Installation
 
 ```bash
-# Clone the repository
-git clone <repository-url>
-cd gnus-dao-website
-
-# Install dependencies
 yarn install
 
 # Set up environment variables
 cp .env.example .env.local
-# Edit .env.local with your configuration
+# Edit .env.local with your configuration (see .env.example for all options)
 
 # Start development server
 yarn dev
 ```
 
-### First Time Setup
-1. **Connect Wallet**: Use MetaMask on Sepolia testnet
-2. **Get Test Tokens**: Acquire GNUS tokens for voting
-3. **Explore Interface**: Check out proposals and treasury
-4. **Cast First Vote**: Participate in governance
+### Key Environment Variables
 
-For detailed setup instructions, see the [Usage Guide](USAGE_GUIDE.md#getting-started).
-
-### Environment Configuration
-
-Create a `.env.local` file with the following variables:
+See `.env.example` for the full list. The minimum required:
 
 ```env
-# WalletConnect Configuration
-NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=805f6520f2f2934352c65fe6bd70d15d
+# WalletConnect (required) — get from https://cloud.reown.com
+NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=
 
-# Network Configuration (Sepolia Testnet)
-NEXT_PUBLIC_SEPOLIA_RPC_URL=
-NEXT_PUBLIC_SEPOLIA_GNUS_DAO_ADDRESS=0x57AE78C65F7Dd6d158DE9F4cA9CCeaA98C988199
+# Contract address (Sepolia testnet)
+NEXT_PUBLIC_SEPOLIA_GNUS_DAO_ADDRESS=0x84Ba28d277ded98b3488C906E90B6435B116D5b4
 
-# IPFS Configuration (Pinata)
-NEXT_PUBLIC_PINATA_API_KEY=your_pinata_api_key
-NEXT_PUBLIC_PINATA_SECRET_KEY=your_pinata_secret_key
-NEXT_PUBLIC_PINATA_JWT=your_pinata_jwt_token
+# IPFS / Pinata (required for proposal creation)
+NEXT_PUBLIC_PINATA_API_KEY=
+NEXT_PUBLIC_PINATA_SECRET_KEY=
+NEXT_PUBLIC_PINATA_JWT=
 ```
 
-## 📁 Project Structure
+## Project Structure
 
 ```
-src/
-├── app/                    # Next.js 14 App Router pages
-│   ├── proposals/         # Proposal management pages
-│   │   ├── page.tsx       # Main proposals listing
-│   │   └── [id]/          # Individual proposal details
-│   ├── treasury/          # Treasury management
-│   ├── analytics/         # DAO analytics dashboard
-│   └── governance/        # Governance settings
-├── components/            # Reusable React components
-│   ├── proposals/         # Proposal-related components
-│   │   ├── CreateProposalModal.tsx  # Proposal creation
-│   │   └── ProposalCard.tsx         # Proposal display
-│   ├── voting/           # Voting interface components
-│   ├── wallet/           # Wallet connection components
-│   └── ui/               # Base UI components (Button, Modal, etc.)
-├── lib/                  # Core business logic
-│   ├── contracts/        # Smart contract interactions
-│   │   ├── gnusDaoService.ts        # Main DAO service
-│   │   └── GNUSDAODiamond.json      # Contract ABI
-│   ├── web3/            # Web3 provider and Redux store
-│   ├── ipfs/            # IPFS integration (Pinata)
-│   └── utils/           # Utility functions
-├── types/               # TypeScript type definitions
-└── scripts/             # Build and deployment scripts
+├── contracts/              # Solidity smart contracts (Diamond facets)
+├── diamonds/               # Diamond configuration and ABIs
+├── functions/              # Cloudflare Workers (serverless API)
+│   ├── api/               # API routes (auth, health, ipfs, config, performance)
+│   ├── utils/             # Worker utilities
+│   └── _middleware.ts     # Edge middleware
+├── scripts/               # Hardhat deployment & governance scripts
+├── src/
+│   ├── app/               # Next.js 14 App Router pages
+│   │   ├── analytics/     # DAO analytics dashboard
+│   │   ├── docs/          # Documentation pages
+│   │   ├── governance/    # Governance settings
+│   │   ├── history/       # Voting history
+│   │   ├── proposals/     # Proposal listing & detail ([id])
+│   │   ├── settings/      # User settings
+│   │   └── treasury/      # Treasury management
+│   ├── components/        # React components
+│   │   ├── admin/         # Admin panel components
+│   │   ├── analytics/     # Analytics charts & widgets
+│   │   ├── auth/          # Authentication (SIWE)
+│   │   ├── error/         # Error boundaries
+│   │   ├── governance/    # Governance UI
+│   │   ├── ipfs/          # IPFS upload & display
+│   │   ├── layout/        # Header, sidebar, navigation
+│   │   ├── monitoring/    # Performance monitoring
+│   │   ├── proposals/     # Proposal cards, creation modal
+│   │   ├── providers/     # Context providers (Web3, Redux, Theme)
+│   │   ├── sections/      # Landing page sections
+│   │   ├── treasury/      # Treasury components
+│   │   ├── ui/            # Base UI (Button, Modal, Toast, etc.)
+│   │   ├── voting/        # Voting interface
+│   │   └── wallet/        # Wallet connection
+│   ├── hooks/             # Custom React hooks
+│   ├── lib/               # Core business logic
+│   │   ├── auth/          # Authentication logic (SIWE)
+│   │   ├── config/        # App configuration
+│   │   ├── contracts/     # Smart contract service & ABIs
+│   │   ├── ipfs/          # IPFS/Pinata integration
+│   │   ├── middleware/    # Request middleware
+│   │   ├── services/      # Business services
+│   │   ├── store/         # Redux store & slices
+│   │   ├── utils/         # Utility functions
+│   │   └── web3/          # Web3 provider setup
+│   └── types/             # TypeScript type definitions
+└── hardhat.config.ts       # Hardhat configuration
 ```
 
-## 🔧 Development
+## Development
 
-### Available Scripts
+### Scripts
 
 ```bash
 # Development
-yarn dev                    # Start development server (port 3000)
-yarn dev:turbo             # Start development server with Turbopack
+yarn dev                    # Start dev server (port 3000, SSR mode)
+yarn dev:turbo              # Dev server with Turbopack
 
 # Building
-yarn build                 # Standard Next.js build
-yarn build:production      # Production build with optimizations for Cloudflare Pages
+yarn build                  # Production build (static export → out/)
+
+# Preview
+yarn preview:local          # Preview with Wrangler locally
 
 # Testing
-yarn test                  # Run unit tests
-yarn test:coverage         # Run tests with coverage
-yarn test:e2e             # Run Playwright end-to-end tests
-yarn test:e2e:ui          # Run Playwright tests with UI
-yarn validate             # Run type-check + lint + tests
+yarn test                   # Run Jest unit tests
+yarn test:coverage          # Tests with coverage report
+yarn test:e2e              # Playwright end-to-end tests
+yarn test:e2e:ui           # Playwright with interactive UI
+yarn validate              # type-check + lint + test:ci
 
 # Code Quality
-yarn lint                  # Run ESLint
-yarn lint:fix             # Fix linting issues automatically
-yarn type-check           # TypeScript type checking
-yarn format               # Format code with Prettier
+yarn lint                   # ESLint (max 50 warnings)
+yarn lint:fix              # Auto-fix lint issues
+yarn type-check            # TypeScript strict check
+yarn format                # Prettier formatting
+
+# Smart Contracts
+yarn compile               # Compile contracts + generate Diamond ABI & typechain
+yarn clean-compile         # Clean + compile
+yarn test-hh              # Run Hardhat tests
+yarn coverage             # Solidity coverage
 
 # Deployment
-yarn deploy:prepare        # Build for production
-yarn deploy:cloudflare     # Deploy to Cloudflare Pages
+yarn deploy:cloudflare     # Build + deploy to Cloudflare Pages
+yarn deploy:prepare        # Build only
 
 # Maintenance
-yarn clean                 # Clean build artifacts
-yarn clean:all            # Clean everything including node_modules
+yarn clean                 # Remove .next, out, dist, cache
+yarn clean:all            # Remove everything including node_modules
 ```
 
-### Testing Strategy
+### Smart Contract Development
 
-The project includes comprehensive testing:
+The project uses the Diamond pattern (EIP-2535) with Hardhat:
 
-- **✅ Unit Tests**: Jest with React Testing Library for component testing
-- **✅ E2E Tests**: Playwright for end-to-end user flow testing
-- **✅ Type Safety**: Full TypeScript coverage with strict mode
-- **✅ Linting**: ESLint with custom rules for Web3 development
-- **✅ Integration Tests**: Contract interaction testing
+```bash
+# Compile contracts and generate ABI + typechain types
+yarn compile
 
-### Development Workflow
+# Run contract tests
+yarn test-hh
 
-1. **Local Development**: `yarn dev` starts the development server
-2. **Code Quality**: `yarn validate` runs all quality checks
-3. **Testing**: `yarn test:coverage` ensures >80% test coverage
-4. **Building**: `yarn build:hybrid` creates production-ready build
-5. **Deployment**: Automatic deployment via GitHub Actions
+# Generate Diamond ABI only
+yarn diamond:generate-abi
 
-## 🌐 Deployment
+# Governance scripts (require .env configuration)
+npx hardhat run scripts/init-governance.ts --network sepolia
+npx hardhat run scripts/upgrade-governance-facet.ts --network sepolia
+```
+
+## Deployment
 
 ### Cloudflare Pages (Production)
 
-The project is optimized for Cloudflare Pages deployment:
+Architecture: Static SPA (`out/`) + Cloudflare Workers (`functions/`).
 
 ```bash
-# Build for production
-yarn build:production
-
-# Deploy using Wrangler CLI
+# Build and deploy
 yarn deploy:cloudflare
+
+# Or preview locally first
+yarn build
+yarn preview:local
 ```
 
-**Live Deployment**: https://gnus-dao-web.pages.dev
+### CI/CD
 
-### GitHub Actions CI/CD
+Automated via GitHub Actions:
+- Type checking, linting, and testing on PRs
+- Automatic deployment to Cloudflare Pages on push to main
+- Preview deployments for pull requests
 
-Automated deployment pipeline includes:
+## Architecture
 
-- **✅ Code Quality Checks**: TypeScript, ESLint, Prettier
-- **✅ Automated Testing**: Unit and integration tests
-- **✅ Build Verification**: Ensures successful production builds
-- **✅ Automatic Deployment**: Deploy to Cloudflare Pages on main branch
-- **✅ Preview Deployments**: Deploy preview for pull requests
+### Smart Contracts
 
+Diamond pattern (EIP-2535) deployed on Sepolia testnet:
+- **Contract:** `0x84Ba28d277ded98b3488C906E90B6435B116D5b4`
+- Modular facets: Proposals, Voting, Treasury, Token
+- Upgradeable without redeployment via `diamondCut`
 
-## 🏗️ Architecture
-
-### Smart Contract Integration
-
-The platform integrates with Diamond pattern smart contracts (EIP-2535):
-
-- **✅ Upgradeable Architecture**: Modular contract system with facets
-- **✅ Gas Optimization**: Efficient function delegation and storage
-- **✅ Feature Modularity**: Separate facets for proposals, voting, treasury
-- **✅ Contract Address**: `0x57AE78C65F7Dd6d158DE9F4cA9CCeaA98C988199` (Sepolia)
-
-### Key Contract Functions
+### Key Contract Interface
 
 ```typescript
-// Proposal Management
-propose(title: string, ipfsHash: string) → uint256
-getProposalBasic(proposalId: uint256) → (id, proposer, title, ipfsHash)
-getProposalStatus(proposalId: uint256) → (startTime, endTime, totalVotes, executed, cancelled)
+// Proposals
+propose(title, ipfsHash) → proposalId
+getProposalBasic(proposalId) → (id, proposer, title, ipfsHash)
+getProposalStatus(proposalId) → (startTime, endTime, totalVotes, executed, cancelled)
 
-// Voting System
-vote(proposalId: uint256, votes: uint256) → void
-hasVoted(proposalId: uint256, voter: address) → bool
-getVote(proposalId: uint256, voter: address) → uint256
+// Voting
+vote(proposalId, votes)
+hasVoted(proposalId, voter) → bool
+getVote(proposalId, voter) → uint256
 
 // Configuration
 getVotingConfig() → (proposalThreshold, votingDelay, votingPeriod, quorumThreshold)
 ```
 
-## 📊 Current Status
+### Monitoring & Error Tracking
 
-### ✅ Completed Features
+- **Sentry** for error tracking and performance monitoring
+- Critical error alerting via webhooks (Slack, Discord)
+- Web Vitals attribution (CLS, LCP, FID, FCP, TTFB)
+- Custom performance monitoring hooks
 
-- **Proposal Creation**: Full end-to-end proposal creation with IPFS upload
+## Security
 
-- **Proposal Display**: Real-time proposal states and time remaining
-- **Wallet Integration**: WalletConnect v2 support and MetaMask support
-- **Navigation**: Seamless routing between proposal list and details
-- **State Management**: Proper proposal state calculation from contract data
-- **Error Handling**: Comprehensive error handling and user feedback
-- **Build System**: Hybrid build for Cloudflare Pages deployment
-- **CI/CD Pipeline**: Automated testing and deployment
+```bash
+# Run all security checks
+yarn security-check
 
-### 🔄 Current Tasks
+# Individual checks
+yarn snyk:test             # Snyk vulnerability scan
+yarn semgrep:scan          # Static analysis
+yarn slither:scan          # Solidity security analysis
+yarn git-secrets:scan      # Secret detection
+```
 
-- **Enhanced UI/UX**: Improve visual design and user experience
-- **Wallet Integration**: WalletConnect v2 support, SIWE for cloudflare
-- **Voting System**: Vote For/Against functionality with wallet integration
-- **Performance Optimization**: Optimize bundle size and loading times
-- **Advanced Voting**: Implement delegation and quadratic voting features
-- **Treasury Management**: Add treasury proposal and execution features
-- **Analytics Dashboard**: Implement governance analytics and metrics
+## License
+
+MIT

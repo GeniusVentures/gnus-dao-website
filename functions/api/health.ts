@@ -1,13 +1,15 @@
 /**
  * Cloudflare Worker: Health Check Endpoint
- * Provides comprehensive health status and triggers critical alerts for system failures
- * GET /api/health - Returns comprehensive health status
+ * Returns application health status for monitoring
+ * GET /api/health - Returns 200 when healthy
  */
 
 import { withErrorTracking } from '../utils/errorTracking';
 
 interface Env {
 	AUTH_SESSIONS?: KVNamespace;
+	IPFS_CACHE?: KVNamespace;
+	APP_CACHE?: KVNamespace;
 	PINATA_JWT?: string;
 	SENTRY_DSN?: string;
 	ENVIRONMENT?: string;
@@ -16,41 +18,40 @@ interface Env {
 	NEXT_PUBLIC_POLYGON_RPC_URL?: string;
 	NEXT_PUBLIC_SKALE_RPC_URL?: string;
 	NEXT_PUBLIC_IPFS_GATEWAY?: string;
-	NEXT_PUBLIC_APP_VERSION?: string;
 }
 
 interface HealthCheckResult {
-	status: 'healthy' | 'degraded' | 'unhealthy';
-	timestamp: string;
-	version: string;
-	environment: string;
-	checks: {
-		database: HealthStatus;
-		ipfs: HealthStatus;
-		rpc: HealthStatus;
-		sentry: HealthStatus;
-		worker: HealthStatus;
-		performance: HealthStatus;
-	};
-	uptime: number;
-	responseTime: number;
-}
-
-interface HealthStatus {
-	status: 'healthy' | 'degraded' | 'unhealthy';
-	message: string;
+	status: 'healthy' | 'unhealthy' | 'unknown';
 	responseTime?: number;
-	lastChecked: string;
+	error?: string;
 	details?: Record<string, any>;
 }
 
-interface RPCEndpoint {
-	name: string;
-	url: string;
-	chainId: number;
+interface HealthStatus {
+	status: 'healthy' | 'unhealthy';
+	timestamp: string;
+	version?: string;
+	checks: {
+		kvNamespaces: {
+			authSessions: HealthCheckResult;
+			ipfsCache: HealthCheckResult;
+			appCache: HealthCheckResult;
+		};
+		externalServices: {
+			ipfs: HealthCheckResult;
+			rpc: HealthCheckResult;
+		};
+	};
+	performance: {
+		totalResponseTime: number;
+		checksCompleted: number;
+		checksFailed: number;
+	};
+	resources: {
+		timestamp: number;
+		region?: string;
+	};
 }
-
-const startTime = Date.now();
 
 const handler: PagesFunction<Env> = async (context) => {
 	const { request, env } = context;
@@ -77,87 +78,75 @@ const handler: PagesFunction<Env> = async (context) => {
 		});
 	}
 
-	const requestStartTime = Date.now();
+	const startTime = Date.now();
 
 	try {
-		console.log('Health check requested', {
-			userAgent: request.headers.get('user-agent'),
-			cf: (request as any).cf,
-		});
+		// Perform comprehensive health checks
+		const checks = await performHealthChecks(env);
 
-		// Run all health checks in parallel
-		const [database, ipfs, rpc, sentry, worker, performance] = await Promise.all([
-			checkDatabase(env),
-			checkIPFS(env),
-			checkRPC(env),
-			checkSentry(env),
-			checkWorker(env),
-			checkPerformance(env, requestStartTime)
-		]);
+		// Calculate performance metrics
+		const totalResponseTime = Date.now() - startTime;
+		const checksCompleted = countCompletedChecks(checks);
+		const checksFailed = countFailedChecks(checks);
 
-		const responseTime = Date.now() - requestStartTime;
-		const uptime = Date.now() - startTime;
+		// Determine overall health status
+		const isHealthy = checksFailed === 0;
 
-		const healthResult: HealthCheckResult = {
-			status: determineOverallStatus({ database, ipfs, rpc, sentry, worker, performance }),
+		const healthStatus: HealthStatus = {
+			status: isHealthy ? 'healthy' : 'unhealthy',
 			timestamp: new Date().toISOString(),
-			version: env.NEXT_PUBLIC_APP_VERSION || '1.0.0',
-			environment: env.ENVIRONMENT || 'production',
-			checks: { database, ipfs, rpc, sentry, worker, performance },
-			uptime,
-			responseTime
+			version: '1.0.0',
+			checks,
+			performance: {
+				totalResponseTime,
+				checksCompleted,
+				checksFailed,
+			},
+			resources: {
+				timestamp: Date.now(),
+				region: (context.request as any).cf?.colo || 'unknown',
+			},
 		};
 
-		// Handle critical health issues
-		await handleCriticalHealthIssues(healthResult);
+		// Return 503 if unhealthy, 200 if healthy
+		const statusCode = isHealthy ? 200 : 503;
 
-		// Log health check result
-		console.log('Health check completed', {
-			status: healthResult.status,
-			responseTime,
-			uptime,
-			failedChecks: Object.entries(healthResult.checks)
-				.filter(([_, check]) => check.status !== 'healthy')
-				.map(([service, _]) => service)
-		});
-
-		// Return appropriate HTTP status code
-		const statusCode = healthResult.status === 'healthy' ? 200 : 
-						  healthResult.status === 'degraded' ? 200 : 503;
-
-		return new Response(JSON.stringify(healthResult), {
+		return new Response(JSON.stringify(healthStatus), {
 			status: statusCode,
 			headers: {
 				'Content-Type': 'application/json',
 				'Access-Control-Allow-Origin': '*',
 				'Cache-Control': 'no-cache, no-store, must-revalidate',
-				'X-Response-Time': `${responseTime}ms`,
+				'X-Response-Time': `${totalResponseTime}ms`,
 			},
 		});
-
 	} catch (error) {
-		const responseTime = Date.now() - requestStartTime;
-		
-		console.error('Health check failed', { responseTime }, error);
+		console.error('Health check failed:', error);
 
-		// Trigger critical alert for health check failure
-		await handleCriticalError(error as Error, env, { responseTime });
-
-		const healthStatus: HealthCheckResult = {
+		const healthStatus: HealthStatus = {
 			status: 'unhealthy',
 			timestamp: new Date().toISOString(),
-			version: env.NEXT_PUBLIC_APP_VERSION || '1.0.0',
-			environment: env.ENVIRONMENT || 'production',
+			version: '1.0.0',
 			checks: {
-				database: { status: 'unhealthy', message: 'Health check failed', lastChecked: new Date().toISOString() },
-				ipfs: { status: 'unhealthy', message: 'Health check failed', lastChecked: new Date().toISOString() },
-				rpc: { status: 'unhealthy', message: 'Health check failed', lastChecked: new Date().toISOString() },
-				sentry: { status: 'unhealthy', message: 'Health check failed', lastChecked: new Date().toISOString() },
-				worker: { status: 'unhealthy', message: 'Health check failed', lastChecked: new Date().toISOString() },
-				performance: { status: 'unhealthy', message: 'Health check failed', lastChecked: new Date().toISOString() }
+				kvNamespaces: {
+					authSessions: { status: 'unknown', error: 'Health check crashed' },
+					ipfsCache: { status: 'unknown', error: 'Health check crashed' },
+					appCache: { status: 'unknown', error: 'Health check crashed' },
+				},
+				externalServices: {
+					ipfs: { status: 'unknown', error: 'Health check crashed' },
+					rpc: { status: 'unknown', error: 'Health check crashed' },
+				},
 			},
-			uptime: Date.now() - startTime,
-			responseTime
+			performance: {
+				totalResponseTime: Date.now() - startTime,
+				checksCompleted: 0,
+				checksFailed: 5,
+			},
+			resources: {
+				timestamp: Date.now(),
+				region: (context.request as any).cf?.colo || 'unknown',
+			},
 		};
 
 		return new Response(JSON.stringify(healthStatus), {
@@ -172,431 +161,239 @@ const handler: PagesFunction<Env> = async (context) => {
 };
 
 /**
- * Check database connectivity (KV store)
+ * Perform comprehensive health checks for all services
  */
-async function checkDatabase(env: Env): Promise<HealthStatus> {
-	const startTime = Date.now();
-	
-	try {
-		if (env.AUTH_SESSIONS) {
-			// Try to perform a simple KV operation
-			await env.AUTH_SESSIONS.put('health:check', 'ok', { expirationTtl: 60 });
-			await env.AUTH_SESSIONS.get('health:check');
-			await env.AUTH_SESSIONS.delete('health:check');
-			
-			const responseTime = Date.now() - startTime;
-			
-			return {
-				status: 'healthy',
-				message: 'Database connection successful',
-				responseTime,
-				lastChecked: new Date().toISOString()
-			};
-		} else {
-			return {
-				status: 'degraded',
-				message: 'Database not configured (KV namespace missing)',
-				responseTime: Date.now() - startTime,
-				lastChecked: new Date().toISOString()
-			};
-		}
-	} catch (error) {
-		const responseTime = Date.now() - startTime;
-		
-		return {
-			status: 'unhealthy',
-			message: `Database connection failed: ${(error as Error).message}`,
-			responseTime,
-			lastChecked: new Date().toISOString()
-		};
-	}
-}
-
-/**
- * Check IPFS connectivity
- */
-async function checkIPFS(env: Env): Promise<HealthStatus> {
-	const startTime = Date.now();
-	
-	try {
-		const ipfsGateway = env.NEXT_PUBLIC_IPFS_GATEWAY || 'https://ipfs.io/ipfs/';
-		const pinataJwt = env.PINATA_JWT;
-		
-		// Test IPFS gateway first
-		const testHash = 'QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn';
-		const testUrl = `${ipfsGateway}${testHash}`;
-		
-		const controller = new AbortController();
-		const timeoutId = setTimeout(() => controller.abort(), 5000);
-		
-		const gatewayResponse = await fetch(testUrl, {
-			method: 'HEAD',
-			signal: controller.signal
-		});
-		
-		clearTimeout(timeoutId);
-		
-		// Test Pinata API if JWT is available
-		let pinataStatus = 'unknown';
-		if (pinataJwt) {
-			try {
-				const pinataResponse = await fetch('https://api.pinata.cloud/data/testAuthentication', {
-					method: 'GET',
-					headers: {
-						Authorization: `Bearer ${pinataJwt}`,
-					},
-				});
-				pinataStatus = pinataResponse.ok ? 'healthy' : 'unhealthy';
-			} catch {
-				pinataStatus = 'unhealthy';
-			}
-		}
-		
-		const responseTime = Date.now() - startTime;
-		
-		if (gatewayResponse.ok) {
-			return {
-				status: pinataStatus === 'unhealthy' ? 'degraded' : 'healthy',
-				message: `IPFS gateway accessible, Pinata: ${pinataStatus}`,
-				responseTime,
-				lastChecked: new Date().toISOString(),
-				details: { 
-					gateway: ipfsGateway, 
-					pinataStatus,
-					gatewayStatus: gatewayResponse.status
-				}
-			};
-		} else {
-			return {
-				status: 'degraded',
-				message: `IPFS gateway returned ${gatewayResponse.status}, Pinata: ${pinataStatus}`,
-				responseTime,
-				lastChecked: new Date().toISOString(),
-				details: { 
-					gateway: ipfsGateway, 
-					pinataStatus,
-					gatewayStatus: gatewayResponse.status
-				}
-			};
-		}
-	} catch (error) {
-		const responseTime = Date.now() - startTime;
-		
-		return {
-			status: 'unhealthy',
-			message: `IPFS check failed: ${(error as Error).message}`,
-			responseTime,
-			lastChecked: new Date().toISOString()
-		};
-	}
-}
-
-/**
- * Check RPC endpoints
- */
-async function checkRPC(env: Env): Promise<HealthStatus> {
-	const startTime = Date.now();
-	
-	const rpcEndpoints: RPCEndpoint[] = [
-		{
-			name: 'Ethereum',
-			url: env.NEXT_PUBLIC_ETHEREUM_RPC_URL || 'https://eth.llamarpc.com',
-			chainId: 1
-		},
-		{
-			name: 'Base',
-			url: env.NEXT_PUBLIC_BASE_RPC_URL || 'https://mainnet.base.org',
-			chainId: 8453
-		},
-		{
-			name: 'Polygon',
-			url: env.NEXT_PUBLIC_POLYGON_RPC_URL || 'https://polygon.llamarpc.com',
-			chainId: 137
-		}
-	];
-
-	const results = await Promise.allSettled(
-		rpcEndpoints.map(async (endpoint) => {
-			const controller = new AbortController();
-			const timeoutId = setTimeout(() => controller.abort(), 3000);
-			
-			try {
-				const response = await fetch(endpoint.url, {
-					method: 'POST',
-					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify({
-						jsonrpc: '2.0',
-						method: 'eth_chainId',
-						params: [],
-						id: 1
-					}),
-					signal: controller.signal
-				});
-				
-				clearTimeout(timeoutId);
-				
-				if (response.ok) {
-					const data = await response.json();
-					const chainId = parseInt(data.result, 16);
-					
-					return {
-						name: endpoint.name,
-						status: chainId === endpoint.chainId ? 'healthy' : 'degraded',
-						chainId,
-						expectedChainId: endpoint.chainId
-					};
-				} else {
-					return {
-						name: endpoint.name,
-						status: 'unhealthy',
-						error: `HTTP ${response.status}`
-					};
-				}
-			} catch (error) {
-				clearTimeout(timeoutId);
-				return {
-					name: endpoint.name,
-					status: 'unhealthy',
-					error: (error as Error).message
-				};
-			}
-		})
-	);
-
-	const responseTime = Date.now() - startTime;
-	const healthyCount = results.filter(result => 
-		result.status === 'fulfilled' && result.value.status === 'healthy'
-	).length;
-	
-	const totalCount = results.length;
-	const healthyPercentage = (healthyCount / totalCount) * 100;
-
-	let status: 'healthy' | 'degraded' | 'unhealthy';
-	let message: string;
-
-	if (healthyPercentage >= 80) {
-		status = 'healthy';
-		message = `${healthyCount}/${totalCount} RPC endpoints healthy`;
-	} else if (healthyPercentage >= 50) {
-		status = 'degraded';
-		message = `${healthyCount}/${totalCount} RPC endpoints healthy (degraded)`;
-	} else {
-		status = 'unhealthy';
-		message = `${healthyCount}/${totalCount} RPC endpoints healthy (critical)`;
-	}
+async function performHealthChecks(env: Env): Promise<HealthStatus['checks']> {
+	// Run all checks in parallel for better performance
+	const [authSessionsCheck, ipfsCacheCheck, appCacheCheck, ipfsCheck, rpcCheck] =
+		await Promise.all([
+			checkKVNamespace(env.AUTH_SESSIONS, 'auth:health'),
+			checkKVNamespace(env.IPFS_CACHE, 'ipfs:health'),
+			checkKVNamespace(env.APP_CACHE, 'app:health'),
+			checkIPFSService(env),
+			checkRPCEndpoints(env),
+		]);
 
 	return {
-		status,
-		message,
-		responseTime,
-		lastChecked: new Date().toISOString(),
-		details: {
-			endpoints: results.map((result, index) => ({
-				name: rpcEndpoints[index]?.name || 'Unknown',
-				url: rpcEndpoints[index]?.url || 'Unknown',
-				...(result.status === 'fulfilled' && result.value ? 
-					{ status: result.value.status, chainId: result.value.chainId, expectedChainId: result.value.expectedChainId } : 
-					{ status: 'error', error: result.status === 'rejected' ? result.reason : 'Unknown error' })
-			}))
-		}
+		kvNamespaces: {
+			authSessions: authSessionsCheck,
+			ipfsCache: ipfsCacheCheck,
+			appCache: appCacheCheck,
+		},
+		externalServices: {
+			ipfs: ipfsCheck,
+			rpc: rpcCheck,
+		},
 	};
 }
 
 /**
- * Check Sentry connectivity
+ * Check KV namespace connectivity and performance
  */
-async function checkSentry(env: Env): Promise<HealthStatus> {
-	const startTime = Date.now();
-	
-	try {
-		const sentryDsn = env.SENTRY_DSN;
-		
-		if (!sentryDsn) {
-			return {
-				status: 'degraded',
-				message: 'Sentry DSN not configured',
-				responseTime: Date.now() - startTime,
-				lastChecked: new Date().toISOString()
-			};
-		}
+async function checkKVNamespace(
+	namespace: KVNamespace | undefined,
+	testKey: string,
+): Promise<HealthCheckResult> {
+	if (!namespace) {
+		return {
+			status: 'unknown',
+			error: 'KV namespace not configured',
+		};
+	}
 
-		// Test Sentry connectivity by parsing DSN
-		try {
-			const url = new URL(sentryDsn);
-			const responseTime = Date.now() - startTime;
-			
+	const startTime = Date.now();
+
+	try {
+		// Perform write, read, and delete operations
+		const testValue = `health-check-${Date.now()}`;
+		await namespace.put(testKey, testValue, { expirationTtl: 60 });
+		const readValue = await namespace.get(testKey);
+		await namespace.delete(testKey);
+
+		const responseTime = Date.now() - startTime;
+
+		if (readValue === testValue) {
 			return {
 				status: 'healthy',
-				message: 'Sentry DSN configured and valid',
 				responseTime,
-				lastChecked: new Date().toISOString(),
-				details: { host: url.host }
+				details: {
+					operations: ['put', 'get', 'delete'],
+				},
 			};
-		} catch {
+		} else {
 			return {
 				status: 'unhealthy',
-				message: 'Sentry DSN invalid format',
-				responseTime: Date.now() - startTime,
-				lastChecked: new Date().toISOString()
+				responseTime,
+				error: 'KV read/write mismatch',
 			};
 		}
 	} catch (error) {
-		const responseTime = Date.now() - startTime;
-		
 		return {
 			status: 'unhealthy',
-			message: `Sentry check failed: ${(error as Error).message}`,
-			responseTime,
-			lastChecked: new Date().toISOString()
+			responseTime: Date.now() - startTime,
+			error: error instanceof Error ? error.message : 'Unknown error',
 		};
 	}
 }
 
 /**
- * Check Cloudflare Worker status
+ * Check IPFS service connectivity
  */
-async function checkWorker(env: Env): Promise<HealthStatus> {
+async function checkIPFSService(env: Env): Promise<HealthCheckResult> {
 	const startTime = Date.now();
-	
+
 	try {
-		// Basic worker health checks
-		const workerData = {
-			environment: env.ENVIRONMENT || 'production',
-			timestamp: Date.now(),
-			available: true,
-		};
-
-		const responseTime = Date.now() - startTime;
-
-		return {
-			status: 'healthy',
-			message: `Worker running in ${workerData.environment}`,
-			responseTime,
-			lastChecked: new Date().toISOString(),
-			details: workerData
-		};
-	} catch (error) {
-		const responseTime = Date.now() - startTime;
-		
-		return {
-			status: 'unhealthy',
-			message: `Worker check failed: ${(error as Error).message}`,
-			responseTime,
-			lastChecked: new Date().toISOString()
-		};
-	}
-}
-
-/**
- * Check performance metrics
- */
-async function checkPerformance(env: Env, requestStartTime: number): Promise<HealthStatus> {
-	const startTime = Date.now();
-	
-	try {
-		const responseTime = Date.now() - requestStartTime;
-		const checkTime = Date.now() - startTime;
-
-		let status: 'healthy' | 'degraded' | 'unhealthy';
-		let message: string;
-
-		// Check response time thresholds
-		if (responseTime < 100) {
-			status = 'healthy';
-			message = `Performance optimal: ${responseTime}ms response time`;
-		} else if (responseTime < 500) {
-			status = 'degraded';
-			message = `Performance degraded: ${responseTime}ms response time`;
-		} else {
-			status = 'unhealthy';
-			message = `Performance critical: ${responseTime}ms response time`;
+		// Check Pinata API authentication
+		const pinataJwt = env.PINATA_JWT;
+		if (!pinataJwt) {
+			return {
+				status: 'unknown',
+				error: 'PINATA_JWT not configured',
+			};
 		}
 
-		return {
-			status,
-			message,
-			responseTime: checkTime,
-			lastChecked: new Date().toISOString(),
-			details: {
-				responseTime,
-				checkTime,
-				environment: env.ENVIRONMENT,
-				thresholds: {
-					responseTime: { good: 100, degraded: 500 },
-				},
-			}
-		};
-	} catch (error) {
+		const response = await fetch('https://api.pinata.cloud/data/testAuthentication', {
+			method: 'GET',
+			headers: {
+				Authorization: `Bearer ${pinataJwt}`,
+			},
+		});
+
 		const responseTime = Date.now() - startTime;
-		
+
+		if (response.ok) {
+			const data = await response.json();
+			return {
+				status: 'healthy',
+				responseTime,
+				details: {
+					authenticated: true,
+					message: data.message || 'Connected',
+				},
+			};
+		} else {
+			return {
+				status: 'unhealthy',
+				responseTime,
+				error: `Pinata API returned ${response.status}`,
+			};
+		}
+	} catch (error) {
 		return {
 			status: 'unhealthy',
-			message: `Performance check failed: ${(error as Error).message}`,
-			responseTime,
-			lastChecked: new Date().toISOString()
+			responseTime: Date.now() - startTime,
+			error: error instanceof Error ? error.message : 'Unknown error',
 		};
 	}
 }
 
 /**
- * Determine overall health status
+ * Check RPC endpoint connectivity for supported networks
  */
-function determineOverallStatus(checks: HealthCheckResult['checks']): 'healthy' | 'degraded' | 'unhealthy' {
-	const statuses = Object.values(checks).map(check => check.status);
-	
-	if (statuses.includes('unhealthy')) {
-		return 'unhealthy';
-	} else if (statuses.includes('degraded')) {
-		return 'degraded';
-	} else {
-		return 'healthy';
-	}
-}
+async function checkRPCEndpoints(env: Env): Promise<HealthCheckResult> {
+	const startTime = Date.now();
 
-/**
- * Handle critical health issues
- */
-async function handleCriticalHealthIssues(healthResult: HealthCheckResult): Promise<void> {
-	const criticalChecks = Object.entries(healthResult.checks).filter(
-		([_, check]) => check.status === 'unhealthy'
-	);
+	try {
+		const rpcEndpoints = [
+			{ name: 'Ethereum', url: env.NEXT_PUBLIC_ETHEREUM_RPC_URL },
+			{ name: 'Base', url: env.NEXT_PUBLIC_BASE_RPC_URL },
+			{ name: 'Polygon', url: env.NEXT_PUBLIC_POLYGON_RPC_URL },
+			{ name: 'Skale', url: env.NEXT_PUBLIC_SKALE_RPC_URL },
+		].filter((endpoint) => endpoint.url);
 
-	if (criticalChecks.length > 0) {
-		const criticalServices = criticalChecks.map(([service, _]) => service);
-		const error = new Error(`Critical health check failures: ${criticalServices.join(', ')}`);
-		
-		console.error('Critical health check failures detected', {
-			failedServices: criticalServices,
-			healthStatus: healthResult.status,
-			checks: healthResult.checks,
-			uptime: healthResult.uptime
-		}, error);
-	}
+		if (rpcEndpoints.length === 0) {
+			return {
+				status: 'unknown',
+				error: 'No RPC endpoints configured',
+			};
+		}
 
-	// Also alert on degraded RPC or IPFS (critical for DAO operations)
-	const criticalServices = ['rpc', 'ipfs'];
-	const degradedCriticalServices = criticalServices.filter(
-		service => healthResult.checks[service as keyof typeof healthResult.checks]?.status === 'degraded'
-	);
-
-	if (degradedCriticalServices.length > 0) {
-		console.warn('Critical services degraded', {
-			degradedServices: degradedCriticalServices,
-			healthStatus: healthResult.status
+		// Test the first available RPC endpoint
+		const testEndpoint = rpcEndpoints[0];
+		const response = await fetch(testEndpoint.url!, {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+			},
+			body: JSON.stringify({
+				jsonrpc: '2.0',
+				method: 'eth_blockNumber',
+				params: [],
+				id: 1,
+			}),
 		});
+
+		const responseTime = Date.now() - startTime;
+
+		if (response.ok) {
+			const data = await response.json();
+			if (data.result) {
+				return {
+					status: 'healthy',
+					responseTime,
+					details: {
+						network: testEndpoint.name,
+						blockNumber: data.result,
+						totalEndpoints: rpcEndpoints.length,
+					},
+				};
+			} else {
+				return {
+					status: 'unhealthy',
+					responseTime,
+					error: 'RPC returned no result',
+				};
+			}
+		} else {
+			return {
+				status: 'unhealthy',
+				responseTime,
+				error: `RPC returned ${response.status}`,
+			};
+		}
+	} catch (error) {
+		return {
+			status: 'unhealthy',
+			responseTime: Date.now() - startTime,
+			error: error instanceof Error ? error.message : 'Unknown error',
+		};
 	}
 }
 
 /**
- * Handle critical errors
+ * Count completed health checks
  */
-async function handleCriticalError(error: Error, env: Env, context: any): Promise<void> {
-	console.error('Critical error in health check', {
-		error: error.message,
-		stack: error.stack,
-		context,
-		environment: env.ENVIRONMENT
-	});
+function countCompletedChecks(checks: HealthStatus['checks']): number {
+	let count = 0;
+
+	// Count KV namespace checks
+	if (checks.kvNamespaces.authSessions.status !== 'unknown') count++;
+	if (checks.kvNamespaces.ipfsCache.status !== 'unknown') count++;
+	if (checks.kvNamespaces.appCache.status !== 'unknown') count++;
+
+	// Count external service checks
+	if (checks.externalServices.ipfs.status !== 'unknown') count++;
+	if (checks.externalServices.rpc.status !== 'unknown') count++;
+
+	return count;
+}
+
+/**
+ * Count failed health checks
+ */
+function countFailedChecks(checks: HealthStatus['checks']): number {
+	let count = 0;
+
+	// Count KV namespace failures
+	if (checks.kvNamespaces.authSessions.status === 'unhealthy') count++;
+	if (checks.kvNamespaces.ipfsCache.status === 'unhealthy') count++;
+	if (checks.kvNamespaces.appCache.status === 'unhealthy') count++;
+
+	// Count external service failures
+	if (checks.externalServices.ipfs.status === 'unhealthy') count++;
+	if (checks.externalServices.rpc.status === 'unhealthy') count++;
+
+	return count;
 }
 
 export const onRequest = withErrorTracking<Env>(handler);

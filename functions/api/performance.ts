@@ -1,36 +1,33 @@
 /**
- * Cloudflare Worker: Performance Metrics Endpoint
+ * Cloudflare Worker: Performance Metrics API Endpoint
  * Provides performance data for monitoring and health checks
- * GET /api/performance - Returns performance metrics
- * POST /api/performance - Accepts client-side performance data
+ * Migrated from Next.js API route to Cloudflare Pages Function
+ * 
+ * GET /api/performance - Retrieve performance metrics
+ * POST /api/performance - Submit Web Vitals data from client
  */
 
-import { withErrorTracking } from '../utils/errorTracking';
+import { withErrorTracking, captureException, addBreadcrumb, captureMessage } from '../utils/errorTracking';
 
 interface Env {
-	// Add any environment variables needed for performance monitoring
+	APP_CACHE?: KVNamespace;
+	AUTH_SESSIONS?: KVNamespace;
+	IPFS_CACHE?: KVNamespace;
 	SENTRY_DSN?: string;
 	ENVIRONMENT?: string;
 }
 
-interface CloudflareRequestInfo {
-	region?: string;
-	colo?: string;
-	country?: string;
-	city?: string;
-}
-
 interface PerformanceData {
 	timestamp: string;
-	worker: {
-		region?: string;
-		colo?: string;
-		environment: string;
+	server: {
+		responseTime: number;
+		status: string;
 	};
 	metrics: {
 		webVitals: {
 			available: boolean;
 			message: string;
+			aggregated?: AggregatedMetrics;
 		};
 		api: {
 			responseTime: number;
@@ -40,10 +37,40 @@ interface PerformanceData {
 	health: {
 		status: string;
 		checks: {
-			worker: boolean;
-			timestamp: boolean;
+			kvStorage: boolean;
 		};
 	};
+	details?: {
+		environment: string;
+		timestamp: number;
+	};
+}
+
+interface AggregatedMetrics {
+	count: number;
+	averages: {
+		[key: string]: number;
+	};
+	lastUpdated: string;
+}
+
+interface WebVitalsData {
+	webVitals?: {
+		[metric: string]: {
+			value: number;
+			rating?: 'good' | 'needs-improvement' | 'poor';
+			delta?: number;
+			id?: string;
+		};
+	};
+	customMetrics?: {
+		[metric: string]: {
+			value: number;
+			unit?: string;
+		};
+	};
+	url?: string;
+	userAgent?: string;
 }
 
 const handler: PagesFunction<Env> = async (context) => {
@@ -61,30 +88,13 @@ const handler: PagesFunction<Env> = async (context) => {
 		});
 	}
 
-	const startTime = Date.now();
-
-	try {
-		if (request.method === 'GET') {
-			return await handleGetRequest(request, env, startTime);
-		} else if (request.method === 'POST') {
-			return await handlePostRequest(request, env, startTime);
-		} else {
-			return new Response(JSON.stringify({ error: 'Method not allowed' }), {
-				status: 405,
-				headers: {
-					'Content-Type': 'application/json',
-					'Access-Control-Allow-Origin': '*',
-				},
-			});
-		}
-	} catch (error) {
-		console.error('Performance API error:', error);
-
-		return new Response(JSON.stringify({
-			error: 'Internal server error',
-			timestamp: new Date().toISOString(),
-		}), {
-			status: 500,
+	if (request.method === 'GET') {
+		return handleGetPerformance(request, env);
+	} else if (request.method === 'POST') {
+		return handlePostPerformance(request, env);
+	} else {
+		return new Response(JSON.stringify({ error: 'Method not allowed' }), {
+			status: 405,
 			headers: {
 				'Content-Type': 'application/json',
 				'Access-Control-Allow-Origin': '*',
@@ -93,173 +103,340 @@ const handler: PagesFunction<Env> = async (context) => {
 	}
 };
 
-async function handleGetRequest(request: Request, env: Env, startTime: number): Promise<Response> {
-	// Get query parameters
-	const url = new URL(request.url);
-	const format = url.searchParams.get('format') || 'json';
-	const includeDetails = url.searchParams.get('details') === 'true';
+/**
+ * GET handler - Retrieve performance metrics
+ */
+async function handleGetPerformance(request: Request, env: Env): Promise<Response> {
+	const startTime = Date.now();
 
-	// Get Cloudflare request info safely
-	const cfInfo = (request as any).cf as CloudflareRequestInfo | undefined;
+	try {
+		// Parse query parameters
+		const url = new URL(request.url);
+		const format = url.searchParams.get('format') || 'json';
+		const includeDetails = url.searchParams.get('details') === 'true';
 
-	// Simulate performance data collection for Cloudflare Workers
-	const performanceData: PerformanceData = {
-		timestamp: new Date().toISOString(),
-		worker: {
-			region: cfInfo?.region || 'unknown',
-			colo: cfInfo?.colo || 'unknown',
-			environment: env.ENVIRONMENT || 'production',
-		},
-		metrics: {
-			webVitals: {
-				// These would be collected from client-side and stored
-				available: false,
-				message: 'Web Vitals are collected client-side',
-			},
-			api: {
+		// Retrieve aggregated Web Vitals from KV storage
+		let aggregatedMetrics: AggregatedMetrics | null = null;
+		if (env.APP_CACHE) {
+			try {
+				const stored = await env.APP_CACHE.get('performance:webvitals:aggregated');
+				if (stored) {
+					aggregatedMetrics = JSON.parse(stored);
+				}
+			} catch (error) {
+				console.error('Failed to retrieve aggregated metrics:', error);
+			}
+		}
+
+		// Build performance data using Workers-compatible APIs
+		const performanceData: PerformanceData = {
+			timestamp: new Date().toISOString(),
+			server: {
 				responseTime: Date.now() - startTime,
 				status: 'healthy',
 			},
-		},
-		health: {
-			status: 'healthy',
-			checks: {
-				worker: true,
-				timestamp: Date.now() > 0,
+			metrics: {
+				webVitals: {
+					available: aggregatedMetrics !== null,
+					message: aggregatedMetrics 
+						? 'Web Vitals aggregated from client submissions'
+						: 'Web Vitals are collected client-side',
+					...(aggregatedMetrics && { aggregated: aggregatedMetrics }),
+				},
+				api: {
+					responseTime: Date.now() - startTime,
+					status: 'healthy',
+				},
 			},
-		},
-	};
-
-	// Add detailed information if requested
-	if (includeDetails) {
-		(performanceData as any).details = {
-			cf: cfInfo,
-			headers: Object.fromEntries(request.headers.entries()),
-			environment: env.ENVIRONMENT,
+			health: {
+				status: 'healthy',
+				checks: {
+					kvStorage: env.APP_CACHE !== undefined,
+				},
+			},
 		};
-	}
 
-	// Return appropriate format
-	if (format === 'prometheus') {
-		// Return Prometheus-style metrics
-		const prometheusMetrics = `
-# HELP gnus_dao_api_response_time API response time in milliseconds
-# TYPE gnus_dao_api_response_time gauge
-gnus_dao_api_response_time ${performanceData.metrics.api.responseTime}
+		// Add detailed information if requested
+		if (includeDetails) {
+			performanceData.details = {
+				environment: env.ENVIRONMENT || 'production',
+				timestamp: Date.now(),
+			};
+		}
 
-# HELP gnus_dao_worker_region Cloudflare worker region
-# TYPE gnus_dao_worker_region gauge
-gnus_dao_worker_region{region="${performanceData.worker.region}",colo="${performanceData.worker.colo}"} 1
-		`.trim();
+		// Add breadcrumb for monitoring
+		addBreadcrumb(
+			'Performance API accessed',
+			'api',
+			'info'
+		);
 
-		return new Response(prometheusMetrics, {
-			status: 200,
-			headers: {
-				'Content-Type': 'text/plain; charset=utf-8',
-				'Cache-Control': 'no-cache, no-store, must-revalidate',
-				'Access-Control-Allow-Origin': '*',
-			},
-		});
-	}
+		// Return Prometheus format if requested
+		if (format === 'prometheus') {
+			const responseTime = Date.now() - startTime;
+			const prometheusMetrics = generatePrometheusMetrics(performanceData, responseTime, aggregatedMetrics);
 
-	return new Response(JSON.stringify(performanceData), {
-		status: 200,
-		headers: {
-			'Content-Type': 'application/json',
-			'Cache-Control': 'no-cache, no-store, must-revalidate',
-			'Access-Control-Allow-Origin': '*',
-		},
-	});
-}
-
-async function handlePostRequest(request: Request, env: Env, startTime: number): Promise<Response> {
-	try {
-		// Parse client-side performance data
-		const body = await request.json();
-		
-		// Validate the performance data
-		if (!body || typeof body !== 'object') {
-			return new Response(JSON.stringify({ error: 'Invalid performance data' }), {
-				status: 400,
+			return new Response(prometheusMetrics, {
+				status: 200,
 				headers: {
-					'Content-Type': 'application/json',
+					'Content-Type': 'text/plain; charset=utf-8',
+					'Cache-Control': 'no-cache, no-store, must-revalidate',
 					'Access-Control-Allow-Origin': '*',
 				},
 			});
 		}
 
-		// Process Web Vitals data from client
-		// In a real implementation, you might store this data or send to monitoring service
-		const processedMetrics: any = {
-			received: true,
-			timestamp: new Date().toISOString(),
-			source: 'client',
-			environment: env.ENVIRONMENT || 'production',
-		};
+		// Return JSON format
+		return new Response(JSON.stringify(performanceData), {
+			status: 200,
+			headers: {
+				'Content-Type': 'application/json',
+				'Cache-Control': 'no-cache, no-store, must-revalidate',
+				'Access-Control-Allow-Origin': '*',
+				'X-Response-Time': `${Date.now() - startTime}ms`,
+			},
+		});
 
-		if (body.webVitals) {
-			processedMetrics.webVitals = {};
-			Object.entries(body.webVitals).forEach(([metric, data]: [string, any]) => {
-				if (data && typeof data.value === 'number') {
-					processedMetrics.webVitals[metric] = {
-						value: data.value,
-						rating: data.rating,
-						processed: true,
-					};
+	} catch (error) {
+		console.error('Performance API error:', error);
+		
+		await captureException(error as Error, {
+			endpoint: 'performance',
+			method: 'GET',
+		});
 
-					// Log performance issues
-					if (data.rating === 'poor') {
-						console.warn(`Poor Web Vital: ${metric} = ${data.value}ms`);
-					}
+		return new Response(
+			JSON.stringify({
+				error: 'Internal server error',
+				timestamp: new Date().toISOString(),
+			}),
+			{ 
+				status: 500,
+				headers: {
+					'Content-Type': 'application/json',
+					'Access-Control-Allow-Origin': '*',
+				},
+			}
+		);
+	}
+}
+
+/**
+ * POST handler - Submit Web Vitals data from client
+ */
+async function handlePostPerformance(request: Request, env: Env): Promise<Response> {
+	const startTime = Date.now();
+
+	try {
+		// Parse client-side performance data
+		const body = await request.json() as WebVitalsData;
+		
+		// Validate the performance data
+		if (!body || typeof body !== 'object') {
+			return new Response(
+				JSON.stringify({ error: 'Invalid performance data' }),
+				{ 
+					status: 400,
+					headers: {
+						'Content-Type': 'application/json',
+						'Access-Control-Allow-Origin': '*',
+					},
 				}
-			});
+			);
+		}
+
+		// Process Web Vitals data from client
+		if (body.webVitals) {
+			await processWebVitals(body.webVitals, env);
 		}
 
 		// Process custom metrics from client
 		if (body.customMetrics) {
-			processedMetrics.customMetrics = {};
-			Object.entries(body.customMetrics).forEach(([metric, data]: [string, any]) => {
-				if (data && typeof data.value === 'number') {
-					processedMetrics.customMetrics[metric] = {
-						value: data.value,
-						processed: true,
-					};
-				}
-			});
+			await processCustomMetrics(body.customMetrics);
+		}
+
+		// Store aggregated metrics in KV
+		if (env.APP_CACHE && body.webVitals) {
+			await updateAggregatedMetrics(body.webVitals, env.APP_CACHE);
 		}
 
 		// Record processing time
 		const processingTime = Date.now() - startTime;
 
-		return new Response(JSON.stringify({
-			status: 'success',
-			message: 'Performance data recorded',
-			processingTime,
-			timestamp: new Date().toISOString(),
-			processed: processedMetrics,
-		}), {
-			status: 200,
-			headers: {
-				'Content-Type': 'application/json',
-				'Access-Control-Allow-Origin': '*',
-			},
-		});
+		return new Response(
+			JSON.stringify({
+				status: 'success',
+				message: 'Performance data recorded',
+				processingTime,
+				timestamp: new Date().toISOString(),
+			}),
+			{
+				status: 200,
+				headers: {
+					'Content-Type': 'application/json',
+					'Access-Control-Allow-Origin': '*',
+					'X-Response-Time': `${processingTime}ms`,
+				},
+			}
+		);
 
 	} catch (error) {
 		console.error('Performance data processing error:', error);
 		
-		return new Response(JSON.stringify({
-			error: 'Failed to process performance data',
-			timestamp: new Date().toISOString(),
-			environment: env.ENVIRONMENT || 'production',
-		}), {
-			status: 500,
-			headers: {
-				'Content-Type': 'application/json',
-				'Access-Control-Allow-Origin': '*',
-			},
+		await captureException(error as Error, {
+			endpoint: 'performance',
+			method: 'POST',
 		});
+
+		return new Response(
+			JSON.stringify({
+				error: 'Failed to process performance data',
+				timestamp: new Date().toISOString(),
+			}),
+			{ 
+				status: 500,
+				headers: {
+					'Content-Type': 'application/json',
+					'Access-Control-Allow-Origin': '*',
+				},
+			}
+		);
 	}
+}
+
+/**
+ * Process Web Vitals data and send to Sentry
+ */
+async function processWebVitals(
+	webVitals: WebVitalsData['webVitals'],
+	env: Env
+): Promise<void> {
+	if (!webVitals) return;
+
+	for (const [metric, data] of Object.entries(webVitals)) {
+		if (data && typeof data.value === 'number') {
+			// Add breadcrumb for each metric
+			addBreadcrumb(
+				`Web Vital: ${metric}`,
+				'performance',
+				data.rating === 'poor' ? 'warning' : 'info'
+			);
+
+			// Capture performance issue if poor
+			if (data.rating === 'poor') {
+				captureMessage(
+					`Poor Web Vital: ${metric} = ${data.value}ms`,
+					'warning',
+					{
+						metric,
+						value: data.value,
+						rating: data.rating,
+					}
+				);
+			}
+		}
+	}
+}
+
+/**
+ * Process custom metrics
+ */
+async function processCustomMetrics(
+	customMetrics: WebVitalsData['customMetrics']
+): Promise<void> {
+	if (!customMetrics) return;
+
+	for (const [metric, data] of Object.entries(customMetrics)) {
+		if (data && typeof data.value === 'number') {
+			addBreadcrumb(
+				`Custom Metric: ${metric}`,
+				'performance',
+				'info'
+			);
+		}
+	}
+}
+
+/**
+ * Update aggregated metrics in KV storage
+ */
+async function updateAggregatedMetrics(
+	webVitals: WebVitalsData['webVitals'],
+	kvCache: KVNamespace
+): Promise<void> {
+	if (!webVitals) return;
+
+	try {
+		// Retrieve existing aggregated data
+		const stored = await kvCache.get('performance:webvitals:aggregated');
+		let aggregated: AggregatedMetrics = stored 
+			? JSON.parse(stored)
+			: { count: 0, averages: {}, lastUpdated: new Date().toISOString() };
+
+		// Update aggregated metrics
+		for (const [metric, data] of Object.entries(webVitals)) {
+			if (data && typeof data.value === 'number') {
+				const currentAvg = aggregated.averages[metric] || 0;
+				const currentCount = aggregated.count;
+				
+				// Calculate new average
+				aggregated.averages[metric] = 
+					(currentAvg * currentCount + data.value) / (currentCount + 1);
+			}
+		}
+
+		aggregated.count += 1;
+		aggregated.lastUpdated = new Date().toISOString();
+
+		// Store updated aggregated data (expire after 7 days)
+		await kvCache.put(
+			'performance:webvitals:aggregated',
+			JSON.stringify(aggregated),
+			{ expirationTtl: 60 * 60 * 24 * 7 }
+		);
+
+	} catch (error) {
+		console.error('Failed to update aggregated metrics:', error);
+	}
+}
+
+/**
+ * Generate Prometheus-style metrics
+ */
+function generatePrometheusMetrics(
+	data: PerformanceData,
+	responseTime: number,
+	aggregated: AggregatedMetrics | null
+): string {
+	const lines: string[] = [
+		'# HELP gnus_dao_api_response_time API response time in milliseconds',
+		'# TYPE gnus_dao_api_response_time gauge',
+		`gnus_dao_api_response_time ${responseTime}`,
+		'',
+	];
+
+	// Add aggregated Web Vitals if available
+	if (aggregated && aggregated.averages) {
+		lines.push('# HELP gnus_dao_web_vitals_avg Average Web Vitals metrics');
+		lines.push('# TYPE gnus_dao_web_vitals_avg gauge');
+		
+		for (const [metric, value] of Object.entries(aggregated.averages)) {
+			lines.push(`gnus_dao_web_vitals_avg{metric="${metric}"} ${value.toFixed(2)}`);
+		}
+		
+		lines.push('');
+		lines.push('# HELP gnus_dao_web_vitals_count Total Web Vitals submissions');
+		lines.push('# TYPE gnus_dao_web_vitals_count counter');
+		lines.push(`gnus_dao_web_vitals_count ${aggregated.count}`);
+		lines.push('');
+	}
+
+	// Add health status
+	lines.push('# HELP gnus_dao_health_status Health status (1=healthy, 0=unhealthy)');
+	lines.push('# TYPE gnus_dao_health_status gauge');
+	lines.push(`gnus_dao_health_status ${data.health.status === 'healthy' ? 1 : 0}`);
+
+	return lines.join('\n');
 }
 
 export const onRequest = withErrorTracking<Env>(handler);

@@ -9,13 +9,7 @@ export interface RuntimeEnvConfig {
 	NEXT_PUBLIC_POLYGON_AMOY_GNUS_DAO_ADDRESS: string;
 	NEXT_PUBLIC_BASE_SEPOLIA_GNUS_DAO_ADDRESS: string;
 	NEXT_PUBLIC_ARBITRUM_SEPOLIA_GNUS_DAO_ADDRESS: string;
-	NEXT_PUBLIC_PINATA_API_KEY: string;
-	NEXT_PUBLIC_PINATA_SECRET_KEY: string;
-	NEXT_PUBLIC_PINATA_JWT: string;
 	NEXT_PUBLIC_IPFS_GATEWAY: string;
-	NEXT_PUBLIC_IPFS_API_URL: string;
-	NEXT_PUBLIC_IPFS_API_KEY: string;
-	NEXT_PUBLIC_IPFS_API_SECRET: string;
 	NEXT_PUBLIC_ANALYTICS_ID: string;
 	NEXT_PUBLIC_API_BASE_URL: string;
 }
@@ -31,41 +25,10 @@ export function getCachedRuntimeEnv(): Partial<RuntimeEnvConfig> | null {
 	return cachedRuntimeEnv;
 }
 
-export async function preloadRuntimeEnv(): Promise<Partial<RuntimeEnvConfig>> {
-	if (isLoaded && cachedRuntimeEnv) {
-		return cachedRuntimeEnv;
-	}
-
-	try {
-		// Check if we're in a static export environment (Cloudflare Pages)
-		const isStaticExport = process.env.STATIC_EXPORT === 'true' || 
-							  process.env.CLOUDFLARE_PAGES === 'true' ||
-							  typeof window !== 'undefined';
-
-		if (isStaticExport && typeof window !== 'undefined') {
-			// In browser environment, fetch from Cloudflare Functions
-			const response = await fetch('/api/config/runtime-env', {
-				method: 'GET',
-				headers: {
-					'Content-Type': 'application/json',
-				},
-			});
-
-			if (response.ok) {
-				const data = await response.json();
-				cachedRuntimeEnv = data;
-				isLoaded = true;
-				return data;
-			}
-		}
-	} catch (error) {
-		console.warn('Failed to load runtime environment from API:', error);
-	}
-
-	// Fallback to environment variables (build time or server-side)
-	cachedRuntimeEnv = {
+function getBuildTimeEnv(): Partial<RuntimeEnvConfig> {
+	return {
 		NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID:
-			process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || 'test-fallback-project-id',
+			process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || '',
 		NEXT_PUBLIC_SEPOLIA_GNUS_DAO_ADDRESS:
 			process.env.NEXT_PUBLIC_SEPOLIA_GNUS_DAO_ADDRESS || '',
 		NEXT_PUBLIC_POLYGON_AMOY_GNUS_DAO_ADDRESS:
@@ -74,18 +37,56 @@ export async function preloadRuntimeEnv(): Promise<Partial<RuntimeEnvConfig>> {
 			process.env.NEXT_PUBLIC_BASE_SEPOLIA_GNUS_DAO_ADDRESS || '',
 		NEXT_PUBLIC_ARBITRUM_SEPOLIA_GNUS_DAO_ADDRESS:
 			process.env.NEXT_PUBLIC_ARBITRUM_SEPOLIA_GNUS_DAO_ADDRESS || '',
-		NEXT_PUBLIC_PINATA_API_KEY: process.env.NEXT_PUBLIC_PINATA_API_KEY || '',
-		NEXT_PUBLIC_PINATA_SECRET_KEY: process.env.NEXT_PUBLIC_PINATA_SECRET_KEY || '',
-		NEXT_PUBLIC_PINATA_JWT: process.env.NEXT_PUBLIC_PINATA_JWT || '',
 		NEXT_PUBLIC_IPFS_GATEWAY:
 			process.env.NEXT_PUBLIC_IPFS_GATEWAY || 'https://ipfs.io/ipfs/',
-		NEXT_PUBLIC_IPFS_API_URL: process.env.NEXT_PUBLIC_IPFS_API_URL || '',
-		NEXT_PUBLIC_IPFS_API_KEY: process.env.NEXT_PUBLIC_IPFS_API_KEY || '',
-		NEXT_PUBLIC_IPFS_API_SECRET: process.env.NEXT_PUBLIC_IPFS_API_SECRET || '',
 		NEXT_PUBLIC_ANALYTICS_ID: process.env.NEXT_PUBLIC_ANALYTICS_ID || '',
 		NEXT_PUBLIC_API_BASE_URL: process.env.NEXT_PUBLIC_API_BASE_URL || '',
 	};
+}
 
+function hasBuildTimeEnv(env: Partial<RuntimeEnvConfig>): boolean {
+	const projectId = env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID;
+	return (
+		!!projectId &&
+		projectId !== 'your_walletconnect_project_id_here' &&
+		projectId !== 'placeholder' &&
+		projectId !== 'build-placeholder'
+	);
+}
+
+export async function preloadRuntimeEnv(): Promise<Partial<RuntimeEnvConfig>> {
+	if (isLoaded && cachedRuntimeEnv) {
+		return cachedRuntimeEnv;
+	}
+
+	// In development or when build-time env vars are already present, skip the API fetch
+	const buildTimeEnv = getBuildTimeEnv();
+	if (process.env.NODE_ENV === 'development' || hasBuildTimeEnv(buildTimeEnv)) {
+		cachedRuntimeEnv = buildTimeEnv;
+		isLoaded = true;
+		return cachedRuntimeEnv;
+	}
+
+	// In production (Cloudflare Pages), fetch from the worker endpoint
+	try {
+		const response = await fetch('/api/config/runtime-env', {
+			method: 'GET',
+			headers: { 'Content-Type': 'application/json' },
+			signal: AbortSignal.timeout(3000), // 3s timeout — don't hang forever
+		});
+
+		if (response.ok) {
+			const data = await response.json();
+			cachedRuntimeEnv = data;
+			isLoaded = true;
+			return data;
+		}
+	} catch (error) {
+		console.warn('Failed to load runtime environment from API, using build-time env:', error);
+	}
+
+	// Fallback to build-time env
+	cachedRuntimeEnv = buildTimeEnv;
 	isLoaded = true;
 	return cachedRuntimeEnv;
 }

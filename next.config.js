@@ -2,29 +2,16 @@
 
 const { withSentryConfig } = require("@sentry/nextjs");
 
-// Initialize OpenNext Cloudflare for development
-// This enables bindings during local development
-// Initialize OpenNext Cloudflare for development
-// This enables bindings during local development
-// if (process.env.NODE_ENV === "development") {
-//   try {
-//     const { initOpenNextCloudflareForDev } = require("@opennextjs/cloudflare");
-//     initOpenNextCloudflareForDev();
-//   } catch (error) {
-//     // @opennextjs/cloudflare not installed yet - skip initialization
-//     console.log(
-//       "Note: @opennextjs/cloudflare not installed. Running in standard Next.js mode.",
-//     );
-//   }
-// }
-
 // Environment detection
 const isCloudflarePages = process.env.CLOUDFLARE_PAGES === "true";
 const isProduction = process.env.NODE_ENV === "production";
-const isStaticExport = process.env.STATIC_EXPORT === "true";
-const useAdapter = process.env.USE_CLOUDFLARE_ADAPTER === "true";
 
 const nextConfig = {
+  // Static export configuration for SPA deployment
+  output: "export",
+  trailingSlash: false,
+  distDir: "out",
+
   // Core Next.js optimizations
   reactStrictMode: true,
   swcMinify: true,
@@ -33,35 +20,6 @@ const nextConfig = {
   // Enhanced compression and optimization
   compress: true,
   generateEtags: true,
-
-  // Cloudflare Pages configuration with adapter support
-  ...(isCloudflarePages &&
-    useAdapter && {
-    // Configuration for @opennextjs/cloudflare adapter
-    experimental: {
-      runtime: "edge",
-    },
-  }),
-
-  // Hybrid configuration: Static export with API routes for runtime config
-  ...(isProduction &&
-    isStaticExport &&
-    !useAdapter && {
-    output: "export",
-    trailingSlash: false, // Changed to false for better Cloudflare Pages compatibility
-    distDir: "out",
-    images: {
-      unoptimized: true, // Required for static export
-    },
-    // Enable API routes for runtime configuration
-    experimental: {
-      ...(isProduction && isStaticExport && !useAdapter
-        ? {}
-        : {
-          runtime: "edge",
-        }),
-    },
-  }),
 
   // Enhanced performance optimizations
   experimental: {
@@ -82,17 +40,10 @@ const nextConfig = {
       "@reduxjs/toolkit",
     ],
 
-    // Cloudflare-specific optimizations
-    ...(isCloudflarePages &&
-      useAdapter && {
-      runtime: "edge",
-    }),
-
     // Performance monitoring
     webVitalsAttribution: ["CLS", "LCP", "FID", "FCP", "TTFB"],
 
-    // Advanced optimizations (disabled due to critters dependency)
-    // optimizeCss: !useAdapter, // Disabled for edge runtime compatibility
+    // Advanced optimizations
     turbo: {
       rules: {
         "*.svg": {
@@ -135,12 +86,12 @@ const nextConfig = {
     tsconfigPath: "./tsconfig.json",
   },
 
-  // Enhanced image optimization with Cloudflare compatibility
+  // Enhanced image optimization for static export
   images: {
-    // Disable optimization for static export, enable for adapter
-    unoptimized: isStaticExport && !useAdapter,
+    // Disable optimization for static export
+    unoptimized: true,
 
-    // Cloudflare-compatible image domains
+    // IPFS and project image domains
     remotePatterns: [
       // IPFS gateways
       {
@@ -199,124 +150,10 @@ const nextConfig = {
     // Responsive breakpoints optimized for modern devices
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
-
-    // Cloudflare-optimized caching
-    minimumCacheTTL: isCloudflarePages ? 86400 : 60, // 24 hours for Cloudflare
-
-    // Loader configuration for Cloudflare
-    ...(isCloudflarePages &&
-      !isStaticExport && {
-      loader: "custom",
-      loaderFile: "./src/lib/utils/image-loader.js",
-    }),
   },
 
-  // Enhanced security headers (disabled for static export, handled by _headers file)
-  ...(!isStaticExport && {
-    async headers() {
-      return [
-        {
-          source: "/(.*)",
-          headers: [
-            // Security headers
-            {
-              key: "X-Frame-Options",
-              value: "DENY",
-            },
-            {
-              key: "X-Content-Type-Options",
-              value: "nosniff",
-            },
-            {
-              key: "X-XSS-Protection",
-              value: "1; mode=block",
-            },
-            {
-              key: "Referrer-Policy",
-              value: "strict-origin-when-cross-origin",
-            },
-            {
-              key: "Strict-Transport-Security",
-              value: "max-age=31536000; includeSubDomains; preload",
-            },
-            // Enhanced CSP for Web3 applications
-            {
-              key: "Content-Security-Policy",
-              value: [
-                "default-src 'self'",
-                "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://verify.walletconnect.com https://registry.walletconnect.com https://explorer-api.walletconnect.com",
-                "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-                "img-src 'self' data: https: blob:",
-                "font-src 'self' data: https://fonts.gstatic.com",
-                "connect-src 'self' https: wss: blob:",
-                "frame-src 'none'",
-                "object-src 'none'",
-                "base-uri 'self'",
-                "form-action 'self'",
-                "upgrade-insecure-requests",
-              ].join("; "),
-            },
-            // Permissions policy
-            {
-              key: "Permissions-Policy",
-              value:
-                "camera=(), microphone=(), geolocation=(), payment=(), usb=()",
-            },
-            // Performance headers
-            {
-              key: "X-DNS-Prefetch-Control",
-              value: "on",
-            },
-          ],
-        },
-        // API routes security
-        {
-          source: "/api/(.*)",
-          headers: [
-            {
-              key: "Cache-Control",
-              value: "no-store, max-age=0",
-            },
-          ],
-        },
-        // Static assets caching
-        {
-          source: "/_next/static/(.*)",
-          headers: [
-            {
-              key: "Cache-Control",
-              value: "public, max-age=31536000, immutable",
-            },
-          ],
-        },
-        {
-          source: "/favicon.ico",
-          headers: [
-            {
-              key: "Cache-Control",
-              value: "public, max-age=31536000, immutable",
-            },
-          ],
-        },
-        {
-          source: "/manifest.json",
-          headers: [
-            {
-              key: "Cache-Control",
-              value: "public, max-age=31536000, immutable",
-            },
-          ],
-        },
-      ];
-    },
-  }),
-
-  // Enhanced webpack configuration for Cloudflare and Web3 compatibility
+  // Enhanced webpack configuration for Web3 compatibility
   webpack: (config, { isServer }) => {
-    // Cloudflare Edge Runtime compatibility
-    if (useAdapter && !isServer) {
-      config.target = "webworker";
-    }
 
     // Enhanced node modules polyfills for Web3
     if (!isServer) {
@@ -445,8 +282,8 @@ const nextConfig = {
       /the request of a dependency is an expression/,
     ];
 
-    // Optimization for Cloudflare
-    if (isCloudflarePages) {
+    // Optimization for production builds
+    if (isProduction) {
       config.optimization = {
         ...config.optimization,
         sideEffects: false,
@@ -457,76 +294,6 @@ const nextConfig = {
 
     return config;
   },
-
-  // Enhanced redirects (disabled for static export, handled by _redirects file)
-  ...(!isStaticExport && {
-    async redirects() {
-      return [
-        // Legacy governance routes
-        {
-          source: "/governance",
-          destination: "/proposals",
-          permanent: true,
-        },
-        {
-          source: "/vote",
-          destination: "/proposals",
-          permanent: true,
-        },
-        {
-          source: "/voting",
-          destination: "/proposals",
-          permanent: true,
-        },
-        // DAO routes
-        {
-          source: "/dao",
-          destination: "/proposals",
-          permanent: true,
-        },
-        {
-          source: "/dao/governance",
-          destination: "/proposals",
-          permanent: true,
-        },
-        // Legacy proposal routes
-        {
-          source: "/proposal/:id",
-          destination: "/proposals/:id",
-          permanent: true,
-        },
-      ];
-    },
-  }),
-
-  // Enhanced rewrites for API compatibility
-  ...(!isStaticExport && {
-    async rewrites() {
-      return [
-        // API routes for Cloudflare compatibility
-        {
-          source: "/api/health",
-          destination: "/api/health",
-        },
-        // IPFS gateway rewrites
-        {
-          source: "/ipfs/:hash*",
-          destination: "/api/ipfs/:hash*",
-        },
-      ];
-    },
-  }),
-
-  // Output configuration
-  output: isStaticExport ? "export" : "standalone",
-
-  // Cloudflare-specific optimizations
-  ...(isCloudflarePages && {
-    // Additional Cloudflare Pages optimizations
-    generateBuildId: async () => {
-      return process.env.CF_PAGES_COMMIT_SHA || "development";
-    },
-  }),
 };
 
 // Sentry configuration options
@@ -540,8 +307,9 @@ const sentryWebpackPluginOptions = {
   // Only upload source maps in production
   dryRun: process.env.NODE_ENV !== "production",
 
-  // Disable source map upload if no auth token
-  disableServerWebpackPlugin: !process.env.SENTRY_AUTH_TOKEN,
+  // Disable server-side plugin for static export (no server-side code)
+  disableServerWebpackPlugin: true,
+  // Only enable client-side plugin if auth token is provided
   disableClientWebpackPlugin: !process.env.SENTRY_AUTH_TOKEN,
 
   // Hide source maps from public

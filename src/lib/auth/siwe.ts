@@ -34,11 +34,12 @@ export interface VerifyResponse {
 
 export class SiweAuthService {
 	private static readonly STORAGE_KEY = 'gnus-dao-siwe-session';
-	private static readonly SESSION_DURATION = 24 * 60 * 60 * 1000; // 24 hours
+	private static readonly AUTH_TOKEN_KEY = 'gnus-dao-auth-token';
+	private static readonly SESSION_DURATION = 24 * 60 * 60 * 1000; // 24 hours — SIWE standard is short-lived sessions
 	private static readonly API_BASE_URL =
 		typeof window !== 'undefined'
 			? window.location.origin
-			: 'https://gnus-dao-web.pages.dev';
+			: '';
 
 	/**
 	 * Generate a random nonce for SIWE message from backend
@@ -248,6 +249,7 @@ export class SiweAuthService {
 	static clearSession(): void {
 		try {
 			localStorage.removeItem(this.STORAGE_KEY);
+			localStorage.removeItem(this.AUTH_TOKEN_KEY);
 		} catch (error) {
 			console.error('Failed to clear session:', error);
 		}
@@ -305,17 +307,19 @@ export class SiweAuthService {
 
 	/**
 	 * Validate session against current wallet state
+	 * Note: chainId is intentionally NOT checked here because the JWT token
+	 * from the backend is chain-agnostic. Invalidating the session on
+	 * network switch was causing persistent 'Not Authenticated' display.
 	 */
 	static validateSessionForWallet(
 		session: SiweSession | null,
 		address: string,
-		chainId: number,
+		_chainId: number,
 	): boolean {
 		if (!session) return false;
 
 		return (
 			session.address.toLowerCase() === address.toLowerCase() &&
-			session.chainId === chainId &&
 			this.isSessionValid(session)
 		);
 	}

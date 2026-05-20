@@ -66,26 +66,22 @@ export function Hero() {
           {/* Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-2xl mx-auto">
             <div className="text-center">
-              <div className="text-2xl font-bold text-primary">12K+</div>
-              <div className="text-sm text-muted-foreground">GPU Nodes</div>
+              <div className="text-2xl font-bold text-primary">ERC-2535</div>
+              <div className="text-sm text-muted-foreground">Diamond Pattern</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-primary">80%</div>
-              <div className="text-sm text-muted-foreground">Cost Savings</div>
+              <div className="text-2xl font-bold text-primary">Quadratic</div>
+              <div className="text-sm text-muted-foreground">Voting System</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-primary">6</div>
-              <div className="text-sm text-muted-foreground">Blockchains</div>
+              <div className="text-2xl font-bold text-primary">Sepolia</div>
+              <div className="text-sm text-muted-foreground">Testnet Live</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-primary">24/7</div>
-              <div className="text-sm text-muted-foreground">AI Processing</div>
+              <div className="text-2xl font-bold text-primary">Open</div>
+              <div className="text-sm text-muted-foreground">Source</div>
             </div>
           </div>
-
-          <p className="text-xs text-muted-foreground mt-4">
-            *Compared to traditional cloud computing providers
-          </p>
         </div>
 
         {/* Feature highlights */}

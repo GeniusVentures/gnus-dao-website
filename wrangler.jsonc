@@ -18,18 +18,18 @@
   "kv_namespaces": [
     {
       "binding": "AUTH_SESSIONS",
-      "id": "669cfebda6a544e0a2a66b482a5b5e35",
-      "preview_id": "c03ccc431a3540be9dbbf3eade06dcc5"
+      "id": "3170b99054a04a23902e5e76f0a72bc1",
+      "preview_id": "76f3ff0bb021461b827d4e8d4293e04f"
     },
     {
       "binding": "IPFS_CACHE",
-      "id": "22f5c52a20ba44d3b060975e212f1e42",
-      "preview_id": "0779abda6db947c982834b4474a619df"
+      "id": "2775876c058e41a8ab15fb186e0d240a",
+      "preview_id": "dd98063fe5eb45cc867d28b92c6584bf"
     },
     {
       "binding": "APP_CACHE",
-      "id": "8e2dd1e6309844cbbce9a9ffa901d37e",
-      "preview_id": "6dfc2abf75cd4de99807c282c462bc8d"
+      "id": "7e46e5db1efc4955850ca4517151b986",
+      "preview_id": "84e6ab1b0d4d41779e394e8bee6646be"
     }
   ],
   
@@ -43,10 +43,22 @@
     // }
   ],
   
-  // Global environment variables
+  // Global environment variables (non-sensitive public vars only)
+  // ⚠️  NEVER put secrets here — use Cloudflare Dashboard or `wrangler secret put <KEY>`
   "vars": {
     "CLOUDFLARE_PAGES": "true",
-    "NODE_ENV": "production"
+    "NODE_ENV": "production",
+    // Set via Cloudflare Dashboard > Workers & Pages > Your Project > Settings > Variables
+    // "NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID": "<set in Cloudflare Dashboard>",
+    "NEXT_PUBLIC_SEPOLIA_GNUS_DAO_ADDRESS": "0x84Ba28d277ded98b3488C906E90B6435B116D5b4",
+    "NEXT_PUBLIC_BASE_GNUS_DAO_ADDRESS": "0x0000000000000000000000000000000000000000",
+    "NEXT_PUBLIC_POLYGON_GNUS_DAO_ADDRESS": "0x0000000000000000000000000000000000000000",
+    "NEXT_PUBLIC_SKALE_GNUS_DAO_ADDRESS": "0x0000000000000000000000000000000000000000",
+    "NEXT_PUBLIC_IPFS_GATEWAY": "https://ipfs.io/ipfs/",
+    "NEXT_PUBLIC_SEPOLIA_RPC_URL": "https://rpc.sepolia.org"
+    // Secrets below must be set via Cloudflare Dashboard or wrangler secret put:
+    // - JWT_SECRET          → wrangler secret put JWT_SECRET
+    // - NEXT_PUBLIC_PINATA_JWT → wrangler secret put NEXT_PUBLIC_PINATA_JWT
   },
   
   // Note: Sensitive environment variables should be set via:

@@ -1,3 +1,9 @@
+import * as dotenv from 'dotenv';
+
+// Load .env.local first (has real keys), then .env as fallback
+dotenv.config({ path: '.env.local' });
+dotenv.config({ path: '.env' });
+
 import '@diamondslab/hardhat-diamonds';
 import '@nomicfoundation/hardhat-toolbox';
 import '@nomicfoundation/hardhat-web3-v4';
@@ -261,27 +267,7 @@ const config: HardhatUserConfig = {
 		currency: 'USD',
 	},
 	etherscan: {
-		apiKey: {
-			polygonMumbai:
-				process.env.POLYGONSCAN_API_KEY !== undefined
-					? process.env.POLYGONSCAN_API_KEY
-					: '',
-			polygon:
-				process.env.POLYGONSCAN_API_KEY !== undefined
-					? process.env.POLYGONSCAN_API_KEY
-					: '',
-			polygon_amoy:
-				process.env.POLYGONSCAN_API_KEY !== undefined
-					? process.env.POLYGONSCAN_API_KEY
-					: '',
-			sepolia: process.env.ETHERSCAN_API_KEY || '',
-			mainnet: process.env.ETHERSCAN_API_KEY || '',
-			bsc: process.env.BSCSCAN_API_KEY || '',
-			bsc_testnet: process.env.BSCSCAN_API_KEY || '',
-			arbitrum_sepolia: process.env.ARBITRUM_API_KEY || '',
-			base_sepolia: process.env.BASESCAN_API_KEY || '',
-			base: process.env.BASESCAN_API_KEY || '',
-		},
+		apiKey: process.env.ETHERSCAN_API_KEY || '',
 		customChains: [
 			// additional etherscan config
 			{

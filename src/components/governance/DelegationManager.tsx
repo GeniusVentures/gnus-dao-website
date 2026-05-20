@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import { useSiweProtectedAction } from "@/components/auth/SiweGuard";
 import { useWeb3Store } from "@/lib/web3/reduxProvider";
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/hooks/useToast";
@@ -16,8 +17,9 @@ interface DelegationInfo {
 }
 
 export function DelegationManager() {
-  const { wallet } = useWeb3Store();
+  const { wallet, provider, signer } = useWeb3Store();
   const { address, isConnected } = wallet;
+  const { executeProtected } = useSiweProtectedAction();
   const toast = useToast();
 
   const [delegationInfo, setDelegationInfo] = useState<DelegationInfo>({
@@ -32,11 +34,27 @@ export function DelegationManager() {
   const [isDelegating, setIsDelegating] = useState(false);
   const [isRevoking, setIsRevoking] = useState(false);
 
-  // Load delegation info
+  // Initialize DAO service and load delegation info when wallet connects
+  const providerRef = useRef(provider);
+  const signerRef = useRef(signer);
+  providerRef.current = provider;
+  signerRef.current = signer;
+
   useEffect(() => {
-    if (isConnected && address) {
-      loadDelegationInfo();
-    }
+    const init = async () => {
+      if (isConnected && address) {
+        try {
+          if (providerRef.current && signerRef.current) {
+            const network = await providerRef.current.getNetwork();
+            await gnusDaoService.initialize(providerRef.current, signerRef.current, Number(network.chainId));
+          }
+        } catch (error) {
+          console.error('Failed to initialize DAO service for delegation:', error);
+        }
+        loadDelegationInfo();
+      }
+    };
+    init();
   }, [isConnected, address]);
 
   const loadDelegationInfo = async () => {
@@ -77,13 +95,14 @@ export function DelegationManager() {
       return;
     }
 
-    if (delegateAddress.toLowerCase() === address?.toLowerCase()) {
-      toast.error("Error", "Cannot delegate to yourself");
-      return;
-    }
-
     setIsDelegating(true);
     try {
+      // Re-initialize with current signer to ensure write access
+      if (provider && signer) {
+        const network = await provider.getNetwork();
+        await gnusDaoService.initialize(provider, signer, Number(network.chainId));
+      }
+
       const tx = await gnusDaoService.delegate(delegateAddress);
 
       toast.info("Transaction Submitted", "Delegating voting power...");
@@ -100,10 +119,8 @@ export function DelegationManager() {
       setDelegateAddress("");
     } catch (error: any) {
       console.error("Error delegating:", error);
-      toast.error(
-        "Delegation Failed",
-        error.message || "Failed to delegate voting power",
-      );
+      const msg = error?.reason || error?.message || "Failed to delegate voting power";
+      toast.error("Delegation Failed", msg);
     } finally {
       setIsDelegating(false);
     }
@@ -112,6 +129,12 @@ export function DelegationManager() {
   const handleRevoke = async () => {
     setIsRevoking(true);
     try {
+      // Re-initialize with current signer to ensure write access
+      if (provider && signer) {
+        const network = await provider.getNetwork();
+        await gnusDaoService.initialize(provider, signer, Number(network.chainId));
+      }
+
       const tx = await gnusDaoService.revokeDelegation();
 
       toast.info("Transaction Submitted", "Revoking delegation...");
@@ -127,10 +150,13 @@ export function DelegationManager() {
       await loadDelegationInfo();
     } catch (error: any) {
       console.error("Error revoking delegation:", error);
-      toast.error(
-        "Revocation Failed",
-        error.message || "Failed to revoke delegation",
-      );
+      // Parse on-chain revert reasons
+      let reason = error?.reason || error?.data?.message || error?.message || "Failed to revoke delegation";
+      // Match the custom error NoActiveDelegation (selector 0xba970e57)
+      if (reason.includes("NoActiveDelegation") || error?.data === "0xba970e57" || reason.includes("0xba970e57")) {
+        reason = "You have not delegated your voting power to anyone, so there is nothing to revoke.";
+      }
+      toast.error("Revocation Failed", reason);
     } finally {
       setIsRevoking(false);
     }
@@ -172,7 +198,7 @@ export function DelegationManager() {
                   Your Voting Power
                 </p>
                 <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                  {delegationInfo.votingPower.toString()}
+                  {Number(delegationInfo.votingPower / 10n**18n).toLocaleString()} GDAO
                 </p>
               </div>
               <TrendingUp className="w-8 h-8 text-blue-600 dark:text-blue-400 opacity-50" />
@@ -186,7 +212,7 @@ export function DelegationManager() {
                     Votes Delegated to You
                   </p>
                   <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-                    {delegationInfo.delegatedVotes.toString()}
+                    {Number(delegationInfo.delegatedVotes / 10n**18n).toLocaleString()} GDAO
                   </p>
                 </div>
                 <Users className="w-8 h-8 text-green-600 dark:text-green-400 opacity-50" />

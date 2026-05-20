@@ -204,6 +204,7 @@ export default function SettingsPage() {
           <h2 className="text-xl font-semibold mb-4 flex items-center">
             <Bell className="h-5 w-5 mr-2 text-green-600" />
             Notifications
+            <span className="ml-2 text-xs px-2 py-0.5 bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-300 rounded-full">Coming soon</span>
           </h2>
           <div className="space-y-4">
             <div className="flex items-center justify-between">
@@ -225,6 +226,7 @@ export default function SettingsPage() {
                     )
                   }
                   className="sr-only peer"
+                  disabled
                 />
                 <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
               </label>
@@ -249,6 +251,7 @@ export default function SettingsPage() {
                     )
                   }
                   className="sr-only peer"
+                  disabled
                 />
                 <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
               </label>
@@ -273,6 +276,7 @@ export default function SettingsPage() {
                     )
                   }
                   className="sr-only peer"
+                  disabled
                 />
                 <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
               </label>
@@ -297,6 +301,7 @@ export default function SettingsPage() {
                     )
                   }
                   className="sr-only peer"
+                  disabled
                 />
                 <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
               </label>
@@ -312,13 +317,17 @@ export default function SettingsPage() {
           </h2>
           <div className="space-y-4">
             <div>
-              <label className="block font-medium mb-2">Currency</label>
+              <label className="block font-medium mb-2">
+                Currency
+                <span className="ml-2 text-xs px-2 py-0.5 bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-300 rounded-full">Coming soon</span>
+              </label>
               <select
                 value={settings.display.currency}
                 onChange={(e) =>
                   updateSetting("display", "currency", e.target.value)
                 }
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
+                disabled
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed focus:ring-2 focus:ring-blue-500"
               >
                 <option value="USD">USD ($)</option>
                 <option value="ETH">ETH (Ξ)</option>
@@ -328,13 +337,17 @@ export default function SettingsPage() {
             </div>
 
             <div>
-              <label className="block font-medium mb-2">Language</label>
+              <label className="block font-medium mb-2">
+                Language
+                <span className="ml-2 text-xs px-2 py-0.5 bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-300 rounded-full">Coming soon</span>
+              </label>
               <select
                 value={settings.display.language}
                 onChange={(e) =>
                   updateSetting("display", "language", e.target.value)
                 }
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
+                disabled
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed focus:ring-2 focus:ring-blue-500"
               >
                 <option value="en">English</option>
                 <option value="es">Español</option>

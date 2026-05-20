@@ -259,3 +259,38 @@ export function getErrorMessage(error: unknown): string {
 	}
 	return 'An unknown error occurred';
 }
+
+// ENS resolution cache to avoid repeated lookups
+const ensCache = new Map<string, string | null>();
+
+/**
+ * Resolve an Ethereum address to its ENS name via mainnet.
+ * Returns the ENS name if found, otherwise returns null.
+ * Results are cached in memory.
+ */
+export async function resolveEnsName(address: string): Promise<string | null> {
+	if (!address) return null;
+	const key = address.toLowerCase();
+
+	if (ensCache.has(key)) return ensCache.get(key)!;
+
+	try {
+		const { ethers } = await import('ethers');
+		const mainnet = new ethers.JsonRpcProvider('https://ethereum.publicnode.com');
+		const name = await mainnet.lookupAddress(address);
+		ensCache.set(key, name ?? null);
+		return name ?? null;
+	} catch {
+		ensCache.set(key, null);
+		return null;
+	}
+}
+
+/**
+ * Format an address showing ENS name if available, otherwise shortened address.
+ * Async version — use in components with useEffect or useMemo.
+ */
+export async function formatAddressWithEns(address: string): Promise<string> {
+	const ens = await resolveEnsName(address);
+	return ens ?? formatAddress(address);
+}

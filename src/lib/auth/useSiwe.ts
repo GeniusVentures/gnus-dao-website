@@ -15,10 +15,13 @@ export function useSiwe() {
 	});
 
 	/**
-	 * Initialize authentication state from stored session
+	 * Initialize authentication state from stored session.
+	 * Runs on mount and whenever wallet address or network changes.
+	 * Also clears any expired sessions from localStorage on startup.
 	 */
 	useEffect(() => {
 		const initializeAuth = () => {
+			// Always call getSession() — it clears expired sessions from localStorage
 			const session = SiweAuthService.getSession();
 
 			if (session && wallet.address && currentNetwork) {
@@ -39,6 +42,10 @@ export function useSiwe() {
 					SiweAuthService.clearSession();
 				}
 			} else {
+				// No valid session or wallet not connected — ensure clean state
+				if (!session) {
+					// getSession() already cleared it if expired
+				}
 				setAuthState({
 					isAuthenticated: false,
 					session: null,

@@ -1,6 +1,9 @@
 /**
  * Error Tracking Utility for Cloudflare Workers
  * Provides error logging and tracking for API endpoints with Sentry integration
+ * 
+ * Note: This uses direct Sentry API calls instead of @sentry/nextjs since we're
+ * running in Cloudflare Workers environment, not Next.js server.
  */
 
 export interface ErrorContext {
@@ -14,7 +17,7 @@ export interface ErrorTrackingConfig {
 }
 
 /**
- * Log error to Sentry (Cloudflare Workers compatible)
+ * Log error to Sentry using direct API (Workers-compatible)
  */
 export async function captureException(
 	error: Error,
@@ -26,12 +29,12 @@ export async function captureException(
 	// Always log to console for debugging
 	console.error('Error:', error.message, context);
 
-	try {
-		// Fallback to direct Sentry API for Cloudflare Workers
-		if (!sentryDsn) {
-			return;
-		}
+	// Use direct Sentry API for Cloudflare Workers
+	if (!sentryDsn) {
+		return;
+	}
 
+	try {
 		// Extract Sentry project info from DSN
 		const dsnMatch = sentryDsn.match(/https:\/\/(.+)@(.+)\/(.+)/);
 		if (!dsnMatch) {
@@ -41,12 +44,9 @@ export async function captureException(
 
 		const [, key, host, projectId] = dsnMatch;
 
-		// Generate a simple UUID for Cloudflare Workers
-		const eventId = crypto.randomUUID().replace(/-/g, '');
-
 		// Create Sentry event
 		const event = {
-			event_id: eventId,
+			event_id: crypto.randomUUID().replace(/-/g, ''),
 			timestamp: Date.now() / 1000,
 			platform: 'javascript',
 			environment,
@@ -97,10 +97,10 @@ function parseStackTrace(stack: string): any[] {
 			if (match) {
 				const [, func, filename, lineno, colno] = match;
 				return {
-					function: func || 'unknown',
-					filename: filename || 'unknown',
-					lineno: parseInt(lineno || '0', 10),
-					colno: parseInt(colno || '0', 10),
+					function: func,
+					filename,
+					lineno: parseInt(lineno),
+					colno: parseInt(colno),
 				};
 			}
 			return null;
@@ -168,7 +168,7 @@ export function logInfo(message: string, context?: ErrorContext): void {
 }
 
 /**
- * Capture message to Sentry (Cloudflare Workers compatible)
+ * Capture message to Sentry using direct API
  */
 export function captureMessage(
 	message: string,
@@ -176,10 +176,13 @@ export function captureMessage(
 	context?: ErrorContext,
 ): void {
 	console.log(`[${level.toUpperCase()}] ${message}`, context || {});
+	// Note: For full message capture, implement direct Sentry API call similar to captureException
+	// For now, messages are logged to console for Workers debugging
 }
 
 /**
- * Set user context (Cloudflare Workers compatible)
+ * Set user context (stored for future error reports)
+ * Note: In Workers, user context should be passed with each captureException call
  */
 export function setUser(user: {
 	id?: string;
@@ -187,17 +190,21 @@ export function setUser(user: {
 	username?: string;
 	address?: string;
 }): void {
-	// In Cloudflare Workers, we can only log user context
-	console.log('User context:', user);
+	// In Cloudflare Workers, user context is passed directly with error reports
+	// This is a no-op for compatibility with client-side code
+	console.log('[Sentry] User context set:', user.id || user.address);
 }
 
 /**
- * Add breadcrumb (Cloudflare Workers compatible)
+ * Add breadcrumb (logged to console in Workers environment)
+ * Note: In Workers, breadcrumbs should be collected and sent with error reports
  */
 export function addBreadcrumb(
 	message: string,
 	category?: string,
 	level?: 'debug' | 'info' | 'warning' | 'error',
 ): void {
-	console.log(`[BREADCRUMB] ${category || 'custom'}: ${message}`, { level: level || 'info' });
+	// In Cloudflare Workers, breadcrumbs are logged to console
+	// For production, consider implementing a breadcrumb buffer
+	console.log(`[Breadcrumb] ${category || 'custom'}: ${message}`);
 }

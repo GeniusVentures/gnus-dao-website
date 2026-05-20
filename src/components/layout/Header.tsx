@@ -21,7 +21,6 @@ export function Header() {
     { name: "Treasury", href: "/treasury" },
     { name: "Analytics", href: "/analytics" },
     { name: "History", href: "/history" },
-    { name: "Settings", href: "/settings" },
     { name: "Docs", href: "/docs" },
   ];
 
@@ -31,12 +30,7 @@ export function Header() {
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
           <Link href="/" className="flex items-center space-x-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-              <Zap className="h-5 w-5 text-primary-foreground" />
-            </div>
-            <span className="text-xl font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
-              GNUS DAO
-            </span>
+            <img src="/gnus-logo.png" alt="GNUS.AI" className="h-8" />
           </Link>
 
           {/* Desktop Navigation */}
